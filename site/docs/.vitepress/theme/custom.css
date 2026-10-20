@@ -142,6 +142,49 @@
   object-fit: cover;
 }
 
+@media (min-width: 960px) {
+  .VPHome .VPHero.has-image .main {
+    display: grid;
+    grid-template-areas:
+      'portrait heading'
+      'portrait tagline'
+      'actions actions'
+      'contacts contacts';
+    grid-template-columns: 88px minmax(0, 1fr);
+    column-gap: 20px;
+    row-gap: 0;
+    align-content: start;
+  }
+
+  .VPHome .VPHero.has-image .hero-portrait {
+    grid-area: portrait;
+    margin: 0;
+  }
+
+  .VPHome .VPHero.has-image .heading {
+    grid-area: heading;
+    margin: 0;
+  }
+
+  .VPHome .VPHero.has-image .tagline {
+    grid-area: tagline;
+    margin: 0;
+    padding-top: 2px;
+  }
+
+  .VPHome .VPHero.has-image .actions {
+    grid-area: actions;
+    gap: 8px;
+    margin: 0;
+    padding-top: 10px;
+  }
+
+  .VPHome .VPHero.has-image .contact-row {
+    grid-area: contacts;
+    margin-top: 6px;
+  }
+}
+
 .VPHome .VPHero .text {
   font-size: 58px;
   font-weight: 700;
