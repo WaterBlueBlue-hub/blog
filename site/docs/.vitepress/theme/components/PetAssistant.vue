@@ -289,6 +289,7 @@ async function streamDeepSeek(assistant: ChatMessage) {
     const decoder = new TextDecoder()
     let buf = ''
     let got = false
+    let streamDone = false
     for (;;) {
       const { done, value } = await reader.read()
       if (done) break
@@ -299,7 +300,11 @@ async function streamDeepSeek(assistant: ChatMessage) {
         const t = line.trim()
         if (!t.startsWith('data:')) continue
         const data = t.slice(5).trim()
-        if (!data || data === '[DONE]') continue
+        if (!data) continue
+        if (data === '[DONE]') {
+          streamDone = true
+          break
+        }
         try {
           const j = JSON.parse(data)
           const delta = j?.choices?.[0]?.delta?.content
@@ -311,6 +316,14 @@ async function streamDeepSeek(assistant: ChatMessage) {
           /* SSE 半包，下一轮再解 */
         }
       }
+      if (streamDone) break
+    }
+    // 有些网关发完 [DONE] 不会立刻关连接；主动取消，避免"字已经打完、
+    // 输入框还锁着 30 秒"。
+    if (streamDone) {
+      try {
+        reader.cancel().catch(() => {})
+      } catch {}
     }
     if (!got) {
       assistant.content = '它好像走神了，再问一次？'
