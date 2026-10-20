@@ -158,6 +158,13 @@
   margin: 0 auto 28px;
 }
 
+/* Hero 右侧现在是流体演示卡片，手机端整体隐藏，避免占掉一整屏 */
+@media (max-width: 959px) {
+  .VPHome .VPHero .image {
+    display: none;
+  }
+}
+
 .VPHome .VPHero .VPImage {
   width: 132px;
   height: 132px;

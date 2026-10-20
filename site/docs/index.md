@@ -6,9 +6,6 @@ hero:
   name: WaterBlueBlue
   text: 图形学爱好者 ×&nbsp;二次元
   tagline: 喜欢动画、物理模拟，也喜欢二次元。
-  image:
-    src: /avatar.png
-    alt: WaterBlueBlue
   actions:
     - theme: brand
       text: 浏览笔记
@@ -27,8 +24,6 @@ features:
   - title: 持续更新
     details: 目前 28 篇，按主题分成 7 组，跟着项目继续补。
 ---
-
-<FluidFloat />
 
 <div class="home-panel">
 

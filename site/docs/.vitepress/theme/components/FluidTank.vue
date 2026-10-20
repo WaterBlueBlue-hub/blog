@@ -208,10 +208,12 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     const area = 4 * r * hl + Math.PI * r * r
     const m = 0.45 * area * RHO_AREA
     const waterY = H * CFG.waterFill
+    // 立绘宽度随原图比例变化，站到最边上会被水槽裁掉；按最高角色的半宽留边
+    const side = Math.min(W * 0.2, charH * 0.62)
     for (let i = 0; i < CFG.bodyCount; i++) {
       const t = (i + 0.5) / CFG.bodyCount
       bodies.push({
-        x: W * (0.06 + 0.88 * t) + (Math.random() - 0.5) * 14,
+        x: side + (W - 2 * side) * t + (Math.random() - 0.5) * 10,
         // 从水面上方落下来，落水才有明显的水花
         y: waterY - charH * 0.85 - i * 14,
         vx: (Math.random() - 0.5) * 40,
@@ -1339,9 +1341,10 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
 }
 
 .fluid-tank--compact {
-  height: 100%;
+  height: var(--fluid-tank-height, 100%);
   margin: 0;
-  border-radius: 16px;
+  border-radius: 14px;
+  box-shadow: 0 12px 30px -22px rgba(10, 20, 50, 0.6);
 }
 
 /* 亚克力表面的那层斜光 */
@@ -1378,7 +1381,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   }
 
   .fluid-tank--compact {
-    height: 100%;
+    height: var(--fluid-tank-height, 100%);
   }
 }
 </style>

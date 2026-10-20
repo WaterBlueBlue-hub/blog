@@ -13,6 +13,7 @@ export default {
     h(DefaultTheme.Layout, null, {
       'layout-top': () => h(SakuraPetals),
       'home-hero-actions-after': () => h(ContactButtons),
+      'home-hero-image': () => h(FluidFloat),
     }),
   enhanceApp(ctx: any) {
     ctx.app.component('FluidTank', FluidTank)
