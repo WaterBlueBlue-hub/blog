@@ -28,6 +28,8 @@ features:
     details: 目前 28 篇，按主题分成 7 组，跟着项目继续补。
 ---
 
+<FluidTank />
+
 <p class="home-section-title">常读的几篇</p>
 <p class="home-section-desc">如果只看一篇，从这里开始。</p>
 
