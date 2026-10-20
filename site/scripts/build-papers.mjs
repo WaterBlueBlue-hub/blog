@@ -1,7 +1,6 @@
 /**
- * 扫描 论文/ 里的 PDF，生成两个东西：
- *   1. docs/papers.md      —— 公开的文献索引（只放元数据，不放 PDF）
- *   2. 论文/文献库.html     —— 本地离线检索页（链接指向本地 PDF，不上传）
+ * 扫描 论文/ 里的 PDF，生成本地离线检索页 论文/文献库.html。
+ * 注意：只生成本地文件，不上传站点（第三方 PDF 与中译本都不适合公开分发）。
  *
  * 命名约定：论文/<主题>/<短名>（<年份>）_<英文原版|中文机翻|中文译本>.pdf
  * 中文要点写在 papers.meta.json 里，按 "<短名>-<年份>" 索引。
@@ -67,52 +66,12 @@ const entries = [...groups.values()].map((g) => ({
   meta: META[g.key] ?? {},
 }))
 
-// CI / 全新 clone 里没有 论文/（第三方 PDF 不入库），保留上一次提交的 papers.md
+// 全新 clone 里没有 论文/（第三方 PDF 不入库），直接跳过
 if (!entries.length) {
-  console.log('未找到 论文/ 目录：跳过文献库生成，沿用已提交的 pages')
+  console.log('未找到 论文/ 目录：跳过本地文献库生成')
   process.exit(0)
 }
-
-/* ---------------- 公开索引 ---------------- */
 const totalFiles = entries.reduce((n, e) => n + e.files.length, 0)
-const lines = []
-lines.push('---')
-lines.push('title: 文献库')
-lines.push('pageClass: papers-page')
-lines.push('aside: false')
-lines.push('---')
-lines.push('')
-lines.push('# 文献库')
-lines.push('')
-lines.push(
-  `读过的 ${entries.length} 篇论文，共 ${totalFiles} 份 PDF：英文原版、机翻，以及我自己逐段对照翻译的中文版。` +
-    '站上只做索引——原文是出版社 / 会议的版权材料，不放在公开站点里；本地留了全文，按主题归档。',
-)
-lines.push('')
-lines.push('同一篇如果出现在多个主题下（比如 XPBD 既在「解算器」也在「对照版」），这里合并成一条。')
-lines.push('')
-
-for (const topic of TOPIC_ORDER) {
-  const list = entries.filter((e) => e.topics.includes(topic))
-  if (!list.length) continue
-  list.sort((a, b) => a.year.localeCompare(b.year) || a.short.localeCompare(b.short))
-  lines.push(`## ${topic}`)
-  lines.push('')
-  lines.push('| 论文 | 年份 | 材料 | 要点 |')
-  lines.push('| --- | --- | --- | --- |')
-  for (const e of list) {
-    const title = e.meta.en
-      ? `**${e.short}**<br><span class="paper-en">${e.meta.en.replace(/\|/g, '\\|')}</span>`
-      : `**${e.short}**`
-    const variants = e.variants.join(' · ')
-    const note = (e.meta.zh || '—').replace(/\|/g, '\\|')
-    lines.push(`| ${title} | ${e.year} | ${variants} | ${note} |`)
-  }
-  lines.push('')
-}
-
-fs.mkdirSync(path.join(SITE, 'docs'), { recursive: true })
-fs.writeFileSync(path.join(SITE, 'docs', 'papers.md'), lines.join('\n'), 'utf8')
 
 /* ---------------- 本地离线文献库 ---------------- */
 const payload = entries

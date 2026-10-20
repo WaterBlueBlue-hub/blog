@@ -94,7 +94,6 @@ export default defineConfig({
     nav: [
       { text: '首页', link: '/' },
       { text: '笔记', link: '/notes/', activeMatch: '^/notes/' },
-      { text: '文献', link: '/papers.html' },
       { text: '关于', link: '/about.html' },
     ],
 
