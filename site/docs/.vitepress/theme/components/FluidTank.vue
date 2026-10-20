@@ -59,8 +59,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     bodyHeightRatio: 0.26, // 小人高度 / 水槽高度（太大会踩到底就浮不起来）
     bodyDensity: 0.25, // 人偶质量 / 同体积水质量；平衡时约 25% 浸没
     waterFill: 2 / 3, // 水面初始高度：水只占水池下方约 1/3
-    renderBreakDistance: 1.85, // 粒子间距超过该倍数即视为断开，不参与连续水面
-    splashLookahead: 0.08, // 用速度预测未来 80ms 的连通关系，提前开始断开/合并
   }
 
   const FIXED = 1 / 60
@@ -88,14 +86,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   let qy = new Float32Array(capacity)
   let lam = new Float32Array(capacity)
   let rho = new Float32Array(capacity)
-  let componentIds = new Int32Array(capacity)
-  let componentSizes = new Int32Array(capacity)
-  let futureComponentIds = new Int32Array(capacity)
-  let futureComponentSizes = new Int32Array(capacity)
-  let componentStack = new Int32Array(capacity)
-  let bulkMask = new Uint8Array(capacity)
-  let renderWater = new Float32Array(capacity)
-  let bulkCount = 0
 
   // 均匀网格（计数排序）
   let cols = 1
@@ -107,9 +97,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   let drawSurface = new Float32Array(96)
   let particleSurface = new Float32Array(96)
   let particleSurfaceSmooth = new Float32Array(96)
-  let particleSurfaceValid = new Uint8Array(96)
-  let particleSurfaceMain = new Uint8Array(96)
-  let particleSurfaceWeight = new Float32Array(96)
   let bottom = new Float32Array(96)
   let rawBottom = new Float32Array(96)
   let binMax = new Float32Array(96)
@@ -241,7 +228,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
         py[i] = qy[i] = y
         vx[i] = vy[i] = 0
         lam[i] = 0
-        renderWater[i] = 1
         i++
       }
     }
@@ -1115,11 +1101,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     grad.addColorStop(0, '#51b4ff')
     grad.addColorStop(0.45, '#2b78e8')
     grad.addColorStop(1, '#0a2f84')
+    const r = CFG.spacing * 0.78
     wc.beginPath()
     for (let i = 0; i < count; i++) {
-      // 主水体保持完整半径；脱离的小粒子群按群体规模平滑收缩，
-      // 因此 3~7 个粒子仍会连成一块小水体，只有真正的小液滴才画成圆点。
-      const r = CFG.spacing * (0.42 + 0.36 * renderWater[i])
       wc.moveTo(px[i] + r, py[i])
       wc.arc(px[i], py[i], r, 0, Math.PI * 2)
     }
@@ -1143,19 +1127,18 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     grad.addColorStop(0.45, 'rgba(30, 95, 205, 0.3)')
     grad.addColorStop(1, 'rgba(6, 26, 90, 0.44)')
     ctx.beginPath()
-    const mainY = (b: number) => (particleSurfaceMain[b] ? particleSurfaceSmooth[b] : waterLevel)
-    ctx.moveTo(0, mainY(0))
+    ctx.moveTo(0, particleSurfaceSmooth[0])
     for (let b = 1; b < BINS - 1; b++) {
       const x0 = (b / (BINS - 1)) * W
       const x1 = ((b + 1) / (BINS - 1)) * W
       ctx.quadraticCurveTo(
         x0,
-        mainY(b),
+        particleSurfaceSmooth[b],
         (x0 + x1) / 2,
-        (mainY(b) + mainY(b + 1)) / 2,
+        (particleSurfaceSmooth[b] + particleSurfaceSmooth[b + 1]) / 2,
       )
     }
-    ctx.lineTo(W, mainY(BINS - 1))
+    ctx.lineTo(W, particleSurfaceSmooth[BINS - 1])
     ctx.lineTo(W, H)
     ctx.lineTo(0, H)
     ctx.closePath()
@@ -1165,136 +1148,10 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
 
   // 从粒子圆的并集上边缘提取水线。这里没有高度场：每个 x 列取所有
   // 覆盖该列的粒子圆顶部 y 的最小值，再做一遍 3 点平滑。
-  // 渲染前先找连通分量：只有与主水体相连的粒子能参与连续水面和底部填充，
-  // 脱离水体的粒子则留给水花绘制。否则一颗飞远的粒子会把整列水面拉成尖峰。
-  function buildRenderGrid(timeAhead: number) {
-    cellCount.fill(0)
-    for (let i = 0; i < count; i++) {
-      const x = px[i] + vx[i] * timeAhead
-      const y = py[i] + vy[i] * timeAhead
-      const cx = Math.min(cols - 1, Math.max(0, (x / h) | 0))
-      const cy = Math.min(rows - 1, Math.max(0, (y / h) | 0))
-      cellCount[cy * cols + cx]++
-    }
-    let sum = 0
-    for (let c = 0; c < cols * rows; c++) {
-      cellStart[c] = sum
-      sum += cellCount[c]
-    }
-    cellStart[cols * rows] = sum
-    cellCount.fill(0)
-    for (let i = 0; i < count; i++) {
-      const x = px[i] + vx[i] * timeAhead
-      const y = py[i] + vy[i] * timeAhead
-      const cx = Math.min(cols - 1, Math.max(0, (x / h) | 0))
-      const cy = Math.min(rows - 1, Math.max(0, (y / h) | 0))
-      const cell = cy * cols + cx
-      cellItems[cellStart[cell] + cellCount[cell]++] = i
-    }
-  }
-
-  function labelComponents(ids: Int32Array, sizes: Int32Array, timeAhead: number) {
-    buildRenderGrid(timeAhead)
-    ids.fill(-1, 0, count)
-    sizes.fill(0, 0, count)
-
-    const connectRadius = CFG.spacing * CFG.renderBreakDistance
-    const connect2 = connectRadius * connectRadius
-    let componentCount = 0
-    let bestComponent = -1
-    let bestSize = 0
-
-    for (let seed = 0; seed < count; seed++) {
-      if (ids[seed] >= 0) continue
-      const component = componentCount++
-      let top = 0
-      let size = 0
-      ids[seed] = component
-      componentStack[top++] = seed
-
-      while (top > 0) {
-        const i = componentStack[--top]
-        size++
-        const xi = px[i] + vx[i] * timeAhead
-        const yi = py[i] + vy[i] * timeAhead
-        const cx = Math.min(cols - 1, Math.max(0, (xi / h) | 0))
-        const cy = Math.min(rows - 1, Math.max(0, (yi / h) | 0))
-        for (let oy = -1; oy <= 1; oy++) {
-          const yy = cy + oy
-          if (yy < 0 || yy >= rows) continue
-          for (let ox = -1; ox <= 1; ox++) {
-            const xx = cx + ox
-            if (xx < 0 || xx >= cols) continue
-            const cell = yy * cols + xx
-            const start = cellStart[cell]
-            const end = start + cellCount[cell]
-            for (let k = start; k < end; k++) {
-              const j = cellItems[k]
-              if (ids[j] >= 0) continue
-              const dx = px[j] + vx[j] * timeAhead - xi
-              const dy = py[j] + vy[j] * timeAhead - yi
-              if (dx * dx + dy * dy <= connect2) {
-                ids[j] = component
-                componentStack[top++] = j
-              }
-            }
-          }
-        }
-      }
-
-      sizes[component] = size
-      if (size > bestSize) {
-        bestSize = size
-        bestComponent = component
-      }
-    }
-    return [bestComponent, bestSize] as const
-  }
-
-  function updateBulkComponent() {
-    if (count <= 0) {
-      bulkCount = 0
-      return
-    }
-
-    const [bestComponent, bestSize] = labelComponents(componentIds, componentSizes, 0)
-    const [futureBestComponent] = labelComponents(
-      futureComponentIds,
-      futureComponentSizes,
-      CFG.splashLookahead,
-    )
-
-    bulkMask.fill(0, 0, count)
-    for (let i = 0; i < count; i++) {
-      const currentComponent = componentIds[i]
-      const futureComponent = futureComponentIds[i]
-      const isBulk = currentComponent === bestComponent
-      if (isBulk) bulkMask[i] = 1
-
-      // 当前与短时预测各占一部分权重：即将离群的粒子会提前变细/变淡，
-      // 即将重新汇入主水体的粒子会提前恢复为完整水体，而不是卡在阈值上突变。
-      const currentWater =
-        isBulk ? 1 : Math.min(1, componentSizes[currentComponent] / 8)
-      const futureWater =
-        futureComponent === futureBestComponent
-          ? 1
-          : Math.min(1, futureComponentSizes[futureComponent] / 8)
-      const target = currentWater * 0.4 + futureWater * 0.6
-      renderWater[i] += (target - renderWater[i]) * 0.28
-    }
-    bulkCount = bestSize
-  }
-
   function computeParticleSurface() {
     const r = CFG.spacing * 0.78
     particleSurface.fill(H)
-    particleSurfaceValid.fill(0)
-    particleSurfaceMain.fill(0)
-    particleSurfaceWeight.fill(0)
     for (let i = 0; i < count; i++) {
-      // renderWater 同时控制绘制半径和水线透明度。低权重粒子仍会短暂保留
-      // 很淡的水线并逐渐消失，不再跨过单一阈值时突然截断。
-      if (renderWater[i] < 0.18) continue
       const left = Math.max(0, Math.floor(((px[i] - r) / W) * (BINS - 1)))
       const right = Math.min(BINS - 1, Math.ceil(((px[i] + r) / W) * (BINS - 1)))
       for (let b = left; b <= right; b++) {
@@ -1303,101 +1160,79 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
         const q = r * r - dx * dx
         if (q < 0) continue
         const y = py[i] - Math.sqrt(q)
-        particleSurfaceValid[b] = 1
-        if (renderWater[i] > particleSurfaceWeight[b]) particleSurfaceWeight[b] = renderWater[i]
-        if (bulkMask[i]) particleSurfaceMain[b] = 1
         if (y < particleSurface[b]) particleSurface[b] = y
       }
     }
 
-    // 只补很窄的空格，让相邻粒子群能平滑接成一块水体；真正的断流缺口
-    // 保持为空，由后面的分段水线直接断开。
-    const bridgeBins = Math.max(
-      1,
-      Math.ceil((CFG.spacing * 1.5) / Math.max(1e-6, W / (BINS - 1))),
-    )
+    // 极端情况下某一列没有被任何粒子圆覆盖，用左右有效列补。
     let prev = -1
     for (let b = 0; b < BINS; b++) {
-      if (!particleSurfaceValid[b]) continue
-      if (prev >= 0 && b - prev - 1 <= bridgeBins) {
+      if (particleSurface[b] >= H) continue
+      if (prev < 0) {
+        for (let k = 0; k <= b; k++) particleSurface[k] = particleSurface[b]
+      } else {
         const v0 = particleSurface[prev]
         const v1 = particleSurface[b]
         for (let k = prev + 1; k < b; k++) {
           const t = (k - prev) / (b - prev)
           particleSurface[k] = v0 + (v1 - v0) * t
-          particleSurfaceValid[k] = 1
-          particleSurfaceWeight[k] = Math.min(particleSurfaceWeight[prev], particleSurfaceWeight[b])
-          if (particleSurfaceMain[prev] && particleSurfaceMain[b]) particleSurfaceMain[k] = 1
         }
       }
       prev = b
     }
+    if (prev < 0) particleSurface.fill(waterLevel)
+    else for (let k = prev + 1; k < BINS; k++) particleSurface[k] = particleSurface[prev]
 
     particleSurfaceSmooth.set(particleSurface)
-    for (let pass = 0; pass < 2; pass++) {
-      const input = particleSurfaceSmooth.slice()
-      for (let b = 0; b < BINS; b++) {
-        if (!particleSurfaceValid[b]) continue
-        const l = particleSurfaceValid[b - 1] ? input[b - 1] : input[b]
-        const c = input[b]
-        const r1 = particleSurfaceValid[b + 1] ? input[b + 1] : input[b]
-        particleSurfaceSmooth[b] = (l + 2 * c + r1) / 4
-      }
+    for (let b = 0; b < BINS; b++) {
+      const l = particleSurface[Math.max(0, b - 1)]
+      const c = particleSurface[b]
+      const r1 = particleSurface[Math.min(BINS - 1, b + 1)]
+      particleSurfaceSmooth[b] = (l + 2 * c + r1) / 4
     }
-  }
-
-  function forEachSurfaceSegment(visit: (start: number, end: number) => void) {
-    let start = -1
-    for (let b = 0; b <= BINS; b++) {
-      const valid = b < BINS && particleSurfaceValid[b] === 1
-      if (valid && start < 0) start = b
-      if (!valid && start >= 0) {
-        visit(start, b - 1)
-        start = -1
-      }
+    const firstPass = particleSurfaceSmooth.slice()
+    for (let b = 0; b < BINS; b++) {
+      const l = firstPass[Math.max(0, b - 1)]
+      const c = firstPass[b]
+      const r1 = firstPass[Math.min(BINS - 1, b + 1)]
+      particleSurfaceSmooth[b] = (l + 2 * c + r1) / 4
     }
   }
 
   function drawParticleSurfaceFx(compute = true) {
     if (compute) computeParticleSurface()
 
-    // 水线按有效区间分段绘制：近邻粒子群会在窄缺口处接上，真正断开的
-    // 群体各自保留水线，不会再被整条曲线硬连起来。
-    const traceSegment = (start: number, end: number) => {
+    // 水线：直接经过粒子并集的顶部，不再额外套高度场。
+    const traceLine = () => {
       ctx.beginPath()
-      ctx.moveTo((start / (BINS - 1)) * W, particleSurfaceSmooth[start])
-      for (let b = start + 1; b <= end; b++) {
-        ctx.lineTo((b / (BINS - 1)) * W, particleSurfaceSmooth[b])
+      ctx.moveTo(0, particleSurfaceSmooth[0])
+      for (let b = 1; b < BINS - 1; b++) {
+        const x0 = (b / (BINS - 1)) * W
+        const x1 = ((b + 1) / (BINS - 1)) * W
+        ctx.quadraticCurveTo(
+          x0,
+          particleSurfaceSmooth[b],
+          (x0 + x1) / 2,
+          (particleSurfaceSmooth[b] + particleSurfaceSmooth[b + 1]) / 2,
+        )
       }
+      ctx.lineTo(W, particleSurfaceSmooth[BINS - 1])
     }
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
-    forEachSurfaceSegment((start, end) => {
-      if (end <= start) return
-      let weight = 1
-      for (let b = start; b <= end; b++) {
-        if (particleSurfaceWeight[b] < weight) weight = particleSurfaceWeight[b]
-      }
-      const alpha = Math.min(1, Math.max(0, (weight - 0.18) / 0.62))
-      if (alpha <= 0.01) return
-      ctx.globalAlpha = alpha
-      traceSegment(start, end)
-      ctx.strokeStyle = 'rgba(4, 20, 60, 0.38)'
-      ctx.lineWidth = 3
-      ctx.stroke()
-      traceSegment(start, end)
-      ctx.strokeStyle = 'rgba(210, 244, 255, 0.92)'
-      ctx.lineWidth = 1.45
-      ctx.stroke()
-    })
-    ctx.globalAlpha = 1
+    traceLine()
+    ctx.strokeStyle = 'rgba(4, 20, 60, 0.38)'
+    ctx.lineWidth = 3
+    ctx.stroke()
+    traceLine()
+    ctx.strokeStyle = 'rgba(210, 244, 255, 0.92)'
+    ctx.lineWidth = 1.45
+    ctx.stroke()
 
     // 泡沫：贴着粒子轮廓的粒子点。
     ctx.fillStyle = 'rgba(235, 250, 255, 0.7)'
     for (let i = 0; i < count; i++) {
       const b = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
-      if (!particleSurfaceValid[b]) continue
-      if (particleSurfaceWeight[b] < 0.5) continue
       const d = py[i] - particleSurfaceSmooth[b]
       if (d > -1 && d < 5) {
         const rr = 0.9 + ((i * 37) % 3) * 0.25
@@ -1412,18 +1247,14 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     for (let i = 0; i < count; i++) {
       const b = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
       const above = particleSurfaceSmooth[b] - py[i]
-      const droplet = renderWater[i] < 0.5
-      if (!droplet && (!particleSurfaceValid[b] || above <= 8)) continue
+      if (above <= 8) continue
       const sp = Math.hypot(vx[i], vy[i])
-      // 脱离的静态水团只画水体，不再逐粒子描白边；白色拖尾仅留给
-      // 真正高速飞行的水滴，避免每个粒子中心都出现一个白点。
-      if (droplet && sp < 18) continue
-      const len = droplet ? Math.min(9, Math.max(2.2, sp * 0.012)) : Math.min(7, Math.max(1.4, sp * 0.01))
+      const len = Math.min(7, Math.max(1.4, sp * 0.01))
       const nx = sp > 1 ? vx[i] / sp : 0
       const ny = sp > 1 ? vy[i] / sp : 1
-      ctx.globalAlpha = droplet ? 0.9 : Math.min(0.9, 0.25 + above / 70)
-      ctx.strokeStyle = droplet || above > 40 ? '#f2fbff' : '#cfe8ff'
-      ctx.lineWidth = droplet || above > 30 ? 1.8 : 1.4
+      ctx.globalAlpha = Math.min(0.9, 0.25 + above / 70)
+      ctx.strokeStyle = above > 40 ? '#f2fbff' : '#cfe8ff'
+      ctx.lineWidth = above > 30 ? 1.8 : 1.4
       ctx.beginPath()
       ctx.moveTo(px[i], py[i])
       ctx.lineTo(px[i] - nx * len, py[i] - ny * len)
@@ -1591,7 +1422,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     ctx.save()
     ctx.translate(0, camOffset)
     drawBodies()
-    updateBulkComponent()
     computeParticleSurface()
     drawWaterBaseFill()
     drawParticleWater(0.5)
@@ -2010,8 +1840,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       ys.sort((a, b) => a - b)
       return {
         count,
-        bulkCount,
-        detachedCount: count - bulkCount,
         fps,
         spritesOk: spritesLoaded,
         size: [Math.round(W), Math.round(H)],
