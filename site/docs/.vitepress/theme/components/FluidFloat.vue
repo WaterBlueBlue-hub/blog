@@ -143,6 +143,8 @@ onBeforeUnmount(() => {
   margin-right: 0;
   margin-left: auto;
   align-items: stretch;
+  align-self: flex-start;
+  margin-top: 32px;
   left: 32px;
 }
 
