@@ -1,0 +1,44 @@
+# ── Unity 生成物（主工程在 XPBD_Test/，它有自己的仓库与忽略规则）──
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+.vs/
+
+# ── Python ──
+# 虚拟环境一律忽略（pythonProject/ 与 工具/论文对照/ 下各有一个）
+.venv/
+.idea/
+__pycache__/
+*.py[cod]
+
+# ── 独立仓库：XPBD_Test 有自己的 .git 与提交历史，不并入本仓库 ──
+XPBD_Test/
+
+# ── 系统文件 ──
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ── 论文中译本的中间产物（用 skill paper-chinese-edition 可随时重跑）──
+论文/对照版/_work/
+
+# ── 文献库：第三方论文 PDF 不入库（文件留在本地；站点只索引元数据）──
+论文/

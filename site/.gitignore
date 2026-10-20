@@ -1,0 +1,8 @@
+node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+/.vitepress/
+
+# 由 scripts/sync-notes.mjs 生成（源文件在仓库根目录的 笔记/）
+docs/notes/
+docs/.vitepress/sidebar.mjs
