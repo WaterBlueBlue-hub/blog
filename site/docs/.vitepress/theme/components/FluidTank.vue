@@ -29,8 +29,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     viscosity: 0.08, // XSPH 粘性
     wallDamp: 0.35, // 撞墙速度保留
     scrollInertia: 0.85, // 滚动惯性强度
-    dragStiffness: 26, // 拖拽弹簧刚度
-    dragDamping: 9, // 拖拽阻尼
+    dragStiffness: 75, // 拖拽弹簧刚度（越大跟手越快）
+    dragDamping: 4, // 拖拽阻尼（越小越轻）
     bodyCount: 5,
     bodyHeightRatio: 0.42, // 小人高度 / 水槽高度
     waterFill: 0.76, // 水面初始高度（从顶部算）：水占三分之一左右
@@ -63,8 +63,10 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   let cellItems = new Int32Array(capacity)
   let cellCount = new Int32Array(2)
   let surface = new Float32Array(64)
+  let rawSurface = new Float32Array(64)
   let binMin = new Float32Array(64)
   let binCnt = new Int32Array(64)
+  let surfaceInit = false
   const BINS = 48
 
   /* ---------------- 刚体 ---------------- */
@@ -88,6 +90,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   let bodies: Body[] = []
   let sprite: HTMLImageElement | null = null
   let spriteReady = false
+  let bg: HTMLImageElement | null = null
+  let bgReady = false
+  let bgIsSmall = false
 
   /* ---------------- 交互状态 ---------------- */
   const pointer = { x: 0, y: 0, down: false, id: -1 }
@@ -117,6 +122,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     canvas.style.height = `${H}px`
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     waterGrad = null
+    surfaceInit = false
   }
 
   function buildParticles() {
@@ -243,6 +249,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   /* ---------------- 水面高度场（给浮力用） ---------------- */
   function updateSurface() {
     if (surface.length !== BINS) surface = new Float32Array(BINS)
+    if (rawSurface.length !== BINS) rawSurface = new Float32Array(BINS)
     if (binMin.length !== BINS) {
       binMin = new Float32Array(BINS)
       binCnt = new Int32Array(BINS)
@@ -254,17 +261,15 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       if (py[i] < binMin[bin]) binMin[bin] = py[i]
       binCnt[bin]++
     }
-    // 用"水的面积"推平均水位：刚体排水会让水位上升
-    let area = count * CFG.spacing * CFG.spacing
-    for (const b of bodies) area += (4 * b.r * b.hl + Math.PI * b.r * b.r) * b.frac
-    const level = H - area / W
+    // 平均水位只用粒子算（把刚体排水算进来会和水面形成反馈，导致来回跳）
+    const level = H - (count * CFG.spacing * CFG.spacing) / W
     // 每格取最低点，但限制在平均水位附近，飞溅粒子不会把水面抬到顶
     for (let b = 0; b < BINS; b++) {
       const v = binCnt[b] > 3 ? binMin[b] : level
-      surface[b] = Math.min(level + 30, Math.max(level - 25, v))
+      rawSurface[b] = Math.min(level + 30, Math.max(level - 25, v))
     }
     // 宽一点的平滑：水面整体要平，只留缓的起伏
-    const tmp = surface.slice()
+    const tmp = rawSurface.slice()
     for (let b = 0; b < BINS; b++) {
       let s = 0
       let w = 0
@@ -274,8 +279,11 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
         s += tmp[idx] * wk
         w += wk
       }
-      surface[b] = s / w
+      const smooth = s / w
+      // 时间上也做一次平滑：帧间跳动会让人看到水面闪
+      surface[b] = surfaceInit ? surface[b] + (smooth - surface[b]) * 0.25 : smooth
     }
+    surfaceInit = true
   }
 
   function surfaceAt(x: number) {
@@ -311,7 +319,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
           nSub++
         }
       }
-      b.frac = fracSum / N
+    // 浸没比例做时间平滑，浮力才不会一帧一帧地抖
+    b.frac += (fracSum / N - b.frac) * 0.3
       const area = 4 * b.r * b.hl + Math.PI * b.r * b.r
       const weight = b.m * CFG.gravity
       const buoy = area * b.frac * RHO_AREA * CFG.gravity
@@ -586,6 +595,11 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       grabbed.vx *= 1 - CFG.dragDamping * dt
       grabbed.vy *= 1 - CFG.dragDamping * dt
       grabbed.av *= 1 - 8 * dt
+      const gs = Math.hypot(grabbed.vx, grabbed.vy)
+      if (gs > 2400) {
+        grabbed.vx *= 2400 / gs
+        grabbed.vy *= 2400 / gs
+      }
     }
   }
 
@@ -637,13 +651,25 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   }
 
   function render() {
-    // 背景
+    // 背景：融合背景图（cover 自适应），没加载好时退回深色渐变
     ctx.clearRect(0, 0, W, H)
-    const bg = ctx.createLinearGradient(0, 0, 0, H)
-    bg.addColorStop(0, '#0a1730')
-    bg.addColorStop(1, '#050b18')
-    ctx.fillStyle = bg
-    ctx.fillRect(0, 0, W, H)
+    if (bgReady && bg) {
+      const s = Math.max(W / bg.width, H / bg.height)
+      const dw = bg.width * s
+      const dh = bg.height * s
+      ctx.drawImage(bg, (W - dw) / 2, (H - dh) / 2, dw, dh)
+      const shade = ctx.createLinearGradient(0, H * 0.4, 0, H)
+      shade.addColorStop(0, 'rgba(4, 10, 26, 0)')
+      shade.addColorStop(1, 'rgba(4, 10, 26, 0.6)')
+      ctx.fillStyle = shade
+      ctx.fillRect(0, H * 0.4, W, H * 0.6)
+    } else {
+      const fallback = ctx.createLinearGradient(0, 0, 0, H)
+      fallback.addColorStop(0, '#0a1730')
+      fallback.addColorStop(1, '#050b18')
+      ctx.fillStyle = fallback
+      ctx.fillRect(0, 0, W, H)
+    }
 
     ctx.save()
     ctx.translate(0, camOffset)
@@ -651,9 +677,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     // 水面：高度场 → 平滑曲线 → 填充
     if (!waterGrad) {
       waterGrad = ctx.createLinearGradient(0, H * 0.25, 0, H)
-      waterGrad.addColorStop(0, 'rgba(126, 200, 255, 0.92)')
-      waterGrad.addColorStop(0.35, 'rgba(61, 142, 247, 0.95)')
-      waterGrad.addColorStop(1, 'rgba(21, 56, 190, 0.98)')
+      waterGrad.addColorStop(0, 'rgba(120, 196, 255, 0.4)')
+      waterGrad.addColorStop(0.35, 'rgba(48, 120, 232, 0.52)')
+      waterGrad.addColorStop(1, 'rgba(10, 36, 118, 0.68)')
     }
     traceSurface()
     ctx.lineTo(W, H)
@@ -868,6 +894,22 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   }
   sprite.src = withBase('/sprites/hongshexin.png')
 
+  // 背景图：手机用 1100px 那张，桌面用 1600px 的
+  function loadBg(force = false) {
+    const small = W <= 800
+    if (!force && bgReady && small === bgIsSmall) return
+    bgIsSmall = small
+    if (force) bgReady = false
+    const img = new Image()
+    img.onload = () => {
+      bg = img
+      bgReady = true
+      if (W > 0 && H > 0) render()
+    }
+    img.src = withBase(small ? '/bg/tank-bg-sm.webp' : '/bg/tank-bg.webp')
+  }
+  loadBg(true)
+
   canvas.addEventListener('pointerdown', onDown)
   canvas.addEventListener('pointermove', onMove)
   canvas.addEventListener('pointerup', onUp)
@@ -903,6 +945,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       layout()
       buildParticles()
       buildBodies()
+      loadBg()
     }, 180)
   }
   window.addEventListener('resize', onResize)
