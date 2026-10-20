@@ -3,12 +3,12 @@ layout: home
 titleTemplate: false
 
 hero:
-  name: WaterBlue
+  name: WaterBlueBlue
   text: 从约束流形到 PBF 流体
   tagline: 把 XPBD 解算器从零写一遍之后，顺手记下的推导、实现细节与踩坑。
   image:
     src: /avatar.png
-    alt: WaterBlue
+    alt: WaterBlueBlue
   actions:
     - theme: brand
       text: 浏览笔记

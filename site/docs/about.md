@@ -4,7 +4,7 @@ title: 关于
 
 # 关于
 
-我是 **WaterBlue**（GitHub：[@WaterBlueBlue-hub](https://github.com/WaterBlueBlue-hub)），上海理工大学新媒体技术专业 2027 届。方向是**实时物理模拟与图形学**：写解算器、做工具链，也写动画。
+我是 **WaterBlueBlue**（GitHub：[@WaterBlueBlue-hub](https://github.com/WaterBlueBlue-hub)），上海理工大学新媒体技术专业 2027 届。方向是**实时物理模拟与图形学**：写解算器、做工具链，也写动画。
 
 ## 在做什么
 
