@@ -189,6 +189,10 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     canvas.style.height = '100%'
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     waterGrad = null
+    if (!waterMaskCanvas) waterMaskCanvas = document.createElement('canvas')
+    waterMaskCanvas.width = W
+    waterMaskCanvas.height = H
+    waterMaskCtx = waterMaskCanvas.getContext('2d')
     bgCache = null
     surfaceInit = false
   }
@@ -1001,6 +1005,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
 
   /* ---------------- 渲染 ---------------- */
   let waterGrad: CanvasGradient | null = null
+  let waterMaskCanvas: HTMLCanvasElement | null = null
+  let waterMaskCtx: CanvasRenderingContext2D | null = null
 
   // 渲染水面 = 物理水位 + 局部水面起伏。
   // waterLevel 是人偶浮力真正用的水位；rawSurface 提供每列相对起伏。
@@ -1063,6 +1069,32 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     ctx.lineTo(r, hl)
     ctx.arc(0, hl, r, 0, Math.PI, false)
     ctx.closePath()
+  }
+
+  // Stage 3 的水体：把这一帧所有粒子当作半径约 0.78·spacing 的圆，
+  // 先在一次路径里取并集，再整体半透明贴回主画布。
+  // 没有高度场、没有水线，水体轮廓完全由粒子位置决定。
+  function drawParticleWater() {
+    const wc = waterMaskCtx
+    if (!wc || !waterMaskCanvas) return
+    wc.clearRect(0, 0, W, H)
+    const grad = wc.createLinearGradient(0, 0, 0, H)
+    grad.addColorStop(0, '#51b4ff')
+    grad.addColorStop(0.45, '#2b78e8')
+    grad.addColorStop(1, '#0a2f84')
+    const r = CFG.spacing * 0.78
+    wc.beginPath()
+    for (let i = 0; i < count; i++) {
+      wc.moveTo(px[i] + r, py[i])
+      wc.arc(px[i], py[i], r, 0, Math.PI * 2)
+    }
+    wc.fillStyle = grad
+    wc.fill()
+
+    ctx.save()
+    ctx.globalAlpha = 0.58
+    ctx.drawImage(waterMaskCanvas, 0, 0, W, H)
+    ctx.restore()
   }
 
   // 调试视图：PBF 粒子 + 人偶的胶囊碰撞体。只在按钮打开时画，
@@ -1141,7 +1173,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
 
   // 分步重建的隔离舞台：第 1 步只画物理，第 2 步加回立绘。
   // 两种阶段都不画背景图、水体和任何水面特效。
-  function drawPhysicsStage(stage: 1 | 2) {
+  function drawPhysicsStage(stage: 1 | 2 | 3) {
     ctx.clearRect(0, 0, W, H)
     const bg = ctx.createLinearGradient(0, 0, 0, H)
     bg.addColorStop(0, '#08172f')
@@ -1168,6 +1200,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     ctx.save()
     ctx.translate(0, camOffset)
     if (stage >= 2) drawBodies()
+    if (stage === 3) drawParticleWater()
     drawDebug(false)
     ctx.restore()
 
@@ -1179,12 +1212,16 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     ctx.font = '9px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
     ctx.textAlign = 'left'
     ctx.textBaseline = 'middle'
-    ctx.fillText(stage >= 2 ? 'STAGE 2 · 立绘跟随胶囊' : 'STAGE 1 · 只画物理', 11, 47)
+    ctx.fillText(
+      stage === 3 ? 'STAGE 3 · 粒子水体' : stage === 2 ? 'STAGE 2 · 立绘跟随胶囊' : 'STAGE 1 · 只画物理',
+      11,
+      47,
+    )
   }
 
   function render() {
-    if (renderStage === 1 || renderStage === 2) {
-      drawPhysicsStage(renderStage)
+    if (renderStage === 1 || renderStage === 2 || renderStage === 3) {
+      drawPhysicsStage(renderStage as 1 | 2 | 3)
       return
     }
 
