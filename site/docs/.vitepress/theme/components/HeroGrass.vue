@@ -12,8 +12,12 @@ type Blade = {
   stiffness: number
   damping: number
   windScale: number
-  color: string
-  highlight: string
+  stemColor: string
+  petalA: string
+  petalB: string
+  centerColor: string
+  flowerSize: number
+  depth: number
   angles: number[]
   velocities: number[]
   rest: number[]
@@ -59,6 +63,44 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
 
   const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
   const rand = (min: number, max: number) => min + Math.random() * (max - min)
+  const palettes = [
+    {
+      stem: 'rgba(104, 122, 116, 0.62)',
+      petalA: '#e8a7c1',
+      petalB: '#f6c5d8',
+      center: '#fff1b8',
+    },
+    {
+      stem: 'rgba(108, 112, 132, 0.58)',
+      petalA: '#c7b3e7',
+      petalB: '#e2d2f3',
+      center: '#ffeab5',
+    },
+    {
+      stem: 'rgba(96, 122, 128, 0.56)',
+      petalA: '#a9c8ed',
+      petalB: '#d1e1f7',
+      center: '#fff0b2',
+    },
+    {
+      stem: 'rgba(116, 121, 105, 0.56)',
+      petalA: '#f2d4a5',
+      petalB: '#fae8c8',
+      center: '#f6c98d',
+    },
+    {
+      stem: 'rgba(117, 111, 107, 0.54)',
+      petalA: '#efb3a7',
+      petalB: '#f8d1ca',
+      center: '#fff0ba',
+    },
+    {
+      stem: 'rgba(112, 108, 124, 0.56)',
+      petalA: '#d9b6d5',
+      petalB: '#edd3e9',
+      center: '#f7dfaa',
+    },
+  ]
 
   function layout() {
     const hero = host.closest('.VPHero') as HTMLElement | null
@@ -89,8 +131,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
     const density = reducedMotion ? 44 : 28
     const backCount = clamp(Math.round(W / density), 20, 52)
     const frontCount = clamp(Math.round(W / (density - 4)), 24, 60)
-    addRow(backCount, 0, 0.56, 0.78, 1.25)
-    addRow(frontCount, 1, 0.74, 1, 2.15)
+    addRow(backCount, 0, 0.54, 0.76, 0.8)
+    addRow(frontCount, 1, 0.72, 1, 1.12)
     blades.sort((a, b) => a.rootX - b.rootX)
   }
 
@@ -103,6 +145,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
       const rootX = margin + (usable * (i + 0.5)) / count + rand(-4, 4)
       const restAngle = rand(-0.075, 0.075)
       const curl = rand(-0.07, 0.07)
+      const palette = palettes[(Math.random() * palettes.length) | 0]
       const angles = new Array<number>(segments)
       const velocities = new Array<number>(segments)
       const rest = new Array<number>(segments)
@@ -120,8 +163,12 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
         stiffness: (depth ? 47 : 55) * rand(0.9, 1.08),
         damping: depth ? 4.5 : 3.8,
         windScale: depth ? 1 : 0.72,
-        color: depth ? 'rgba(44, 102, 76, 0.74)' : 'rgba(43, 88, 70, 0.46)',
-        highlight: depth ? 'rgba(177, 218, 158, 0.3)' : 'rgba(174, 207, 160, 0.16)',
+        stemColor: palette.stem,
+        petalA: palette.petalA,
+        petalB: palette.petalB,
+        centerColor: palette.center,
+        flowerSize: rand(2.6, 4.1) * (depth ? 1 : 0.82) * (H / 72),
+        depth,
         angles,
         velocities,
         rest,
@@ -187,45 +234,55 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
   function drawBlade(blade: Blade) {
     const points = blade.points
     if (points.length < 2) return
-    const left: Point[] = [{ x: blade.rootX - blade.width, y: H + 1 }]
-    const right: Point[] = [{ x: blade.rootX + blade.width, y: H + 1 }]
-    const all = [{ x: blade.rootX, y: H + 1 }, ...points]
+    ctx.globalAlpha = blade.depth ? 0.9 : 0.62
+    ctx.beginPath()
+    ctx.moveTo(blade.rootX, H + 1)
+    for (const p of points) ctx.lineTo(p.x, p.y)
+    ctx.strokeStyle = blade.stemColor
+    ctx.lineWidth = blade.width
+    ctx.lineCap = 'round'
+    ctx.stroke()
 
-    for (let i = 1; i < all.length; i++) {
-      const prev = all[i - 1]
-      const next = all[Math.min(all.length - 1, i + 1)]
-      const px = next.x - prev.x
-      const py = next.y - prev.y
-      const len = Math.hypot(px, py) || 1
-      const nx = -py / len
-      const ny = px / len
-      const taper = 1 - (i / (all.length - 1)) * 0.82
-      const halfWidth = blade.width * taper
-      left.push({ x: all[i].x + nx * halfWidth, y: all[i].y + ny * halfWidth })
-      right.push({ x: all[i].x - nx * halfWidth, y: all[i].y - ny * halfWidth })
+    // 两片很小的叶托，给花茎增加一点植物轮廓，但不再使用高饱和绿色。
+    const leafPoint = points[Math.max(0, Math.floor(points.length * 0.56))]
+    if (leafPoint) {
+      ctx.fillStyle = blade.stemColor
+      ctx.beginPath()
+      ctx.ellipse(leafPoint.x - 2.2, leafPoint.y + 1.2, 2.8, 1.15, -0.55, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.beginPath()
+      ctx.ellipse(leafPoint.x + 2.1, leafPoint.y - 0.8, 2.4, 1, 0.62, 0, Math.PI * 2)
+      ctx.fill()
     }
 
+    const tip = points[points.length - 1]
+    ctx.save()
+    ctx.translate(tip.x, tip.y)
+    ctx.rotate(blade.angles[blade.angles.length - 1] * 0.42)
+    const size = blade.flowerSize
+    for (let petal = 0; petal < 5; petal++) {
+      const angle = (Math.PI * 2 * petal) / 5
+      ctx.save()
+      ctx.rotate(angle)
+      ctx.beginPath()
+      ctx.ellipse(size * 0.62, 0, size * 0.72, size * 0.43, 0, 0, Math.PI * 2)
+      ctx.fillStyle = petal % 2 === 0 ? blade.petalA : blade.petalB
+      ctx.fill()
+      ctx.restore()
+    }
     ctx.beginPath()
-    ctx.moveTo(left[0].x, left[0].y)
-    for (let i = 1; i < left.length; i++) ctx.lineTo(left[i].x, left[i].y)
-    for (let i = right.length - 1; i >= 0; i--) ctx.lineTo(right[i].x, right[i].y)
-    ctx.closePath()
-    ctx.fillStyle = blade.color
+    ctx.arc(0, 0, Math.max(0.8, size * 0.3), 0, Math.PI * 2)
+    ctx.fillStyle = blade.centerColor
     ctx.fill()
-
-    ctx.beginPath()
-    ctx.moveTo(blade.rootX, H)
-    for (const p of points) ctx.lineTo(p.x, p.y)
-    ctx.strokeStyle = blade.highlight
-    ctx.lineWidth = 0.65
-    ctx.stroke()
+    ctx.restore()
+    ctx.globalAlpha = 1
   }
 
   function draw() {
     ctx.clearRect(0, 0, W, H)
-    const haze = ctx.createLinearGradient(0, H - 28, 0, H)
-    haze.addColorStop(0, 'rgba(24, 70, 53, 0)')
-    haze.addColorStop(1, 'rgba(24, 70, 53, 0.16)')
+    const haze = ctx.createLinearGradient(0, H - 24, 0, H)
+    haze.addColorStop(0, 'rgba(111, 76, 96, 0)')
+    haze.addColorStop(1, 'rgba(111, 76, 96, 0.08)')
     ctx.fillStyle = haze
     ctx.fillRect(0, H - 28, W, 28)
     for (const blade of blades) drawBlade(blade)
