@@ -657,7 +657,14 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       const s = Math.max(W / bg.width, H / bg.height)
       const dw = bg.width * s
       const dh = bg.height * s
+      // 轻微模糊 + 半透明 = 亚克力（隔着板子看画）
+      ctx.save()
+      ctx.filter = 'saturate(1.08)'
+      ctx.globalAlpha = 0.95
       ctx.drawImage(bg, (W - dw) / 2, (H - dh) / 2, dw, dh)
+      ctx.restore()
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'
+      ctx.fillRect(0, 0, W, H)
       const shade = ctx.createLinearGradient(0, H * 0.4, 0, H)
       shade.addColorStop(0, 'rgba(4, 10, 26, 0)')
       shade.addColorStop(1, 'rgba(4, 10, 26, 0.6)')
@@ -1020,10 +1027,35 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   margin: 18px 0 8px;
   border-radius: 18px;
   overflow: hidden;
-  background: #07101f;
-  border: 1px solid rgba(120, 170, 255, 0.18);
-  box-shadow: 0 24px 60px -40px rgba(20, 70, 180, 0.9);
+  background: #0a1a34;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 26px 60px -34px rgba(24, 64, 150, 0.45),
+    0 0 0 6px rgba(255, 255, 255, 0.45),
+    inset 0 20px 44px -28px rgba(255, 255, 255, 0.55),
+    inset 0 -26px 54px -32px rgba(6, 16, 40, 0.55);
   touch-action: none;
+}
+
+/* 亚克力表面的那层斜光 */
+.fluid-tank::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.24) 0%,
+      rgba(255, 255, 255, 0.06) 26%,
+      rgba(255, 255, 255, 0) 44%
+    ),
+    radial-gradient(
+      120% 90% at 15% -25%,
+      rgba(255, 255, 255, 0.16),
+      rgba(255, 255, 255, 0) 62%
+    );
 }
 
 .fluid-tank__canvas {
