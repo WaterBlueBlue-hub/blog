@@ -8,6 +8,7 @@ import HeroGrass from './components/HeroGrass.vue'
 import SakuraPetals from './components/SakuraPetals.vue'
 import ContactButtons from './components/ContactButtons.vue'
 import PetAssistant from './components/PetAssistant.vue'
+import ArticleFeed from './components/ArticleFeed.vue'
 
 export default {
   extends: DefaultTheme,
@@ -33,5 +34,6 @@ export default {
     ctx.app.component('FluidTank', FluidTank)
     ctx.app.component('FluidFloat', FluidFloat)
     ctx.app.component('PetAssistant', PetAssistant)
+    ctx.app.component('ArticleFeed', ArticleFeed)
   },
 }

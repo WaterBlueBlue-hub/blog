@@ -66,7 +66,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     maxLift: 110, // 水最多比静止水位抬多高，再滚也不给冲量
     dragStiffness: 75, // 拖拽弹簧刚度（越大跟手越快）
     dragDamping: 4, // 拖拽阻尼（越小越轻）
-    bodyCount: 5,
+    bodyCount: 8,
     bodyHeightRatio: 0.26, // 小人高度 / 水槽高度（太大会踩到底就浮不起来）
     bodyDensity: 0.25, // 人偶质量 / 同体积水质量；平衡时约 25% 浸没
     waterFill: 2 / 3, // 水面初始高度：水只占水池下方约 1/3
@@ -332,8 +332,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     bodies = saved
   }
 
-  // 建好五个人偶后再跑一小段，让初始排水和浮力平衡在首帧之前完成。
-  // 否则页面刚打开的前几帧会看到水被五个人偶顶成尖峰。
+  // 建好全部人偶后再跑一小段，让初始排水和浮力平衡在首帧之前完成。
+  // 否则页面刚打开的前几帧会看到水被一群人偶顶成尖峰。
   function settleBodies() {
     for (let i = 0; i < 45; i++) step(FIXED)
     splashTotal = 0
@@ -792,7 +792,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
             // 反作用：水推刚体，并产生一点力矩。
             // 这里最多给每颗粒子 0.12 px/s 的速度增量，乘上接触粒子数后
             // 仍只有每秒几十像素的加速度；浮力负责把人托住，接触反作用
-            // 只负责"水被推开时人也退一点"。旧系数大 30 倍，五个人偶
+            // 只负责"水被推开时人也退一点"。旧系数大 30 倍，多个人偶
             // 会被自己排开的水柱顶到天上。
             const contact = Math.max(0, Math.min(1, b.frac))
             const imp = Math.min(0.12, push * 0.008) * b.invM * contact
