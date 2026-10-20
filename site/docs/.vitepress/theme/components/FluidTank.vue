@@ -31,6 +31,11 @@ defineExpose({
 
 function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolean) {
   const ctx = canvas.getContext('2d')!
+  // 分步重建渲染时的隔离开关：?fluidRender=1 只画物理，默认页面不受影响。
+  const renderStage =
+    typeof window !== 'undefined'
+      ? Number(new URLSearchParams(window.location.search).get('fluidRender') || 0)
+      : 0
 
   /* ---------------- 可调参数 ---------------- */
   const CFG = {
@@ -1049,7 +1054,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
 
   // 调试视图：PBF 粒子 + 人偶的胶囊碰撞体。只在按钮打开时画，
   // 用来核对"水线到底穿在哪里"和"粒子有没有穿透胶囊"。
-  function drawDebug() {
+  function drawDebug(showSurface = true) {
     ctx.save()
     ctx.lineCap = 'round'
 
@@ -1106,10 +1111,12 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       ctx.fillText(label, b.x, labelY)
     }
 
-    // 水面高度场的采样点：看线的形状与粒子分布是否一致
-    ctx.fillStyle = 'rgba(130, 238, 255, 0.55)'
-    for (let i = 0; i < BINS; i += 2) {
-      ctx.fillRect((i / (BINS - 1)) * W - 0.6, drawSurface[i] - 0.6, 1.2, 1.2)
+    if (showSurface) {
+      // 水面高度场的采样点：看线的形状与粒子分布是否一致
+      ctx.fillStyle = 'rgba(130, 238, 255, 0.55)'
+      for (let i = 0; i < BINS; i += 2) {
+        ctx.fillRect((i / (BINS - 1)) * W - 0.6, drawSurface[i] - 0.6, 1.2, 1.2)
+      }
     }
 
     ctx.textAlign = 'left'
@@ -1123,7 +1130,54 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     ctx.restore()
   }
 
+  // 分步重建第 1 步：完全移除背景图、水体、立绘和所有水面特效，
+  // 只保留这一帧的粒子与胶囊体，作为后续每一步的物理基准。
+  function drawStage1() {
+    ctx.clearRect(0, 0, W, H)
+    const bg = ctx.createLinearGradient(0, 0, 0, H)
+    bg.addColorStop(0, '#08172f')
+    bg.addColorStop(1, '#040b18')
+    ctx.fillStyle = bg
+    ctx.fillRect(0, 0, W, H)
+
+    // 坐标参考网格：方便看粒子整体是否在移动、胶囊是否跟着走。
+    ctx.strokeStyle = 'rgba(120, 180, 255, 0.1)'
+    ctx.lineWidth = 1
+    for (let x = 0; x <= W; x += 30) {
+      ctx.beginPath()
+      ctx.moveTo(x + 0.5, 0)
+      ctx.lineTo(x + 0.5, H)
+      ctx.stroke()
+    }
+    for (let y = 0; y <= H; y += 30) {
+      ctx.beginPath()
+      ctx.moveTo(0, y + 0.5)
+      ctx.lineTo(W, y + 0.5)
+      ctx.stroke()
+    }
+
+    ctx.save()
+    ctx.translate(0, camOffset)
+    drawDebug(false)
+    ctx.restore()
+
+    ctx.strokeStyle = 'rgba(170, 215, 255, 0.35)'
+    ctx.strokeRect(0.5, 0.5, W - 1, H - 1)
+    ctx.fillStyle = 'rgba(4, 12, 26, 0.82)'
+    ctx.fillRect(6, 38, 146, 17)
+    ctx.fillStyle = '#dff4ff'
+    ctx.font = '9px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('STAGE 1 · 只画物理', 11, 47)
+  }
+
   function render() {
+    if (renderStage === 1) {
+      drawStage1()
+      return
+    }
+
     // 背景：融合背景图（cover 自适应），没加载好时退回深色渐变
     ctx.clearRect(0, 0, W, H)
     updateDrawSurface()
