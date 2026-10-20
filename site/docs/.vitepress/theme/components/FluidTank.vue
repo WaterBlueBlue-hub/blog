@@ -28,7 +28,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     relaxation: 0.62, // 位置修正松弛
     viscosity: 0.08, // XSPH 粘性
     wallDamp: 0.35, // 撞墙速度保留
-    scrollInertia: 0.85, // 滚动惯性强度
+    scrollLag: 2.4, // 滚动时水"滞空"的冲量系数（px 滚动 → px/s）
     dragStiffness: 75, // 拖拽弹簧刚度（越大跟手越快）
     dragDamping: 4, // 拖拽阻尼（越小越轻）
     bodyCount: 5,
@@ -63,6 +63,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   let cellItems = new Int32Array(capacity)
   let cellCount = new Int32Array(2)
   let surface = new Float32Array(96)
+  let bottom = new Float32Array(96)
+  let binMax = new Float32Array(96)
   let rawSurface = new Float32Array(96)
   let binMin = new Float32Array(96)
   let binMin2 = new Float32Array(96)
@@ -112,8 +114,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   /* ---------------- 滚动惯性 ---------------- */
   let lastScroll = window.scrollY
   let scrollV = 0
-  let scrollA = 0
-  let inertia = 0
+  let scrollKick = 0 // 待施加的竖直冲量（px/s），正数=向下
   let camOffset = 0
   let scrollSpinCd = 0
   let fps = 0
@@ -269,14 +270,17 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   /* ---------------- 水面高度场（给浮力用） ---------------- */
   function updateSurface() {
     if (surface.length !== BINS) surface = new Float32Array(BINS)
+    if (bottom.length !== BINS) bottom = new Float32Array(BINS)
     if (rawSurface.length !== BINS) rawSurface = new Float32Array(BINS)
     if (binMin.length !== BINS) {
       binMin = new Float32Array(BINS)
       binMin2 = new Float32Array(BINS)
+      binMax = new Float32Array(BINS)
       binCnt = new Int32Array(BINS)
     }
     binMin.fill(H)
     binMin2.fill(H)
+    binMax.fill(0)
     binCnt.fill(0)
     for (let i = 0; i < count; i++) {
       const bin = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
@@ -287,6 +291,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       } else if (py[i] < binMin2[bin]) {
         binMin2[bin] = py[i]
       }
+      if (py[i] > binMax[bin]) binMax[bin] = py[i]
       binCnt[bin]++
     }
     // 水位只由"粒子数 × 每颗占的面积"决定 —— 总量恒定，滚动/晃动不会改变整体水位
@@ -296,7 +301,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     for (let b = 0; b < BINS; b++) {
       // 粒子太少（被刚体占了）就直接用平均水位，避免在"最低点"和"平均水位"之间来回跳
       const v = binCnt[b] >= 8 ? binMin2[b] : level
-      rawSurface[b] = Math.min(level + 34, Math.max(level - 26, v))
+      // 上边界放宽很多：滚动时整片水会"滞空"抬起，水面要能跟着抬
+      rawSurface[b] = Math.min(level + 34, Math.max(level - 120, v))
     }
     // 宽一点的平滑：水面整体要平，只留缓的起伏
     const tmp = rawSurface.slice()
@@ -312,6 +318,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       const smooth = s / w
       // 时间上也做一次平滑：帧间跳动会让人看到水面闪
       surface[b] = surfaceInit ? surface[b] + (smooth - surface[b]) * 0.14 : smooth
+      // 水体下边界：平时贴着池底；整体滞空时抬起来，露出下面的空隙
+      const bTarget = binCnt[b] >= 4 ? Math.min(H, binMax[b]) : H
+      bottom[b] = surfaceInit ? bottom[b] + (bTarget - bottom[b]) * 0.2 : bTarget
     }
     surfaceInit = true
   }
@@ -358,7 +367,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       const weight = b.m * CFG.gravity
       const buoy = area * b.frac * RHO_AREA * CFG.gravity
       b.vy += ((weight - buoy) / b.m) * dt
-      b.vy -= inertia * dt
+      b.vy -= scrollKick * 0.55
       // 水的阻力 + 姿态回正（阻尼够大才不会上下弹）
       const drag = Math.min(1, b.frac * 6)
       b.vx *= 1 - Math.min(0.5, drag * 3.2 * dt)
@@ -440,7 +449,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     /* 3. 粒子预测 */
     for (let i = 0; i < count; i++) {
       vy[i] += CFG.gravity * dt
-      vy[i] -= inertia * dt
+      vy[i] -= scrollKick
       // 轻微阻尼，避免能量堆积
       vx[i] *= 0.999
       vy[i] *= 0.999
@@ -448,6 +457,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       qy[i] = py[i] + vy[i] * dt
       lam[i] = 0
     }
+    scrollKick = 0
 
     /* 4. 刚体把粒子顶出去（双向的动量反作用） */
     for (const b of bodies) {
@@ -748,8 +758,11 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       waterGrad.addColorStop(1, 'rgba(10, 36, 118, 0.68)')
     }
     traceSurface()
-    ctx.lineTo(W, H)
-    ctx.lineTo(0, H)
+    // 沿水体下边界回来：平时就是池底，整片水"滞空"时会露出下面的空隙
+    ctx.lineTo(W, bottom[BINS - 1])
+    for (let i = BINS - 1; i >= 0; i--) {
+      ctx.lineTo((i / (BINS - 1)) * W, bottom[i])
+    }
     ctx.closePath()
     ctx.fillStyle = waterGrad
     ctx.fill()
@@ -918,13 +931,15 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
 
     // 滚动 → 惯性力
     const sy = window.scrollY
-    const v = (sy - lastScroll) / Math.max(0.004, dtReal)
-    const a = (v - scrollV) / Math.max(0.004, dtReal)
+    const dScroll = sy - lastScroll
     lastScroll = sy
-    scrollV = scrollV * 0.7 + v * 0.3
-    scrollA = scrollA * 0.82 + a * 0.18
-    const target = Math.max(-9000, Math.min(9000, scrollA)) * CFG.scrollInertia
-    inertia = inertia * 0.8 + target * 0.2
+    scrollV = scrollV * 0.7 + (dScroll / Math.max(0.004, dtReal)) * 0.3
+    if (Math.abs(dScroll) > 0.2) {
+      // 页面往下滚 ≈ 水槽整体向下位移；水没被带走，相对水槽就是往上"滞空"，
+      // 下一帧开始由重力把它拉回去。这里给的是速度冲量，不是持续加速度。
+      scrollKick += dScroll * CFG.scrollLag
+      scrollKick = Math.max(-520, Math.min(520, scrollKick))
+    }
     const camTarget = Math.max(-16, Math.min(16, -scrollV * 0.02))
     camOffset = camOffset * 0.9 + camTarget * 0.1
 
