@@ -64,6 +64,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   let cellCount = new Int32Array(2)
   let surface = new Float32Array(96)
   let bottom = new Float32Array(96)
+  let rawBottom = new Float32Array(96)
   let binMax = new Float32Array(96)
   let rawSurface = new Float32Array(96)
   let binMin = new Float32Array(96)
@@ -319,8 +320,23 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       // 时间上也做一次平滑：帧间跳动会让人看到水面闪
       surface[b] = surfaceInit ? surface[b] + (smooth - surface[b]) * 0.14 : smooth
       // 水体下边界：平时贴着池底；整体滞空时抬起来，露出下面的空隙
-      const bTarget = binCnt[b] >= 4 ? Math.min(H, binMax[b]) : H
-      bottom[b] = surfaceInit ? bottom[b] + (bTarget - bottom[b]) * 0.2 : bTarget
+    }
+    // 下边界也做一次空间平滑：逐格取"最低粒子"本身就是阶梯，直接连折线会成锯齿
+    for (let b = 0; b < BINS; b++) {
+      rawBottom[b] = binCnt[b] >= 4 ? Math.min(H, binMax[b]) : H
+    }
+    const tmpB = rawBottom.slice()
+    for (let b = 0; b < BINS; b++) {
+      let s = 0
+      let w = 0
+      for (let k = -4; k <= 4; k++) {
+        const idx = Math.min(BINS - 1, Math.max(0, b + k))
+        const wk = 5 - Math.abs(k)
+        s += tmpB[idx] * wk
+        w += wk
+      }
+      const smooth = s / w
+      bottom[b] = surfaceInit ? bottom[b] + (smooth - bottom[b]) * 0.22 : smooth
     }
     surfaceInit = true
   }
@@ -760,9 +776,15 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     traceSurface()
     // 沿水体下边界回来：平时就是池底，整片水"滞空"时会露出下面的空隙
     ctx.lineTo(W, bottom[BINS - 1])
-    for (let i = BINS - 1; i >= 0; i--) {
-      ctx.lineTo((i / (BINS - 1)) * W, bottom[i])
+    // 下边界也用二次曲线连，避免折线锯齿
+    for (let i = BINS - 1; i >= 1; i--) {
+      const x0 = (i / (BINS - 1)) * W
+      const x1 = ((i - 1) / (BINS - 1)) * W
+      const xm = (x0 + x1) / 2
+      const ym = (bottom[i] + bottom[i - 1]) / 2
+      ctx.quadraticCurveTo(x0, bottom[i], xm, ym)
     }
+    ctx.lineTo(0, bottom[0])
     ctx.closePath()
     ctx.fillStyle = waterGrad
     ctx.fill()
