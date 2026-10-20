@@ -2,6 +2,7 @@ import DefaultTheme from 'vitepress/theme'
 import { h } from 'vue'
 import './custom.css'
 import FluidTank from './components/FluidTank.vue'
+import FluidFloat from './components/FluidFloat.vue'
 import SakuraPetals from './components/SakuraPetals.vue'
 import ContactButtons from './components/ContactButtons.vue'
 
@@ -15,5 +16,6 @@ export default {
     }),
   enhanceApp(ctx: any) {
     ctx.app.component('FluidTank', FluidTank)
+    ctx.app.component('FluidFloat', FluidFloat)
   },
 }

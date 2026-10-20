@@ -2,6 +2,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { withBase } from 'vitepress'
 
+defineProps<{ compact?: boolean }>()
 const root = ref<HTMLDivElement | null>(null)
 const canvasEl = ref<HTMLCanvasElement | null>(null)
 let dispose: (() => void) | null = null
@@ -36,8 +37,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     maxLift: 110, // 水最多比静止水位抬多高，再滚也不给冲量
     dragStiffness: 75, // 拖拽弹簧刚度（越大跟手越快）
     dragDamping: 4, // 拖拽阻尼（越小越轻）
-    bodyCount: 5,
-    bodyHeightRatio: 0.36, // 小人高度 / 水槽高度（太大会踩到底就浮不起来）
+    bodyCount: 10,
+    bodyHeightRatio: 0.26, // 小人高度 / 水槽高度（太大会踩到底就浮不起来）
     waterFill: 0.7, // 水面初始高度（从顶部算）：水占三分之一
   }
 
@@ -101,15 +102,30 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     invM: number
     rot: number
     flip: number
-    scale: number
+    spriteIndex: number
     frac: number
     rawPrev: number
     inWater: boolean
     squash: number
   }
   let bodies: Body[] = []
-  let sprite: HTMLImageElement | null = null
-  let spriteReady = false
+  const SPRITE_SOURCES = [
+    '/sprites/limbus/01-shanfu.png',
+    '/sprites/limbus/02-tufu.png',
+    '/sprites/limbus/03-souschef.png',
+    '/sprites/limbus/04-puyi.png',
+    '/sprites/limbus/05-xichun.png',
+    '/sprites/limbus/06-sancho.png',
+    '/sprites/limbus/07-vergilius.png',
+    '/sprites/limbus/08-vespa.png',
+    '/sprites/limbus/09-luo.png',
+    '/sprites/limbus/10-jiaqiu.png',
+  ]
+  // 每张立绘的绘制高度系数：带长武器/特效的稍微缩小，避免压住旁边的人
+  const SPRITE_ZOOM = [1, 0.92, 0.9, 1, 0.95, 1, 1, 0.95, 0.9, 0.92]
+  let sprites: HTMLImageElement[] = []
+  let spritesLoaded = 0
+  let charH = 0
   let bg: HTMLImageElement | null = null
   let bgReady = false
   let bgIsSmall = false
@@ -185,17 +201,17 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
 
   function buildBodies() {
     bodies = []
-    const charH = H * CFG.bodyHeightRatio
+    charH = H * CFG.bodyHeightRatio
     const charW = charH * (274 / 512)
     const r = charW * 0.22
     const hl = charH * 0.3
     const area = 4 * r * hl + Math.PI * r * r
-    const m = 0.55 * area * RHO_AREA
+    const m = 0.45 * area * RHO_AREA
     const waterY = H * CFG.waterFill
     for (let i = 0; i < CFG.bodyCount; i++) {
       const t = (i + 0.5) / CFG.bodyCount
       bodies.push({
-        x: W * (0.1 + 0.8 * t) + (Math.random() - 0.5) * 20,
+        x: W * (0.06 + 0.88 * t) + (Math.random() - 0.5) * 14,
         // 从水面上方落下来，落水才有明显的水花
         y: waterY - charH * 0.85 - i * 14,
         vx: (Math.random() - 0.5) * 40,
@@ -208,7 +224,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
         invM: 1 / m,
         rot: 0,
         flip: i % 2 === 1 ? -1 : 1,
-        scale: charH / 501,
+        spriteIndex: i % SPRITE_SOURCES.length,
         frac: 0,
         rawPrev: 0,
         inWater: false,
@@ -960,12 +976,14 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       const sy = 1 + Math.max(-0.18, Math.min(0.18, b.vy * 0.00035))
       const sx = 1 / sy
       ctx.scale(b.flip * sx, sy)
-      if (spriteReady && sprite) {
-        const sw = 274 * b.scale
-        const sh = 512 * b.scale
+      const img = sprites[b.spriteIndex]
+      if (img && img.complete && img.naturalWidth > 0) {
+        const sh = charH * SPRITE_ZOOM[b.spriteIndex % SPRITE_ZOOM.length]
+        const sw = (img.naturalWidth / img.naturalHeight) * sh
         // 始终用原图：以前浸没超过 25% 会换压暗贴图，人偶在阈值上下浮动
         // 就会一亮一暗地闪，而且看不出任何信息量
-        ctx.drawImage(sprite, -sw / 2, -sh * 0.55, sw, sh)
+        // 立绘锚点比旧贴图抬高一些：新素材的重心在腿部，半浸没时只剩一个头
+        ctx.drawImage(img, -sw / 2, -sh * 0.78, sw, sh)
       } else {
         ctx.fillStyle = 'rgba(200,220,255,0.5)'
         ctx.fillRect(-b.r, -b.hl - b.r, b.r * 2, (b.hl + b.r) * 2)
@@ -1116,12 +1134,15 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   layout()
   buildParticles()
   buildBodies()
-  sprite = new Image()
-  sprite.onload = () => {
-    spriteReady = true
-    if (W > 0 && H > 0) render()
-  }
-  sprite.src = withBase('/sprites/hongshexin.png')
+  sprites = SPRITE_SOURCES.map((src) => {
+    const img = new Image()
+    img.onload = () => {
+      spritesLoaded++
+      if (W > 0 && H > 0) render()
+    }
+    img.src = withBase(src)
+    return img
+  })
 
   // 背景图：手机用 1100px 那张，桌面用 1600px 的
   function buildBgCache() {
@@ -1250,7 +1271,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       return {
         count,
         fps,
-        spriteOk: spriteReady,
+        spritesOk: spritesLoaded,
         size: [Math.round(W), Math.round(H)],
         splashTotal,
         entryEvents,
@@ -1295,7 +1316,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
 </script>
 
 <template>
-  <div ref="root" class="fluid-tank">
+  <div ref="root" class="fluid-tank" :class="{ 'fluid-tank--compact': compact }">
     <canvas ref="canvasEl" class="fluid-tank__canvas"></canvas>
   </div>
 </template>
@@ -1315,6 +1336,12 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     inset 0 20px 44px -28px rgba(255, 255, 255, 0.55),
     inset 0 -26px 54px -32px rgba(6, 16, 40, 0.55);
   touch-action: none;
+}
+
+.fluid-tank--compact {
+  height: 100%;
+  margin: 0;
+  border-radius: 16px;
 }
 
 /* 亚克力表面的那层斜光 */
@@ -1348,6 +1375,10 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
 @media (max-width: 640px) {
   .fluid-tank {
     height: 300px;
+  }
+
+  .fluid-tank--compact {
+    height: 100%;
   }
 }
 </style>

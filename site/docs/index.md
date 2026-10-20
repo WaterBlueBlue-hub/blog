@@ -28,7 +28,7 @@ features:
     details: 目前 28 篇，按主题分成 7 组，跟着项目继续补。
 ---
 
-<FluidTank />
+<FluidFloat />
 
 <div class="home-panel">
 
