@@ -8,6 +8,14 @@ const canvasEl = ref<HTMLCanvasElement | null>(null)
 let dispose: (() => void) | null = null
 let refreshImpl: (() => void) | null = null
 let debugImpl: ((on: boolean) => void) | null = null
+let statsImpl: (() => {
+  fps: number
+  particles: number
+  iterations: number
+  densityError: number
+  waterAmount: number
+  colliders: number
+}) | null = null
 
 onMounted(() => {
   if (!root.value || !canvasEl.value) return
@@ -15,6 +23,7 @@ onMounted(() => {
   dispose = api.dispose
   refreshImpl = api.refresh
   debugImpl = api.setDebug
+  statsImpl = api.stats
 })
 
 onBeforeUnmount(() => {
@@ -22,11 +31,13 @@ onBeforeUnmount(() => {
   dispose = null
   refreshImpl = null
   debugImpl = null
+  statsImpl = null
 })
 
 defineExpose({
   refresh: () => refreshImpl?.(),
   setDebug: (on: boolean) => debugImpl?.(on),
+  stats: () => statsImpl?.(),
 })
 
 function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolean) {
@@ -1890,6 +1901,23 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       canvas.removeEventListener('pointerup', onUp)
       canvas.removeEventListener('pointercancel', onUp)
       canvas.removeEventListener('pointerleave', onUp)
+    },
+    stats: () => {
+      let densityError = 0
+      const sampleStep = count > 1200 ? 4 : 1
+      let sampled = 0
+      for (let i = 0; i < count; i += sampleStep) {
+        densityError += rho[i] / rho0 - 1
+        sampled++
+      }
+      return {
+        fps,
+        particles: count,
+        iterations: CFG.iterations,
+        densityError: densityError / Math.max(1, sampled),
+        waterAmount: (count * CFG.spacing * CFG.spacing * 100) / (W * H),
+        colliders: bodies.length,
+      }
     },
   }
 }
