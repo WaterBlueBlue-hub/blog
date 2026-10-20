@@ -5,6 +5,7 @@ import FluidTank from './components/FluidTank.vue'
 import FluidFloat from './components/FluidFloat.vue'
 import SakuraPetals from './components/SakuraPetals.vue'
 import ContactButtons from './components/ContactButtons.vue'
+import PetAssistant from './components/PetAssistant.vue'
 
 export default {
   extends: DefaultTheme,
@@ -14,9 +15,11 @@ export default {
       'layout-top': () => h(SakuraPetals),
       'home-hero-actions-after': () => h(ContactButtons),
       'home-hero-image': () => h(FluidFloat),
+      'layout-bottom': () => h(PetAssistant),
     }),
   enhanceApp(ctx: any) {
     ctx.app.component('FluidTank', FluidTank)
     ctx.app.component('FluidFloat', FluidFloat)
+    ctx.app.component('PetAssistant', PetAssistant)
   },
 }

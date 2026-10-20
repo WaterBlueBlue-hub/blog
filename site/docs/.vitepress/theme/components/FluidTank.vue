@@ -7,21 +7,27 @@ const root = ref<HTMLDivElement | null>(null)
 const canvasEl = ref<HTMLCanvasElement | null>(null)
 let dispose: (() => void) | null = null
 let refreshImpl: (() => void) | null = null
+let debugImpl: ((on: boolean) => void) | null = null
 
 onMounted(() => {
   if (!root.value || !canvasEl.value) return
   const api = setup(canvasEl.value, root.value, !!props.compact)
   dispose = api.dispose
   refreshImpl = api.refresh
+  debugImpl = api.setDebug
 })
 
 onBeforeUnmount(() => {
   dispose?.()
   dispose = null
   refreshImpl = null
+  debugImpl = null
 })
 
-defineExpose({ refresh: () => refreshImpl?.() })
+defineExpose({
+  refresh: () => refreshImpl?.(),
+  setDebug: (on: boolean) => debugImpl?.(on),
+})
 
 function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolean) {
   const ctx = canvas.getContext('2d')!
@@ -33,7 +39,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     hFactor: 2.0, // 核半径 / 间距（太小邻居不足，密度估计会抖）
     iterations: 2, // 密度约束迭代次数
     relaxation: 0.55, // 位置修正松弛
-    viscosity: 0.12, // XSPH 粘性
+    viscosity: 0.18, // XSPH 粘性
     wallDamp: 0.35, // 撞墙速度保留
     floorDamp: 0.08, // 池底几乎不回弹：水砸下来应该"停住"，不是弹起来
     ceilDamp: 0.12,
@@ -98,6 +104,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   let surfaceRefVel = 0 // 水面基准的平滑速度：避免在阈值上来回切
   let surfaceRef = 0 // 当前水面基准（整片水的平均高度）
   let waterLevel = 0 // 平滑后的平均水位，浮力只认它（不跟局部波峰联动）
+  let restLevel = 0 // 启动静置后实测的静止水位：水面归一化 / 滚动判断的参考
+  let waterBaseArea = 0 // 校准后的"水本身"面积（px²），不含人偶排开的部分
+  let surfaceBias = 0 // 仅渲染用：把 PBF 自由表面整体对齐到静水压水位
   const BINS = 96
 
   /* ---------------- 刚体 ---------------- */
@@ -152,6 +161,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   let splashTotal = 0
   let entryEvents = 0
   const trail: string[] = []
+  let debugView = false
 
   /* ---------------- 滚动惯性 ---------------- */
   let lastScroll = window.scrollY
@@ -208,6 +218,10 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       }
     }
     count = i
+    // 先按体积估一个静止水位；settleWater 会再用静置后的实测自由表面修正一次。
+    restLevel = H - (count * CFG.spacing * CFG.spacing * 0.9) / W
+    waterLevel = restLevel
+    waterBaseArea = (H - restLevel) * W
     // 用初始晶格估一个静止密度
     const mid = Math.floor(count / 2)
     let d = 0
@@ -275,6 +289,22 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
         squash: 1,
       })
     }
+  }
+
+  // 启动时先让水自己静置一小段，再用实测自由表面当浮力基准。
+  // 不能等运行时再校准：0.6 s 时水还在第一波晃动里，校准值会飘，
+  // 不同次打开页面甚至能差 30 px（人偶一会儿半沉、一会儿站在水面上）。
+  function settleWater() {
+    const saved = bodies
+    bodies = []
+    for (let i = 0; i < 75; i++) step(FIXED)
+    updateSurface()
+    const sorted = Array.from(surface).sort((a, b) => a - b)
+    restLevel = sorted[BINS >> 1]
+    waterLevel = restLevel
+    waterBaseArea = (H - restLevel) * W
+    surfaceInit = true
+    bodies = saved
   }
 
   // 换一批：重新抽人、从池子上方重新落下
@@ -393,7 +423,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       }
     }
     // 水位只由"粒子数 × 每颗占的面积"决定 —— 总量恒定，滚动/晃动不会改变整体水位
-    const level = H - (count * CFG.spacing * CFG.spacing * 0.9) / W
+    const level = restLevel
 
     // 1) 每格的水面候选：最高的粒子（粒子太少说明这格被刚体占了，先留空）
     let valid = 0
@@ -500,14 +530,21 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       const k = moving ? 0.9 : Math.min(0.6, 0.16 + Math.abs(err) / 120)
       bottom[b] = surfaceInit ? bottom[b] + err * k : smooth
     }
-    // 浮力用的水位必须跟着真实液面走：理论水位假设每颗占 0.9·spacing²，
-    // 而密度投影后的实际液面会低十几像素。继续用理论值，人偶就会"站在水面上"。
-    const sortedSurface = refBuf.subarray(0, BINS)
-    sortedSurface.set(surface)
-    sortedSurface.sort()
-    const freeLevel = sortedSurface[BINS >> 1]
-    const wlK = surfaceInit ? (moving ? 0.55 : 0.12) : 1
-    waterLevel = surfaceInit ? waterLevel + (freeLevel - waterLevel) * wlK : freeLevel
+    // 浮力用的水位 = 静水压水位：水量 + 人偶排开的水。waterBaseArea 是
+    // 启动静置后实测的水面积，人偶的浸没面积按上一帧的 frac 加进去。
+    // 逐帧水面只用于渲染，不把波峰喂回浮力 —— 否则会形成
+    // "人偶排水 → 水面升高 → 浮力变大 → 人偶上浮"的自激振荡。
+    let displaced = 0
+    for (const b of bodies) {
+      displaced += b.frac * (4 * b.r * b.hl + Math.PI * b.r * b.r)
+    }
+    const targetLevel = H - (waterBaseArea + displaced) / W
+    waterLevel = surfaceInit ? waterLevel + (targetLevel - waterLevel) * 0.25 : targetLevel
+    // PBF 的自由表面会比静水压水位高几像素（密度核的离散误差）。
+    // 只把渲染线整体平移过去，波峰波谷的相对形状不动；否则人偶
+    // 按 45% 浸没算出来，看起来却像水到了胸口。
+    const sortedDraw = Array.from(surface).sort((a, b) => a - b)
+    surfaceBias = Math.max(-14, Math.min(14, waterLevel - sortedDraw[BINS >> 1]))
     surfaceInit = true
   }
 
@@ -534,8 +571,10 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
         const t = k / (N - 1)
         const sx = ax + (bx - ax) * t
         const sy = ay + (by - ay) * t
-        // 浮力用平均水位，不用局部水面：否则刚体排水 → 水面升高 → 浮力变大 → 又弹起来
-        const surf = waterLevel
+        // 浮力用"体积水位 + 一点局部水面"：完全用局部水面会让刚体排水
+        // → 水面升高 → 浮力变大 → 又弹起来，形成自激振荡。
+        const local = surfaceAt(sx) - waterLevel
+        const surf = waterLevel + Math.max(-4, Math.min(4, local)) * 0.12
         // 圆的哪一部分在水面以下：y 向下，所以是 (圆心 + 半径 - 水面) / 直径
         const f = Math.min(1, Math.max(0, (sy + b.r - surf) / (2 * b.r)))
         fracSum += f
@@ -555,20 +594,26 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       b.vy += ((weight - buoy) / b.m) * dt
       b.vy -= scrollKick * 0.55
       // 水的阻力 + 姿态回正（阻尼够大才不会上下弹）
-      const drag = Math.min(1, b.frac * 6)
-      b.vx *= 1 - Math.min(0.5, drag * 3.2 * dt)
-      b.vy *= 1 - Math.min(0.8, drag * 12 * dt)
+      // 水面附近是临界阻尼：浮力弹簧的固有频率约 15 rad/s，阻尼系数给到
+      // 2ω 左右，落水后 0.3~0.5 s 就稳住，而不是像以前那样一直上下弹。
+      const sub = Math.max(0, Math.min(1, b.frac))
+      b.vx *= Math.exp(-(0.5 + 7 * sub) * dt)
+      b.vy *= Math.exp(-(1.0 + 30 * sub) * dt)
       // 入水后限速：从画布上方落下来时速度很高，会把浅水一下压扁
-      if (b.frac > 0.1 && b.vy > 180) b.vy = 180
-      // 姿态：允许自由旋转，只保留很弱的回正和水阻（不然会一直挺着不动）
-      b.av *= 1 - Math.min(0.8, 0.35 + b.frac * 1.6) * dt
-      if (b.frac > 0.02) b.av += (-b.a * 2.6 - b.av * 1.5) * b.frac * dt
-      b.av = Math.max(-7, Math.min(7, b.av))
+      if (b.frac > 0.1) {
+        if (b.vy > 150) b.vy = 150
+        if (b.vy < -150) b.vy = -150
+      }
+      // 姿态：人在水里会自己站直。回正力矩 + 角阻尼都随浸没比例增强，
+      // 只剩很小的侧倾，避免被水一推就横躺。
+      b.av *= Math.exp(-(1.2 + 9 * sub) * dt)
+      if (sub > 0.02) b.av += (-b.a * 11 - b.av * 3.4) * sub * dt
+      b.av = Math.max(-4, Math.min(4, b.av))
       b.x += b.vx * dt
       b.y += b.vy * dt
       b.a += b.av * dt
       // 只允许轻微侧倾；拖拽/落水的力矩不能把人偶转成横躺
-      b.a = Math.max(-0.5, Math.min(0.5, b.a))
+      b.a = Math.max(-0.22, Math.min(0.22, b.a))
 
       // 入水那一瞬间：溅水 + 给水面一个冲击
       // 入水判定用"是否在水里"的状态切换（逐帧比值更稳，不会被渐变跨过）
@@ -622,15 +667,17 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
           const nx = dx / dist
           const ny = dy / dist
           const total = A.invM + B.invM
-          A.x -= nx * overlap * (A.invM / total) * 0.6
-          A.y -= ny * overlap * (A.invM / total) * 0.6
-          B.x += nx * overlap * (B.invM / total) * 0.6
-          B.y += ny * overlap * (B.invM / total) * 0.6
+          A.x -= nx * overlap * (A.invM / total) * 0.5
+          A.y -= ny * overlap * (A.invM / total) * 0.5
+          B.x += nx * overlap * (B.invM / total) * 0.5
+          B.y += ny * overlap * (B.invM / total) * 0.5
           const rvx = B.vx - A.vx
           const rvy = B.vy - A.vy
           const vn = rvx * nx + rvy * ny
           if (vn < 0) {
-            const imp = (-vn * 1.2) / total
+            // 水里的碰撞几乎是完全非弹性的：恢复系数 0.1，避免两个人偶
+            // 互相弹来弹去把水也一起搅动。
+            const imp = (-vn * 0.1) / total
             A.vx -= nx * imp * A.invM
             A.vy -= ny * imp * A.invM
             B.vx += nx * imp * B.invM
@@ -656,9 +703,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       vy[i] += CFG.gravity * dt
       vy[i] -= kick
       // 轻微阻尼，避免能量堆积
-      // 整体阻尼：0.999 太弱，整片水会晃三四秒才停；0.997 大约两秒收住
-      vx[i] *= 0.997
-      vy[i] *= 0.997
+      // 整体阻尼：0.999 太弱，整片水会晃三四秒才停；0.996 大约一秒半收住
+      vx[i] *= 0.996
+      vy[i] *= 0.996
       qx[i] = px[i] + vx[i] * dt
       qy[i] = py[i] + vy[i] * dt
       lam[i] = 0
@@ -711,11 +758,16 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
             const dv = Math.min(sep, -vn)
             vx[i] += nx * dv
             vy[i] += ny * dv
-            // 反作用：水推刚体，并产生力矩
-            const imp = Math.min(1.4, push * 0.06) * b.invM * 8
-            b.vx -= nx * imp
-            b.vy -= ny * imp
-            b.av += ((cxp - b.x) * -ny - (cyp - b.y) * -nx) * imp * 0.0006
+            // 反作用：水推刚体，并产生一点力矩。
+            // 这里最多给每颗粒子 0.12 px/s 的速度增量，乘上接触粒子数后
+            // 仍只有每秒几十像素的加速度；浮力负责把人托住，接触反作用
+            // 只负责"水被推开时人也退一点"。旧系数大 30 倍，五个人偶
+            // 会被自己排开的水柱顶到天上。
+            const contact = Math.max(0, Math.min(1, b.frac))
+            const imp = Math.min(0.12, push * 0.008) * b.invM * contact
+            b.vx -= nx * imp * 0.8
+            b.vy -= ny * imp * 0.8
+            b.av += ((cxp - b.x) * -ny - (cyp - b.y) * -nx) * imp * 0.0008
           }
         }
       }
@@ -951,7 +1003,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   /** 用水面高度场画一条平滑的水线 */
   function traceSurface() {
     const pts: [number, number][] = []
-    for (let i = 0; i < BINS; i++) pts.push([(i / (BINS - 1)) * W, surface[i]])
+    for (let i = 0; i < BINS; i++) pts.push([(i / (BINS - 1)) * W, surface[i] + surfaceBias])
     ctx.beginPath()
     ctx.moveTo(pts[0][0], pts[0][1])
     for (let i = 1; i < pts.length - 1; i++) {
@@ -961,6 +1013,106 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     }
     const last = pts[pts.length - 1]
     ctx.lineTo(last[0], last[1])
+  }
+
+  // 人偶先画、水后画：这样水面以下的身体会被水体染色，水线也会盖在
+  // 身体上。之前先画水再画人，整个人偶都浮在水线之上，看起来像站在水面上。
+  function drawBodies() {
+    for (const b of bodies) {
+      ctx.save()
+      ctx.translate(b.x, b.y + b.r * 0.55)
+      ctx.rotate(b.a)
+      const sy = 1 + Math.max(-0.18, Math.min(0.18, b.vy * 0.00035))
+      const sx = 1 / sy
+      ctx.scale(b.flip * sx, sy)
+      const img = sprites[b.spriteIndex]
+      if (img && img.complete && img.naturalWidth > 0) {
+        const sh = charH * SPRITE_ZOOM[b.spriteIndex % SPRITE_ZOOM.length]
+        const sw = (img.naturalWidth / img.naturalHeight) * sh
+        // 立绘中心对准刚体中心：半浸没时水线落在腰附近，而不是脚底
+        ctx.drawImage(img, -sw / 2, -sh * 0.5, sw, sh)
+      } else {
+        ctx.fillStyle = 'rgba(200,220,255,0.5)'
+        ctx.fillRect(-b.r, -b.hl - b.r, b.r * 2, (b.hl + b.r) * 2)
+      }
+      ctx.restore()
+    }
+  }
+
+  // 调试视图：PBF 粒子 + 人偶的胶囊碰撞体。只在按钮打开时画，
+  // 用来核对"水线到底穿在哪里"和"粒子有没有穿透胶囊"。
+  function drawDebug() {
+    ctx.save()
+    ctx.lineCap = 'round'
+
+    for (let i = 0; i < count; i++) {
+      const sp = Math.hypot(vx[i], vy[i])
+      const hue = 195 - Math.min(120, sp * 0.16)
+      ctx.fillStyle = `hsla(${hue}, 92%, 68%, 0.92)`
+      ctx.beginPath()
+      ctx.arc(px[i], py[i], 1.55, 0, Math.PI * 2)
+      ctx.fill()
+      if (i % 9 === 0 && sp > 12) {
+        ctx.strokeStyle = `hsla(${hue}, 92%, 74%, 0.5)`
+        ctx.lineWidth = 0.8
+        ctx.beginPath()
+        ctx.moveTo(px[i], py[i])
+        ctx.lineTo(px[i] + vx[i] * 0.035, py[i] + vy[i] * 0.035)
+        ctx.stroke()
+      }
+    }
+
+    ctx.font = '8px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    for (let i = 0; i < bodies.length; i++) {
+      const b = bodies[i]
+      const [ax, ay, bx, by] = bodySegment(b)
+      ctx.strokeStyle = 'rgba(255, 209, 102, 0.95)'
+      ctx.lineWidth = 1.4
+      ctx.beginPath()
+      ctx.moveTo(ax, ay)
+      ctx.lineTo(bx, by)
+      ctx.stroke()
+      for (const [cx, cy] of [
+        [ax, ay],
+        [bx, by],
+      ]) {
+        ctx.beginPath()
+        ctx.arc(cx, cy, b.r, 0, Math.PI * 2)
+        ctx.stroke()
+      }
+      // 质心十字
+      ctx.beginPath()
+      ctx.moveTo(b.x - 3, b.y)
+      ctx.lineTo(b.x + 3, b.y)
+      ctx.moveTo(b.x, b.y - 3)
+      ctx.lineTo(b.x, b.y + 3)
+      ctx.stroke()
+      const label = `#${i + 1} ${b.frac.toFixed(2).slice(1)}`
+      const tw = ctx.measureText(label).width + 6
+      const labelY = b.y - 32 - (i % 2) * 13
+      ctx.fillStyle = 'rgba(6, 12, 24, 0.72)'
+      ctx.fillRect(b.x - tw / 2, labelY - 5.5, tw, 11)
+      ctx.fillStyle = '#ffe08a'
+      ctx.fillText(label, b.x, labelY)
+    }
+
+    // 水面高度场的采样点：看线的形状与粒子分布是否一致
+    ctx.fillStyle = 'rgba(130, 238, 255, 0.55)'
+    for (let i = 0; i < BINS; i += 2) {
+      ctx.fillRect((i / (BINS - 1)) * W - 0.6, surface[i] + surfaceBias - 0.6, 1.2, 1.2)
+    }
+
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'top'
+    ctx.fillStyle = 'rgba(6, 12, 24, 0.7)'
+    ctx.fillRect(6, 6, 112, 28)
+    ctx.fillStyle = '#bdefff'
+    ctx.fillText(`PBF 粒子 ${count}`, 11, 10)
+    ctx.fillStyle = '#ffe08a'
+    ctx.fillText(`胶囊体 ${bodies.length} · 青→红=速度`, 11, 21)
+    ctx.restore()
   }
 
   function render() {
@@ -991,6 +1143,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
 
     ctx.save()
     ctx.translate(0, camOffset)
+
+    drawBodies()
 
     // 水面：高度场 → 平滑曲线 → 填充
     if (!waterGrad) {
@@ -1025,7 +1179,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     ctx.fillStyle = 'rgba(225, 242, 255, 0.5)'
     for (let i = 0; i < count; i += 3) {
       const bin = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
-      const d = py[i] - surface[bin]
+      const d = py[i] - (surface[bin] + surfaceBias)
       if (d > -1 && d < 6) {
         ctx.fillRect(px[i], py[i], 1.6, 1.6)
       }
@@ -1035,7 +1189,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     ctx.lineCap = 'round'
     for (let i = 0; i < count; i++) {
       const bin = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
-      const above = surface[bin] - py[i]
+      const above = surface[bin] + surfaceBias - py[i]
       // 正常贴在水面的粒子不会高于水面线，留一格间距的余量（8px），
       // 只把真正飞离水面的画成水线，水面上沿就不会有一层细白点。
       // （不要用"密度低"当判据：水柱是一团一起飞的，密度并不低）
@@ -1054,28 +1208,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     }
     ctx.globalAlpha = 1
 
-    // 小人
-    for (const b of bodies) {
-      ctx.save()
-      ctx.translate(b.x, b.y + b.r * 0.55)
-      ctx.rotate(b.a)
-      const sy = 1 + Math.max(-0.18, Math.min(0.18, b.vy * 0.00035))
-      const sx = 1 / sy
-      ctx.scale(b.flip * sx, sy)
-      const img = sprites[b.spriteIndex]
-      if (img && img.complete && img.naturalWidth > 0) {
-        const sh = charH * SPRITE_ZOOM[b.spriteIndex % SPRITE_ZOOM.length]
-        const sw = (img.naturalWidth / img.naturalHeight) * sh
-        // 始终用原图：以前浸没超过 25% 会换压暗贴图，人偶在阈值上下浮动
-        // 就会一亮一暗地闪，而且看不出任何信息量
-        // 立绘中心对准刚体中心：半浸没时水线落在腰附近，而不是脚底
-        ctx.drawImage(img, -sw / 2, -sh * 0.5, sw, sh)
-      } else {
-        ctx.fillStyle = 'rgba(200,220,255,0.5)'
-        ctx.fillRect(-b.r, -b.hl - b.r, b.r * 2, (b.hl + b.r) * 2)
-      }
-      ctx.restore()
-    }
+    if (debugView) drawDebug()
 
     ctx.restore()
   }
@@ -1226,6 +1359,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   /* ---------------- 生命周期 ---------------- */
   layout()
   buildParticles()
+  settleWater()
   buildBodies(undefined, false)
   sprites = SPRITE_SOURCES.map((src) => {
     const img = new Image()
@@ -1363,8 +1497,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
         if (sp > vmax) vmax = sp
         if (py[i] < H * 0.3) topCount++
         const bin = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
-        if (surface[bin] - py[i] > 5) flying++
-        if (surface[bin] - py[i] > 8) drawn++
+        if (surface[bin] + surfaceBias - py[i] > 5) flying++
+        if (surface[bin] + surfaceBias - py[i] > 8) drawn++
         if (i % 17 === 0) ys.push(py[i])
       }
       ys.sort((a, b) => a - b)
@@ -1404,6 +1538,10 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
 
   return {
     refresh: refreshBodies,
+    setDebug: (on: boolean) => {
+      debugView = !!on
+      render()
+    },
     dispose: () => {
       cancelAnimationFrame(raf)
       io.disconnect()
