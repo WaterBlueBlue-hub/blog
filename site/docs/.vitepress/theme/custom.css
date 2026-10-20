@@ -427,6 +427,7 @@ body::after {
 /* 首页左侧文字区再垫一层很淡的柔光，背景图在右侧仍然保留颜色 */
 .VPHome .VPHero.has-image .main {
   position: relative;
+  isolation: isolate;
 }
 
 .VPHome .VPHero.has-image .main::before {

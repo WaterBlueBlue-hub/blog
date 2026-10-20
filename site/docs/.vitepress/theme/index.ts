@@ -4,6 +4,7 @@ import { withBase } from 'vitepress'
 import './custom.css'
 import FluidTank from './components/FluidTank.vue'
 import FluidFloat from './components/FluidFloat.vue'
+import HeroGrass from './components/HeroGrass.vue'
 import SakuraPetals from './components/SakuraPetals.vue'
 import ContactButtons from './components/ContactButtons.vue'
 import PetAssistant from './components/PetAssistant.vue'
@@ -23,6 +24,7 @@ export default {
             height: 88,
           }),
         ]),
+      'home-hero-info-after': () => h(HeroGrass),
       'home-hero-actions-after': () => h(ContactButtons),
       'home-hero-image': () => h(FluidFloat),
       'layout-bottom': () => h(PetAssistant),
