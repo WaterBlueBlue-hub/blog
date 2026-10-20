@@ -3,9 +3,9 @@ layout: home
 titleTemplate: false
 
 hero:
-  name: WaterBlueBlue
-  text: 图形学爱好者 ×&nbsp;二次元
-  tagline: 喜欢动画、物理模拟，也喜欢二次元。
+  name: ''
+  text: WaterBlueBlue
+  tagline: 一枚月计人，喜欢物理模拟和二次元。
   actions:
     - theme: brand
       text: 浏览笔记

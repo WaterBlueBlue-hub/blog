@@ -56,7 +56,7 @@ function tokenizeCJK(text: string): string[] {
   return tokens
 }
 
-const SITE_TITLE = 'WaterBlueBlue 的笔记'
+const SITE_TITLE = 'WaterBlueBlue 的博客'
 const SITE_DESC =
   '实时物理模拟、图形学与 Unity 工程实践的技术笔记：XPBD 约束推导、PBF 流体、数值方法与实现细节。'
 

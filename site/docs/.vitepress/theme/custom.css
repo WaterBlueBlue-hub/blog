@@ -120,18 +120,41 @@
   margin-bottom: 10px;
 }
 
+.VPHome .VPHero .name:empty {
+  display: none;
+}
+
+.hero-portrait {
+  display: flex;
+  margin: 0 0 16px;
+}
+
+.hero-portrait img {
+  display: block;
+  width: 88px;
+  height: 88px;
+  border: 3px solid rgba(255, 255, 255, 0.82);
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 20px 42px -24px rgba(28, 62, 130, 0.72),
+    0 0 0 1px rgba(255, 255, 255, 0.45);
+  object-fit: cover;
+}
+
 .VPHome .VPHero .text {
-  font-size: 46px;
+  font-size: 58px;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.05;
   letter-spacing: -0.5px;
   max-width: 760px;
 }
 
 .VPHome .VPHero .tagline {
+  font-size: 17px;
   line-height: 1.8;
   max-width: 620px;
-  margin: 14px 0 0;
+  margin: 8px 0 0;
   text-wrap: balance;
 }
 

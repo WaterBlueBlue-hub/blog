@@ -1,5 +1,6 @@
 import DefaultTheme from 'vitepress/theme'
 import { h } from 'vue'
+import { withBase } from 'vitepress'
 import './custom.css'
 import FluidTank from './components/FluidTank.vue'
 import FluidFloat from './components/FluidFloat.vue'
@@ -13,6 +14,15 @@ export default {
   Layout: () =>
     h(DefaultTheme.Layout, null, {
       'layout-top': () => h(SakuraPetals),
+      'home-hero-info-before': () =>
+        h('div', { class: 'hero-portrait' }, [
+          h('img', {
+            src: withBase('/avatar.png'),
+            alt: 'WaterBlueBlue',
+            width: 88,
+            height: 88,
+          }),
+        ]),
       'home-hero-actions-after': () => h(ContactButtons),
       'home-hero-image': () => h(FluidFloat),
       'layout-bottom': () => h(PetAssistant),
