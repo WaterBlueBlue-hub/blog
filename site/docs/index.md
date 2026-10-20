@@ -4,8 +4,8 @@ titleTemplate: false
 
 hero:
   name: WaterBlueBlue
-  text: 从约束流形到 PBF 流体
-  tagline: 把 XPBD 解算器从零写一遍之后，顺手记下的推导、实现细节与踩坑。
+  text: 游戏引擎开发者 × 二次元
+  tagline: 喜欢动画、物理模拟，也喜欢二次元。
   image:
     src: /avatar.png
     alt: WaterBlueBlue
