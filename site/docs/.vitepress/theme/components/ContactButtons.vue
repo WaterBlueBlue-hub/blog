@@ -6,18 +6,32 @@ type Contact = {
   label: string
   value: string
   icon: string
+  href?: string
   pending?: boolean
 }
 
 /**
- * 账号集中放在这里：以后换号只改 value。
+ * 账号与主页链接集中放在这里：换号改 value，换主页改 href。
+ * 有 href 的按钮点击直接打开主页，其余按钮点击复制 value。
  */
 const contacts: Contact[] = [
   { id: 'qq', label: 'QQ', value: '205908757', icon: 'qq' },
   { id: 'wechat', label: '微信', value: 'ikun1122333322111', icon: 'wechat' },
-  { id: 'github', label: 'GitHub', value: 'WaterBlueBlue-hub', icon: 'github' },
+  {
+    id: 'github',
+    label: 'GitHub',
+    value: 'WaterBlueBlue-hub',
+    icon: 'github',
+    href: 'https://github.com/WaterBlueBlue-hub',
+  },
   { id: 'email', label: '邮箱', value: '205908757@qq.com', icon: 'email' },
-  { id: 'bilibili', label: 'B站', value: 'https://space.bilibili.com/494748666', icon: 'bilibili' },
+  {
+    id: 'bilibili',
+    label: 'B站',
+    value: '494748666',
+    icon: 'bilibili',
+    href: 'https://space.bilibili.com/494748666',
+  },
   { id: 'limbus', label: '边狱', value: 'J907031978', icon: 'limbus' },
 ]
 
@@ -78,6 +92,10 @@ async function copyContact(item: Contact) {
   }
 }
 
+function handleClick(item: Contact) {
+  if (!item.href) copyContact(item)
+}
+
 onBeforeUnmount(() => {
   if (toastTimer) clearTimeout(toastTimer)
 })
@@ -85,15 +103,19 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="contact-row" aria-label="联系方式">
-    <button
+    <component
+      :is="item.href ? 'a' : 'button'"
       v-for="item in contacts"
       :key="item.id"
-      type="button"
+      :href="item.href"
+      :target="item.href ? '_blank' : undefined"
+      :rel="item.href ? 'noopener noreferrer' : undefined"
+      :type="item.href ? undefined : 'button'"
       class="contact-item"
       :class="{ 'is-pending': item.pending }"
-      :aria-label="item.value ? `${item.label}：${item.value}，点击复制` : `${item.label}：待补充`"
-      :title="item.value ? `${item.label}：${item.value}（点击复制）` : `${item.label}：待补充`"
-      @click="copyContact(item)"
+      :aria-label="item.value ? `${item.label}：${item.value}，点击${item.href ? '打开主页' : '复制'}` : `${item.label}：待补充`"
+      :title="item.value ? `${item.label}：${item.value}（点击${item.href ? '打开主页' : '复制'}）` : `${item.label}：待补充`"
+      @click="handleClick(item)"
     >
       <span class="contact-icon">
         <img v-if="item.icon === 'limbus'" src="/icons/limbus.webp" alt="" />
@@ -102,7 +124,7 @@ onBeforeUnmount(() => {
         </svg>
       </span>
       <span class="contact-label">{{ item.label }}</span>
-    </button>
+    </component>
 
     <Transition name="contact-toast">
       <div v-if="toast" class="contact-toast" role="status" aria-live="polite">
@@ -133,6 +155,7 @@ onBeforeUnmount(() => {
   color: #475569;
   font: inherit;
   line-height: 1;
+  text-decoration: none;
   cursor: pointer;
 }
 

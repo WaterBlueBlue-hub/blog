@@ -4,7 +4,7 @@ titleTemplate: false
 
 hero:
   name: WaterBlueBlue
-  text: 游戏引擎开发者 × 二次元
+  text: 图形学爱好者 ×&nbsp;二次元
   tagline: 喜欢动画、物理模拟，也喜欢二次元。
   image:
     src: /avatar.png
