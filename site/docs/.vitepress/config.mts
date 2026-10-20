@@ -70,7 +70,7 @@ export default defineConfig({
 
   head: [
     ['link', { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' }],
-    ['meta', { name: 'author', content: '李晨煜' }],
+    ['meta', { name: 'author', content: 'WaterBlueBlue' }],
     ['meta', { name: 'theme-color', content: '#2f6df6' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:title', content: SITE_TITLE }],
