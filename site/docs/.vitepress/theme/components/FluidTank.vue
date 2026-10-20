@@ -1098,7 +1098,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       ctx.translate(b.x, b.y)
       ctx.rotate(-b.a)
       traceCapsule(b.r, b.hl)
-      ctx.fillStyle = 'rgba(255, 209, 102, 0.16)'
+      ctx.fillStyle = 'rgba(255, 209, 102, 0.08)'
       ctx.fill()
       ctx.strokeStyle = 'rgba(255, 209, 102, 0.95)'
       ctx.lineWidth = 1.4
