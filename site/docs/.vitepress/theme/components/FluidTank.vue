@@ -93,6 +93,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   let cellCount = new Int32Array(2)
   let surface = new Float32Array(96)
   let drawSurface = new Float32Array(96)
+  let particleSurface = new Float32Array(96)
+  let particleSurfaceSmooth = new Float32Array(96)
   let bottom = new Float32Array(96)
   let rawBottom = new Float32Array(96)
   let binMax = new Float32Array(96)
@@ -1097,26 +1099,119 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     ctx.restore()
   }
 
+  // 从粒子圆的并集上边缘提取水线。这里没有高度场：每个 x 列取所有
+  // 覆盖该列的粒子圆顶部 y 的最小值，再做一遍 3 点平滑。
+  function computeParticleSurface() {
+    const r = CFG.spacing * 0.78
+    particleSurface.fill(H)
+    for (let i = 0; i < count; i++) {
+      const left = Math.max(0, Math.floor(((px[i] - r) / W) * (BINS - 1)))
+      const right = Math.min(BINS - 1, Math.ceil(((px[i] + r) / W) * (BINS - 1)))
+      for (let b = left; b <= right; b++) {
+        const x = (b / (BINS - 1)) * W
+        const dx = x - px[i]
+        const q = r * r - dx * dx
+        if (q < 0) continue
+        const y = py[i] - Math.sqrt(q)
+        if (y < particleSurface[b]) particleSurface[b] = y
+      }
+    }
+
+    // 极端情况下某一列没有被任何粒子圆覆盖，用左右有效列补。
+    let prev = -1
+    for (let b = 0; b < BINS; b++) {
+      if (particleSurface[b] >= H) continue
+      if (prev < 0) {
+        for (let k = 0; k <= b; k++) particleSurface[k] = particleSurface[b]
+      } else {
+        const v0 = particleSurface[prev]
+        const v1 = particleSurface[b]
+        for (let k = prev + 1; k < b; k++) {
+          const t = (k - prev) / (b - prev)
+          particleSurface[k] = v0 + (v1 - v0) * t
+        }
+      }
+      prev = b
+    }
+    if (prev < 0) particleSurface.fill(waterLevel)
+    else for (let k = prev + 1; k < BINS; k++) particleSurface[k] = particleSurface[prev]
+
+    particleSurfaceSmooth.set(particleSurface)
+    for (let b = 0; b < BINS; b++) {
+      const l = particleSurface[Math.max(0, b - 1)]
+      const c = particleSurface[b]
+      const r1 = particleSurface[Math.min(BINS - 1, b + 1)]
+      particleSurfaceSmooth[b] = (l + 2 * c + r1) / 4
+    }
+  }
+
+  function drawParticleSurfaceFx() {
+    computeParticleSurface()
+
+    // 水线：直接经过粒子并集的顶部，不再额外套高度场。
+    ctx.beginPath()
+    ctx.moveTo(0, particleSurfaceSmooth[0])
+    for (let b = 1; b < BINS - 1; b++) {
+      const x0 = (b / (BINS - 1)) * W
+      const x1 = ((b + 1) / (BINS - 1)) * W
+      ctx.quadraticCurveTo(x0, particleSurfaceSmooth[b], (x0 + x1) / 2, (particleSurfaceSmooth[b] + particleSurfaceSmooth[b + 1]) / 2)
+    }
+    ctx.lineTo(W, particleSurfaceSmooth[BINS - 1])
+    ctx.strokeStyle = 'rgba(205, 242, 255, 0.9)'
+    ctx.lineWidth = 1.7
+    ctx.stroke()
+
+    // 泡沫：贴着粒子轮廓的粒子点。
+    ctx.fillStyle = 'rgba(235, 250, 255, 0.65)'
+    for (let i = 0; i < count; i++) {
+      const b = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
+      const d = py[i] - particleSurfaceSmooth[b]
+      if (d > -1 && d < 5) ctx.fillRect(px[i] - 0.8, py[i] - 0.8, 1.6, 1.6)
+    }
+
+    // 飞溅：粒子圆本身已经画在水体里，这里只补运动方向的短水线。
+    ctx.lineCap = 'round'
+    for (let i = 0; i < count; i++) {
+      const b = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
+      const above = particleSurfaceSmooth[b] - py[i]
+      if (above <= 8) continue
+      const sp = Math.hypot(vx[i], vy[i])
+      const len = Math.min(7, Math.max(1.4, sp * 0.01))
+      const nx = sp > 1 ? vx[i] / sp : 0
+      const ny = sp > 1 ? vy[i] / sp : 1
+      ctx.globalAlpha = Math.min(0.9, 0.25 + above / 70)
+      ctx.strokeStyle = above > 40 ? '#f2fbff' : '#cfe8ff'
+      ctx.lineWidth = above > 30 ? 1.8 : 1.4
+      ctx.beginPath()
+      ctx.moveTo(px[i], py[i])
+      ctx.lineTo(px[i] - nx * len, py[i] - ny * len)
+      ctx.stroke()
+    }
+    ctx.globalAlpha = 1
+  }
+
   // 调试视图：PBF 粒子 + 人偶的胶囊碰撞体。只在按钮打开时画，
   // 用来核对"水线到底穿在哪里"和"粒子有没有穿透胶囊"。
-  function drawDebug(showSurface = true) {
+  function drawDebug(showSurface = true, showParticles = true) {
     ctx.save()
     ctx.lineCap = 'round'
 
-    for (let i = 0; i < count; i++) {
-      const sp = Math.hypot(vx[i], vy[i])
-      const hue = 195 - Math.min(120, sp * 0.16)
-      ctx.fillStyle = `hsla(${hue}, 92%, 68%, 0.92)`
-      ctx.beginPath()
-      ctx.arc(px[i], py[i], 1.55, 0, Math.PI * 2)
-      ctx.fill()
-      if (i % 9 === 0 && sp > 12) {
-        ctx.strokeStyle = `hsla(${hue}, 92%, 74%, 0.5)`
-        ctx.lineWidth = 0.8
+    if (showParticles) {
+      for (let i = 0; i < count; i++) {
+        const sp = Math.hypot(vx[i], vy[i])
+        const hue = 195 - Math.min(120, sp * 0.16)
+        ctx.fillStyle = `hsla(${hue}, 92%, 68%, 0.92)`
         ctx.beginPath()
-        ctx.moveTo(px[i], py[i])
-        ctx.lineTo(px[i] + vx[i] * 0.035, py[i] + vy[i] * 0.035)
-        ctx.stroke()
+        ctx.arc(px[i], py[i], 1.55, 0, Math.PI * 2)
+        ctx.fill()
+        if (i % 9 === 0 && sp > 12) {
+          ctx.strokeStyle = `hsla(${hue}, 92%, 74%, 0.5)`
+          ctx.lineWidth = 0.8
+          ctx.beginPath()
+          ctx.moveTo(px[i], py[i])
+          ctx.lineTo(px[i] + vx[i] * 0.035, py[i] + vy[i] * 0.035)
+          ctx.stroke()
+        }
       }
     }
 
@@ -1173,7 +1268,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
 
   // 分步重建的隔离舞台：第 1 步只画物理，第 2 步加回立绘。
   // 两种阶段都不画背景图、水体和任何水面特效。
-  function drawPhysicsStage(stage: 1 | 2 | 3) {
+  function drawPhysicsStage(stage: 1 | 2 | 3 | 4) {
     ctx.clearRect(0, 0, W, H)
     const bg = ctx.createLinearGradient(0, 0, 0, H)
     bg.addColorStop(0, '#08172f')
@@ -1200,28 +1295,35 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     ctx.save()
     ctx.translate(0, camOffset)
     if (stage >= 2) drawBodies()
-    if (stage === 3) drawParticleWater()
-    drawDebug(false)
+    if (stage >= 3) drawParticleWater()
+    if (stage === 4) drawParticleSurfaceFx()
+    drawDebug(false, stage < 4)
     ctx.restore()
 
     ctx.strokeStyle = 'rgba(170, 215, 255, 0.35)'
     ctx.strokeRect(0.5, 0.5, W - 1, H - 1)
     ctx.fillStyle = 'rgba(4, 12, 26, 0.82)'
-    ctx.fillRect(6, 38, stage >= 2 ? 184 : 146, 17)
+    ctx.fillRect(6, 38, stage === 4 ? 224 : stage >= 2 ? 184 : 146, 17)
     ctx.fillStyle = '#dff4ff'
     ctx.font = '9px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
     ctx.textAlign = 'left'
     ctx.textBaseline = 'middle'
     ctx.fillText(
-      stage === 3 ? 'STAGE 3 · 粒子水体' : stage === 2 ? 'STAGE 2 · 立绘跟随胶囊' : 'STAGE 1 · 只画物理',
+      stage === 4
+        ? 'STAGE 4 · 水线 / 泡沫 / 飞溅'
+        : stage === 3
+          ? 'STAGE 3 · 粒子水体'
+          : stage === 2
+            ? 'STAGE 2 · 立绘跟随胶囊'
+            : 'STAGE 1 · 只画物理',
       11,
       47,
     )
   }
 
   function render() {
-    if (renderStage === 1 || renderStage === 2 || renderStage === 3) {
-      drawPhysicsStage(renderStage as 1 | 2 | 3)
+    if (renderStage === 1 || renderStage === 2 || renderStage === 3 || renderStage === 4) {
+      drawPhysicsStage(renderStage as 1 | 2 | 3 | 4)
       return
     }
 
