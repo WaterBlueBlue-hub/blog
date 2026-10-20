@@ -60,6 +60,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     bodyDensity: 0.25, // 人偶质量 / 同体积水质量；平衡时约 25% 浸没
     waterFill: 2 / 3, // 水面初始高度：水只占水池下方约 1/3
     renderBreakDistance: 1.85, // 粒子间距超过该倍数即视为断开，不参与连续水面
+    splashLookahead: 0.08, // 用速度预测未来 80ms 的连通关系，提前开始断开/合并
   }
 
   const FIXED = 1 / 60
@@ -89,6 +90,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   let rho = new Float32Array(capacity)
   let componentIds = new Int32Array(capacity)
   let componentSizes = new Int32Array(capacity)
+  let futureComponentIds = new Int32Array(capacity)
+  let futureComponentSizes = new Int32Array(capacity)
   let componentStack = new Int32Array(capacity)
   let bulkMask = new Uint8Array(capacity)
   let renderWater = new Float32Array(capacity)
@@ -1164,14 +1167,36 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   // 覆盖该列的粒子圆顶部 y 的最小值，再做一遍 3 点平滑。
   // 渲染前先找连通分量：只有与主水体相连的粒子能参与连续水面和底部填充，
   // 脱离水体的粒子则留给水花绘制。否则一颗飞远的粒子会把整列水面拉成尖峰。
-  function updateBulkComponent() {
-    if (count <= 0) {
-      bulkCount = 0
-      return
+  function buildRenderGrid(timeAhead: number) {
+    cellCount.fill(0)
+    for (let i = 0; i < count; i++) {
+      const x = px[i] + vx[i] * timeAhead
+      const y = py[i] + vy[i] * timeAhead
+      const cx = Math.min(cols - 1, Math.max(0, (x / h) | 0))
+      const cy = Math.min(rows - 1, Math.max(0, (y / h) | 0))
+      cellCount[cy * cols + cx]++
     }
-    buildGrid()
-    componentIds.fill(-1, 0, count)
-    componentSizes.fill(0, 0, count)
+    let sum = 0
+    for (let c = 0; c < cols * rows; c++) {
+      cellStart[c] = sum
+      sum += cellCount[c]
+    }
+    cellStart[cols * rows] = sum
+    cellCount.fill(0)
+    for (let i = 0; i < count; i++) {
+      const x = px[i] + vx[i] * timeAhead
+      const y = py[i] + vy[i] * timeAhead
+      const cx = Math.min(cols - 1, Math.max(0, (x / h) | 0))
+      const cy = Math.min(rows - 1, Math.max(0, (y / h) | 0))
+      const cell = cy * cols + cx
+      cellItems[cellStart[cell] + cellCount[cell]++] = i
+    }
+  }
+
+  function labelComponents(ids: Int32Array, sizes: Int32Array, timeAhead: number) {
+    buildRenderGrid(timeAhead)
+    ids.fill(-1, 0, count)
+    sizes.fill(0, 0, count)
 
     const connectRadius = CFG.spacing * CFG.renderBreakDistance
     const connect2 = connectRadius * connectRadius
@@ -1180,19 +1205,20 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     let bestSize = 0
 
     for (let seed = 0; seed < count; seed++) {
-      if (componentIds[seed] >= 0) continue
+      if (ids[seed] >= 0) continue
       const component = componentCount++
       let top = 0
       let size = 0
-      componentIds[seed] = component
+      ids[seed] = component
       componentStack[top++] = seed
 
       while (top > 0) {
         const i = componentStack[--top]
         size++
-
-        const cx = Math.min(cols - 1, Math.max(0, (px[i] / h) | 0))
-        const cy = Math.min(rows - 1, Math.max(0, (py[i] / h) | 0))
+        const xi = px[i] + vx[i] * timeAhead
+        const yi = py[i] + vy[i] * timeAhead
+        const cx = Math.min(cols - 1, Math.max(0, (xi / h) | 0))
+        const cy = Math.min(rows - 1, Math.max(0, (yi / h) | 0))
         for (let oy = -1; oy <= 1; oy++) {
           const yy = cy + oy
           if (yy < 0 || yy >= rows) continue
@@ -1204,11 +1230,11 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
             const end = start + cellCount[cell]
             for (let k = start; k < end; k++) {
               const j = cellItems[k]
-              if (componentIds[j] >= 0) continue
-              const dx = px[j] - px[i]
-              const dy = py[j] - py[i]
+              if (ids[j] >= 0) continue
+              const dx = px[j] + vx[j] * timeAhead - xi
+              const dy = py[j] + vy[j] * timeAhead - yi
               if (dx * dx + dy * dy <= connect2) {
-                componentIds[j] = component
+                ids[j] = component
                 componentStack[top++] = j
               }
             }
@@ -1216,22 +1242,45 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
         }
       }
 
-      componentSizes[component] = size
+      sizes[component] = size
       if (size > bestSize) {
         bestSize = size
         bestComponent = component
       }
     }
+    return [bestComponent, bestSize] as const
+  }
+
+  function updateBulkComponent() {
+    if (count <= 0) {
+      bulkCount = 0
+      return
+    }
+
+    const [bestComponent, bestSize] = labelComponents(componentIds, componentSizes, 0)
+    const [futureBestComponent] = labelComponents(
+      futureComponentIds,
+      futureComponentSizes,
+      CFG.splashLookahead,
+    )
 
     bulkMask.fill(0, 0, count)
     for (let i = 0; i < count; i++) {
-      const component = componentIds[i]
-      const isBulk = component === bestComponent
+      const currentComponent = componentIds[i]
+      const futureComponent = futureComponentIds[i]
+      const isBulk = currentComponent === bestComponent
       if (isBulk) bulkMask[i] = 1
-      // 单个粒子不是一块水；3~8 个粒子形成逐渐饱满的小水体，8 个以上
-      // 与主水体使用相同的绘制半径。按时间插值，避免跨过阈值时突然缩成点。
-      const target = isBulk ? 1 : Math.min(1, componentSizes[component] / 8)
-      renderWater[i] += (target - renderWater[i]) * 0.22
+
+      // 当前与短时预测各占一部分权重：即将离群的粒子会提前变细/变淡，
+      // 即将重新汇入主水体的粒子会提前恢复为完整水体，而不是卡在阈值上突变。
+      const currentWater =
+        isBulk ? 1 : Math.min(1, componentSizes[currentComponent] / 8)
+      const futureWater =
+        futureComponent === futureBestComponent
+          ? 1
+          : Math.min(1, futureComponentSizes[futureComponent] / 8)
+      const target = currentWater * 0.4 + futureWater * 0.6
+      renderWater[i] += (target - renderWater[i]) * 0.28
     }
     bulkCount = bestSize
   }
