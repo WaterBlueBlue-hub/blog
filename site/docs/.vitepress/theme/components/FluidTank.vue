@@ -33,7 +33,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     dragDamping: 4, // 拖拽阻尼（越小越轻）
     bodyCount: 5,
     bodyHeightRatio: 0.36, // 小人高度 / 水槽高度（太大会踩到底就浮不起来）
-    waterFill: 0.66, // 水面初始高度（从顶部算）：水占三分之一
+    waterFill: 0.7, // 水面初始高度（从顶部算）：水占三分之一
   }
 
   const FIXED = 1 / 60
@@ -278,7 +278,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     binMin.fill(H)
     binMin2.fill(H)
     binCnt.fill(0)
+    let sumY = 0
     for (let i = 0; i < count; i++) {
+      sumY += py[i]
       const bin = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
       // 记最小的两个 y：第二个能顶掉单个飞溅粒子造成的尖刺
       if (py[i] < binMin[bin]) {
@@ -289,8 +291,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       }
       binCnt[bin]++
     }
-    // 平均水位只用粒子算（把刚体排水算进来会和水面形成反馈，导致来回跳）
-    const level = H - (count * CFG.spacing * CFG.spacing) / W
+    // 水位 = 2×平均高度 − 池高（均匀液柱下是精确解，不依赖粒子间距）
+    const meanY = count ? sumY / count : H
+    const level = Math.min(H - 16, Math.max(16, 2 * meanY - H))
     waterLevel = waterLevel === 0 ? level : waterLevel + (level - waterLevel) * 0.15
     // 每格取最低点，但限制在平均水位附近，飞溅粒子不会把水面抬到顶
     for (let b = 0; b < BINS; b++) {
