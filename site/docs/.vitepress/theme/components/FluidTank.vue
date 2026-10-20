@@ -56,7 +56,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     dragDamping: 4, // 拖拽阻尼（越小越轻）
     bodyCount: 5,
     bodyHeightRatio: 0.26, // 小人高度 / 水槽高度（太大会踩到底就浮不起来）
-    waterFill: 0.55, // 水面初始高度（从顶部算）：水占将近一半
+    bodyDensity: 0.25, // 人偶质量 / 同体积水质量；平衡时约 25% 浸没
+    waterFill: 2 / 3, // 水面初始高度：水只占水池下方约 1/3
   }
 
   const FIXED = 1 / 60
@@ -270,7 +271,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     const r = charW * 0.22
     const hl = charH * 0.3
     const area = 4 * r * hl + Math.PI * r * r
-    const m = 0.45 * area * RHO_AREA
+    const m = CFG.bodyDensity * area * RHO_AREA
     const picks = spritesForRun ?? pickSprites()
     // 立绘宽度随原图比例变化，站到最边上会被水槽裁掉；按最高角色的半宽留边
     const side = Math.min(W * 0.2, charH * 0.62)
@@ -607,7 +608,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       // 2ω 左右，落水后 0.3~0.5 s 就稳住，而不是像以前那样一直上下弹。
       const sub = Math.max(0, Math.min(1, b.frac))
       b.vx *= Math.exp(-(0.5 + 7 * sub) * dt)
-      b.vy *= Math.exp(-(1.0 + 30 * sub) * dt)
+      b.vy *= Math.exp(-(1.0 + 60 * sub) * dt)
       // 入水后限速：从画布上方落下来时速度很高，会把浅水一下压扁
       if (b.frac > 0.1) {
         if (b.vy > 150) b.vy = 150
