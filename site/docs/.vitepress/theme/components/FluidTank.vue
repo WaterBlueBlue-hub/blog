@@ -69,8 +69,11 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   let rawSurface = new Float32Array(96)
   let binMin = new Float32Array(96)
   let binMin2 = new Float32Array(96)
+  let refBuf = new Float32Array(96)
+  let smoothBuf = new Float32Array(96)
   let binCnt = new Int32Array(96)
   let surfaceInit = false
+  let surfaceRefPrev = 0 // 上一帧水面基准（用来判断整片水是不是在快速移动）
   let waterLevel = 0 // 平滑后的平均水位，浮力只认它（不跟局部波峰联动）
   const BINS = 96
 
@@ -276,6 +279,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     if (binMin.length !== BINS) {
       binMin = new Float32Array(BINS)
       binMin2 = new Float32Array(BINS)
+      refBuf = new Float32Array(BINS)
+      smoothBuf = new Float32Array(BINS)
       binMax = new Float32Array(BINS)
       binCnt = new Int32Array(BINS)
     }
@@ -285,7 +290,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     binCnt.fill(0)
     for (let i = 0; i < count; i++) {
       const bin = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
-      // 记最小的两个 y：第二个能顶掉单个飞溅粒子造成的尖刺
+      // 记最小的两个 y：水面取最高粒子，第二低的用来判断是不是孤立水滴
       if (py[i] < binMin[bin]) {
         binMin2[bin] = binMin[bin]
         binMin[bin] = py[i]
@@ -298,45 +303,102 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     // 水位只由"粒子数 × 每颗占的面积"决定 —— 总量恒定，滚动/晃动不会改变整体水位
     const level = H - (count * CFG.spacing * CFG.spacing * 0.9) / W
     waterLevel = level
-    // 每格取最低点，但限制在平均水位附近，飞溅粒子不会把水面抬到顶
+
+    // 1) 每格的水面候选：最高的粒子（粒子太少说明这格被刚体占了，先留空）
+    let valid = 0
     for (let b = 0; b < BINS; b++) {
-      // 粒子太少（被刚体占了）就直接用平均水位，避免在"最低点"和"平均水位"之间来回跳
-      const v = binCnt[b] >= 8 ? binMin2[b] : level
-      // 上边界放宽很多：滚动时整片水会"滞空"抬起，水面要能跟着抬
-      rawSurface[b] = Math.min(level + 34, Math.max(level - 120, v))
+      if (binCnt[b] >= 8) {
+        rawSurface[b] = binMin[b]
+        valid++
+      } else {
+        rawSurface[b] = NaN
+      }
     }
-    // 宽一点的平滑：水面整体要平，只留缓的起伏
-    const tmp = rawSurface.slice()
+    // 2) 孤立水滴去掉：一格只有一两颗粒子飞得高，就把它拉回左右邻域的中位数。
+    //    整片水一起抬起来时邻域一起抬，所以滞空不会被削掉。
+    for (let b = 0; b < BINS; b++) {
+      if (Number.isNaN(rawSurface[b])) continue
+      let m = 0
+      for (let k = -2; k <= 2; k++) {
+        const idx = Math.min(BINS - 1, Math.max(0, b + k))
+        const v = rawSurface[idx]
+        if (!Number.isNaN(v)) refBuf[m++] = v
+      }
+      const med = refBuf.subarray(0, m).sort()[m >> 1]
+      rawSurface[b] = Math.min(med + 20, Math.max(med - 20, rawSurface[b]))
+    }
+    // 3) 全局基准取"所有有效格的中位数"。
+    //    以前这个基准是静止水位 level，一旦整片水被甩起来（滞空），线就被
+    //    level - 120 卡住，落到水体中间；现在基准跟着水体现在的位置走。
+    let ref = level
+    if (valid > 0) {
+      let n = 0
+      for (let b = 0; b < BINS; b++) if (!Number.isNaN(rawSurface[b])) refBuf[n++] = rawSurface[b]
+      const sorted = refBuf.subarray(0, n)
+      sorted.sort()
+      ref = sorted[n >> 1]
+    }
+    // 每格相对基准的偏离限制在 ±48px：水柱/水花能抬起个别格，但拽不走整条线
+    for (let b = 0; b < BINS; b++) {
+      const v = rawSurface[b]
+      rawSurface[b] = Number.isNaN(v) ? ref : Math.min(ref + 48, Math.max(ref - 48, v))
+    }
+    // 3) 空间平滑：水面整体要平，只留缓的起伏
+    smoothBuf.set(rawSurface)
+    // 整片水在快速上下移动（滞空 / 落回）时基准每帧会跳好几像素，
+    // 这时时间平滑要几乎等于直接跟随，否则线会拖在水体后面
+    const moving = Math.abs(ref - surfaceRefPrev) > 3
     for (let b = 0; b < BINS; b++) {
       let s = 0
       let w = 0
       for (let k = -3; k <= 3; k++) {
         const idx = Math.min(BINS - 1, Math.max(0, b + k))
         const wk = 4 - Math.abs(k)
-        s += tmp[idx] * wk
+        s += smoothBuf[idx] * wk
         w += wk
       }
       const smooth = s / w
-      // 时间上也做一次平滑：帧间跳动会让人看到水面闪
-      surface[b] = surfaceInit ? surface[b] + (smooth - surface[b]) * 0.14 : smooth
-      // 水体下边界：平时贴着池底；整体滞空时抬起来，露出下面的空隙
+      // 4) 时间平滑：静止时压抖动，动得越快跟得越快。
+      //    固定 0.14 会在快甩时严重滞后 —— 水已经飞上去了，线还留在原地。
+      const err = smooth - surface[b]
+      const k = moving ? 0.9 : Math.min(0.6, 0.12 + Math.abs(err) / 120)
+      surface[b] = surfaceInit ? surface[b] + err * k : smooth
     }
-    // 下边界也做一次空间平滑：逐格取"最低粒子"本身就是阶梯，直接连折线会成锯齿
+    surfaceRefPrev = ref
+    // 5) 下边界：平时贴着池底；整片水滞空时抬起来，露出下面的空隙
+    let validB = 0
     for (let b = 0; b < BINS; b++) {
-      rawBottom[b] = binCnt[b] >= 4 ? Math.min(H, binMax[b]) : H
+      if (binCnt[b] >= 4) {
+        rawBottom[b] = Math.min(H, binMax[b])
+        refBuf[validB++] = rawBottom[b]
+      } else {
+        rawBottom[b] = NaN
+      }
     }
-    const tmpB = rawBottom.slice()
+    let refB = H
+    if (validB > 0) {
+      const sorted = refBuf.subarray(0, validB)
+      sorted.sort()
+      refB = sorted[validB >> 1]
+    }
+    for (let b = 0; b < BINS; b++) {
+      const v = rawBottom[b]
+      rawBottom[b] = Number.isNaN(v) ? refB : Math.min(refB + 60, Math.max(refB - 60, v))
+    }
+    smoothBuf.set(rawBottom)
     for (let b = 0; b < BINS; b++) {
       let s = 0
       let w = 0
       for (let k = -4; k <= 4; k++) {
         const idx = Math.min(BINS - 1, Math.max(0, b + k))
         const wk = 5 - Math.abs(k)
-        s += tmpB[idx] * wk
+        s += smoothBuf[idx] * wk
         w += wk
       }
       const smooth = s / w
-      bottom[b] = surfaceInit ? bottom[b] + (smooth - bottom[b]) * 0.22 : smooth
+      const err = smooth - bottom[b]
+      const k = moving ? 0.9 : Math.min(0.6, 0.16 + Math.abs(err) / 120)
+      bottom[b] = surfaceInit ? bottom[b] + err * k : smooth
     }
     surfaceInit = true
   }
@@ -810,7 +872,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     for (let i = 0; i < count; i++) {
       const bin = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
       const above = surface[bin] - py[i]
-      if (above <= 2) continue
+      // 水面取的就是最高粒子，正常贴在水面的粒子几乎不会高于它；
+      // 这里留 4px 余量，只把真正飞离水面的画成水线
+      if (above <= 4) continue
       const sp = Math.hypot(vx[i], vy[i])
       const len = Math.min(7, Math.max(1.4, sp * 0.01))
       const nx = sp > 1 ? vx[i] / sp : 0
@@ -1073,6 +1137,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   const onResize = () => {
     window.clearTimeout(resizeTimer)
     resizeTimer = window.setTimeout(() => {
+      // 尺寸没变就别重建：手机地址栏收起/展开、窗口小幅抖动都会触发 resize，
+      // 一重建粒子数就变了，水面也会跟着跳一下
+      if (host.clientWidth === W && host.clientHeight === H) return
       layout()
       buildParticles()
       buildBodies()
@@ -1090,12 +1157,15 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       let maxY = 0
       let rhoSum = 0
       let topCount = 0
+      let flying = 0
       const ys: number[] = []
       for (let i = 0; i < count; i++) {
         if (py[i] < minY) minY = py[i]
         if (py[i] > maxY) maxY = py[i]
         rhoSum += rho[i]
         if (py[i] < H * 0.3) topCount++
+        const bin = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
+        if (surface[bin] - py[i] > 5) flying++
         if (i % 17 === 0) ys.push(py[i])
       }
       ys.sort((a, b) => a - b)
@@ -1112,6 +1182,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
         maxY: Math.round(maxY),
         avgC: +(rhoSum / Math.max(1, count) / rho0 - 1).toFixed(3),
         topCount,
+        flying,
+        level: Math.round(waterLevel),
         p10y: Math.round(ys[Math.floor(ys.length * 0.1)] || 0),
         p50y: Math.round(ys[Math.floor(ys.length * 0.5)] || 0),
         surfaceTop: Math.round(Math.min(...surface)),
