@@ -3,6 +3,20 @@ import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
 type Point = { x: number; y: number }
 type Shock = { x: number; startedAt: number; power: number }
+type Branch = { x1: number; y1: number; x2: number; y2: number; width: number }
+type CanopyLeaf = { x: number; y: number; size: number; rotation: number; color: string; alpha: number }
+type FallingLeaf = {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  rotation: number
+  spin: number
+  size: number
+  color: string
+  alpha: number
+  phase: number
+}
 type Blade = {
   rootX: number
   phase: number
@@ -43,8 +57,15 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
   const ctx = canvas.getContext('2d')!
   let W = 0
   let H = 0
+  let flowerBandHeight = 0
+  let treeHeight = 0
+  let treeRootX = 0
   let dpr = 1
   let blades: Blade[] = []
+  let branches: Branch[] = []
+  let canopyLeaves: CanopyLeaf[] = []
+  let fallingLeaves: FallingLeaf[] = []
+  let leafSpawnClock = 0
   let raf = 0
   let last = performance.now()
   let acc = 0
@@ -101,6 +122,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
       center: '#f7dfaa',
     },
   ]
+  const autumnPalettes = ['#d88d83', '#e3aa89', '#c98491', '#e9bd83', '#b98da9', '#dca5a3']
 
   function layout() {
     const hero = host.closest('.VPHero') as HTMLElement | null
@@ -110,15 +132,19 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
     const heroRect = hero.getBoundingClientRect()
     const containerRect = container.getBoundingClientRect()
     const mainRect = main.getBoundingClientRect()
-    const height = clamp(window.innerWidth * 0.05, 46, 72)
+    const flowerHeight = clamp(window.innerWidth * 0.05, 46, 72)
+    treeHeight = clamp(containerRect.width * 0.16, 128, 190)
+    const height = flowerHeight + treeHeight
 
     host.style.left = `${containerRect.left - mainRect.left}px`
-    host.style.top = `${heroRect.bottom - mainRect.top - height * 1.5 + 4}px`
+    host.style.top = `${heroRect.bottom - mainRect.top - flowerHeight * 1.5 + 4 - treeHeight}px`
     host.style.width = `${containerRect.width}px`
     host.style.height = `${height}px`
 
     W = Math.max(1, Math.round(containerRect.width))
     H = Math.max(1, Math.round(height))
+    flowerBandHeight = flowerHeight
+    treeRootX = W * 0.45
     dpr = Math.min(2, window.devicePixelRatio || 1)
     canvas.width = Math.round(W * dpr)
     canvas.height = Math.round(H * dpr)
@@ -134,6 +160,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
     addRow(backCount, 0, 0.54, 0.76, 0.8)
     addRow(frontCount, 1, 0.72, 1, 1.12)
     blades.sort((a, b) => a.rootX - b.rootX)
+    buildTree()
   }
 
   function addRow(count: number, depth: number, minHeight: number, maxHeight: number, width: number) {
@@ -141,7 +168,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
     const usable = Math.max(1, W - margin * 2)
     for (let i = 0; i < count; i++) {
       const segments = 5 + ((Math.random() * 3) | 0)
-      const height = H * rand(minHeight, maxHeight)
+      const height = flowerBandHeight * rand(minHeight, maxHeight)
       const rootX = margin + (usable * (i + 0.5)) / count + rand(-4, 4)
       const restAngle = rand(-0.075, 0.075)
       const curl = rand(-0.07, 0.07)
@@ -167,7 +194,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
         petalA: palette.petalA,
         petalB: palette.petalB,
         centerColor: palette.center,
-        flowerSize: rand(2.6, 4.1) * (depth ? 1 : 0.82) * (H / 72),
+        flowerSize: rand(2.6, 4.1) * (depth ? 1 : 0.82) * (flowerBandHeight / 72),
         depth,
         angles,
         velocities,
@@ -175,6 +202,156 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
         points: [],
       })
     }
+  }
+
+  function buildTree() {
+    branches = []
+    canopyLeaves = []
+    fallingLeaves = []
+    leafSpawnClock = 0
+    const tips: Point[] = []
+
+    function grow(
+      x: number,
+      y: number,
+      angle: number,
+      length: number,
+      width: number,
+      depth: number,
+    ) {
+      const x2 = x + Math.cos(angle) * length
+      const y2 = y + Math.sin(angle) * length
+      branches.push({ x1: x, y1: y, x2, y2, width })
+      if (depth <= 0) {
+        tips.push({ x: x2, y: y2 })
+        return
+      }
+      const spread = rand(0.34, 0.5)
+      grow(x2, y2, angle - spread, length * rand(0.58, 0.72), width * 0.62, depth - 1)
+      grow(x2, y2, angle + spread * rand(0.82, 1.1), length * rand(0.56, 0.7), width * 0.62, depth - 1)
+    }
+
+    grow(
+      treeRootX,
+      H + 1,
+      -Math.PI / 2 + rand(-0.035, 0.035),
+      treeHeight * 0.43,
+      4.2,
+      3,
+    )
+
+    for (const tip of tips) {
+      const count = 10 + ((Math.random() * 6) | 0)
+      for (let i = 0; i < count; i++) {
+        canopyLeaves.push({
+          x: tip.x + rand(-16, 16),
+          y: tip.y + rand(-14, 12),
+          size: rand(3.8, 6.4),
+          rotation: rand(0, Math.PI * 2),
+          color: autumnPalettes[(Math.random() * autumnPalettes.length) | 0],
+          alpha: rand(0.52, 0.84),
+        })
+      }
+    }
+
+    for (let i = 0; i < 11; i++) fallingLeaves.push(makeFallingLeaf(true))
+  }
+
+  function makeFallingLeaf(initial = false): FallingLeaf {
+    const source =
+      canopyLeaves.length > 0
+        ? canopyLeaves[(Math.random() * canopyLeaves.length) | 0]
+        : { x: treeRootX, y: H - treeHeight * 0.7 }
+    return {
+      x: source.x + rand(-18, 18),
+      y: initial ? rand(source.y, H - 8) : source.y + rand(-6, 5),
+      vx: rand(-4, 7),
+      vy: initial ? rand(7, 15) : rand(3, 7),
+      rotation: rand(0, Math.PI * 2),
+      spin: rand(-1.5, 1.5),
+      size: rand(3.6, 6.2),
+      color: autumnPalettes[(Math.random() * autumnPalettes.length) | 0],
+      alpha: rand(0.68, 0.94),
+      phase: rand(0, Math.PI * 2),
+    }
+  }
+
+  function updateLeaves(dt: number, time: number) {
+    leafSpawnClock += dt
+    if (leafSpawnClock > 0.62 && fallingLeaves.length < 24) {
+      leafSpawnClock = 0
+      fallingLeaves.push(makeFallingLeaf())
+    }
+    const pointerLife = pointer.active
+      ? Math.max(0, 1 - (performance.now() - pointer.lastMove) / 620)
+      : 0
+    for (const leaf of fallingLeaves) {
+      const flutter = Math.sin(time * 2.2 + leaf.phase) * 8
+      leaf.vx += (flutter - leaf.vx * 0.45) * dt
+      leaf.vy += 7 * dt
+      if (pointerLife > 0) {
+        const distance = Math.hypot(leaf.x - pointer.x, leaf.y - pointer.y)
+        const proximity = Math.max(0, 1 - distance / 120)
+        leaf.vx += clamp(pointer.vx * 0.0009, -0.55, 0.55) * proximity * pointerLife
+      }
+      leaf.x += leaf.vx * dt
+      leaf.y += leaf.vy * dt
+      leaf.rotation += leaf.spin * dt
+      if (leaf.y > H + 8 || leaf.x < -20 || leaf.x > W + 20) {
+        Object.assign(leaf, makeFallingLeaf())
+      }
+    }
+  }
+
+  function drawMapleLeaf(
+    x: number,
+    y: number,
+    size: number,
+    rotation: number,
+    color: string,
+    alpha: number,
+  ) {
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.rotate(rotation)
+    ctx.globalAlpha = alpha
+    ctx.fillStyle = color
+    ctx.beginPath()
+    ctx.moveTo(0, -size)
+    ctx.lineTo(size * 0.24, -size * 0.34)
+    ctx.lineTo(size * 0.74, -size * 0.56)
+    ctx.lineTo(size * 0.43, -size * 0.06)
+    ctx.lineTo(size * 0.88, size * 0.1)
+    ctx.lineTo(size * 0.27, size * 0.27)
+    ctx.lineTo(size * 0.34, size * 0.78)
+    ctx.lineTo(0, size * 0.42)
+    ctx.lineTo(-size * 0.34, size * 0.78)
+    ctx.lineTo(-size * 0.27, size * 0.27)
+    ctx.lineTo(-size * 0.88, size * 0.1)
+    ctx.lineTo(-size * 0.43, -size * 0.06)
+    ctx.lineTo(-size * 0.74, -size * 0.56)
+    ctx.lineTo(-size * 0.24, -size * 0.34)
+    ctx.closePath()
+    ctx.fill()
+    ctx.restore()
+  }
+
+  function drawTree() {
+    ctx.save()
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    for (const branch of branches) {
+      ctx.beginPath()
+      ctx.moveTo(branch.x1, branch.y1)
+      ctx.lineTo(branch.x2, branch.y2)
+      ctx.strokeStyle = 'rgba(119, 83, 83, 0.4)'
+      ctx.lineWidth = branch.width
+      ctx.stroke()
+    }
+    for (const leaf of canopyLeaves) {
+      drawMapleLeaf(leaf.x, leaf.y, leaf.size, leaf.rotation, leaf.color, leaf.alpha)
+    }
+    ctx.restore()
   }
 
   function stepBlade(blade: Blade, dt: number, time: number) {
@@ -285,7 +462,12 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
     haze.addColorStop(1, 'rgba(111, 76, 96, 0.08)')
     ctx.fillStyle = haze
     ctx.fillRect(0, H - 28, W, 28)
+    drawTree()
+    for (const leaf of fallingLeaves) {
+      drawMapleLeaf(leaf.x, leaf.y, leaf.size, leaf.rotation, leaf.color, leaf.alpha)
+    }
     for (const blade of blades) drawBlade(blade)
+    ctx.globalAlpha = 1
   }
 
   function frame(now: number) {
@@ -301,6 +483,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
     while (acc >= 1 / 60 && steps < 3) {
       const time = now / 1000
       for (const blade of blades) stepBlade(blade, 1 / 60, time)
+      updateLeaves(1 / 60, time)
       acc -= 1 / 60
       steps++
     }
