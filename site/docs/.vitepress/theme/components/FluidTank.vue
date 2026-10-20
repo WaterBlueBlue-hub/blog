@@ -32,10 +32,11 @@ defineExpose({
 function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolean) {
   const ctx = canvas.getContext('2d')!
   // 分步重建渲染时的隔离开关：?fluidRender=1 只画物理，默认页面不受影响。
-  const renderStage =
-    typeof window !== 'undefined'
-      ? Number(new URLSearchParams(window.location.search).get('fluidRender') || 0)
-      : 0
+  const fluidRenderParam =
+    typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('fluidRender') : null
+  // 默认直接使用第 5 步的最终渲染；带 ?fluidRender=1..5 时仍可回看分步。
+  const renderStage = fluidRenderParam ? Number(fluidRenderParam) : 5
+  const showStageBadge = !!fluidRenderParam
 
   /* ---------------- 可调参数 ---------------- */
   const CFG = {
@@ -1394,7 +1395,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   }
 
   // Stage 5：把粒子水体、粒子轮廓水线和背景合成到最终画面。
-  function drawFinalStage() {
+  function drawFinalStage(showBadge = false) {
     ctx.clearRect(0, 0, W, H)
     if (bgReady && bg) {
       if (!bgCache) buildBgCache()
@@ -1428,18 +1429,20 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     if (debugView) drawDebug(false, true)
     ctx.restore()
 
-    ctx.fillStyle = 'rgba(4, 12, 26, 0.72)'
-    ctx.fillRect(6, 6, 168, 17)
-    ctx.fillStyle = '#dff4ff'
-    ctx.font = '9px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
-    ctx.textAlign = 'left'
-    ctx.textBaseline = 'middle'
-    ctx.fillText('STAGE 5 · 最终预览', 11, 15)
+    if (showBadge) {
+      ctx.fillStyle = 'rgba(4, 12, 26, 0.72)'
+      ctx.fillRect(6, 6, 168, 17)
+      ctx.fillStyle = '#dff4ff'
+      ctx.font = '9px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+      ctx.textAlign = 'left'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('STAGE 5 · 最终预览', 11, 15)
+    }
   }
 
   function render() {
     if (renderStage === 5) {
-      drawFinalStage()
+      drawFinalStage(showStageBadge)
       return
     }
     if (renderStage === 1 || renderStage === 2 || renderStage === 3 || renderStage === 4) {
