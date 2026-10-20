@@ -56,7 +56,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     hFactor: 2.0, // 核半径 / 间距（太小邻居不足，密度估计会抖）
     iterations: 2, // 密度约束迭代次数
     relaxation: 0.55, // 位置修正松弛
-    viscosity: 0.18, // XSPH 粘性
+    viscosity: 0.42, // XSPH 粘性：低速保持流动，高速粒子额外增强耗散
     wallDamp: 0.35, // 撞墙速度保留
     floorDamp: 0.08, // 池底几乎不回弹：水砸下来应该"停住"，不是弹起来
     ceilDamp: 0.12,
@@ -943,8 +943,13 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       for (let i = 0; i < count; i++) {
         const cx = Math.min(cols - 1, Math.max(0, (px[i] / h) | 0))
         const cy = Math.min(rows - 1, Math.max(0, (py[i] / h) | 0))
+        const speed = Math.hypot(vx[i], vy[i])
+        // 小人在刷新时砸入水面，会把局部速度瞬间拉到数百 px/s。
+        // 给高速粒子更高的局部粘性，只抑制飞散，不把整池水做成胶体。
+        const localViscosity = Math.min(0.82, CFG.viscosity * (1 + speed / 360))
         let ax = 0
         let ay = 0
+        let neighbors = 0
         for (let oy = -1; oy <= 1; oy++) {
           const yy = cy + oy
           if (yy < 0 || yy >= rows) continue
@@ -961,14 +966,25 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
               const dy = py[i] - py[j]
               const r2 = dx * dx + dy * dy
               if (r2 >= h * h) continue
+              neighbors++
               const w = poly6(r2) / rho0
               ax += (vx[j] - vx[i]) * w
               ay += (vy[j] - vy[i]) * w
             }
           }
         }
-        vx[i] += ax * CFG.viscosity
-        vy[i] += ay * CFG.viscosity
+        vx[i] += ax * localViscosity
+        vy[i] += ay * localViscosity
+        const resolvedSpeed = Math.hypot(vx[i], vy[i])
+        if (resolvedSpeed > 220) {
+          // 脱离邻居的粒子无法通过 XSPH 交换动量；额外衰减这类孤立飞滴，
+          // 避免刷新落水后单颗粒子冲顶并拉出虚假的尖峰。
+          const isolation = 1 - Math.min(1, neighbors / 5)
+          const excess = Math.min(1, (resolvedSpeed - 220) / 500)
+          const damping = 1 - (0.08 + isolation * 0.38) * excess
+          vx[i] *= damping
+          vy[i] *= damping
+        }
       }
     }
 
