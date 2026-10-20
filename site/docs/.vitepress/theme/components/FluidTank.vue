@@ -6,16 +6,22 @@ defineProps<{ compact?: boolean }>()
 const root = ref<HTMLDivElement | null>(null)
 const canvasEl = ref<HTMLCanvasElement | null>(null)
 let dispose: (() => void) | null = null
+let refreshImpl: (() => void) | null = null
 
 onMounted(() => {
   if (!root.value || !canvasEl.value) return
-  dispose = setup(canvasEl.value, root.value)
+  const api = setup(canvasEl.value, root.value)
+  dispose = api.dispose
+  refreshImpl = api.refresh
 })
 
 onBeforeUnmount(() => {
   dispose?.()
   dispose = null
+  refreshImpl = null
 })
+
+defineExpose({ refresh: () => refreshImpl?.() })
 
 function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   const ctx = canvas.getContext('2d')!
@@ -37,9 +43,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     maxLift: 110, // 水最多比静止水位抬多高，再滚也不给冲量
     dragStiffness: 75, // 拖拽弹簧刚度（越大跟手越快）
     dragDamping: 4, // 拖拽阻尼（越小越轻）
-    bodyCount: 10,
+    bodyCount: 5,
     bodyHeightRatio: 0.26, // 小人高度 / 水槽高度（太大会踩到底就浮不起来）
-    waterFill: 0.7, // 水面初始高度（从顶部算）：水占三分之一
+    waterFill: 0.55, // 水面初始高度（从顶部算）：水占将近一半
   }
 
   const FIXED = 1 / 60
@@ -199,7 +205,19 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     cellItems = new Int32Array(Math.max(1, count))
   }
 
-  function buildBodies() {
+  // 从小人库里随机抽一批，洗牌后取前 bodyCount 个，避免同一个人重复出现
+  function pickSprites() {
+    const pool = SPRITE_SOURCES.map((_, i) => i)
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0
+      const t = pool[i]
+      pool[i] = pool[j]
+      pool[j] = t
+    }
+    return pool.slice(0, Math.min(CFG.bodyCount, pool.length))
+  }
+
+  function buildBodies(spritesForRun?: number[]) {
     bodies = []
     charH = H * CFG.bodyHeightRatio
     const charW = charH * (274 / 512)
@@ -207,17 +225,18 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     const hl = charH * 0.3
     const area = 4 * r * hl + Math.PI * r * r
     const m = 0.45 * area * RHO_AREA
-    const waterY = H * CFG.waterFill
+    const picks = spritesForRun ?? pickSprites()
     // 立绘宽度随原图比例变化，站到最边上会被水槽裁掉；按最高角色的半宽留边
     const side = Math.min(W * 0.2, charH * 0.62)
+    // 每条泳道里随机一个位置：人物横向铺开，但不会挤成一堆
+    const laneW = (W - 2 * side) / CFG.bodyCount
     for (let i = 0; i < CFG.bodyCount; i++) {
-      const t = (i + 0.5) / CFG.bodyCount
       bodies.push({
-        x: side + (W - 2 * side) * t + (Math.random() - 0.5) * 10,
-        // 从水面上方落下来，落水才有明显的水花
-        y: waterY - charH * 0.85 - i * 14,
-        vx: (Math.random() - 0.5) * 40,
-        vy: 80 + i * 20,
+        x: side + laneW * (i + 0.5 + (Math.random() - 0.5) * 0.2),
+        // 从池子上方落下来：y 为负，画布外开始自由落体
+        y: -charH * (0.2 + Math.random() * 0.3) - i * charH * 0.35,
+        vx: (Math.random() - 0.5) * 30,
+        vy: 60 + Math.random() * 50,
         a: (Math.random() - 0.5) * 0.12,
         av: (Math.random() - 0.5) * 0.3,
         r,
@@ -226,13 +245,20 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
         invM: 1 / m,
         rot: 0,
         flip: i % 2 === 1 ? -1 : 1,
-        spriteIndex: i % SPRITE_SOURCES.length,
+        spriteIndex: picks[i % picks.length],
         frac: 0,
         rawPrev: 0,
         inWater: false,
         squash: 1,
       })
     }
+  }
+
+  // 换一批：重新抽人、从池子上方重新落下
+  function refreshBodies() {
+    grabbed = null
+    pointer.down = false
+    buildBodies()
   }
 
   /* ---------------- 核函数 ---------------- */
@@ -294,7 +320,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     const cy = ay + ey * t
     const dx = x - cx
     const dy = y - cy
-    const d = Math.hypot(dx, dy) || 1e-4
+    const d = Math.hypot(dx, dy)
+    // 粒子正好落在胶囊中心线上时没有法线方向，固定往上推，避免除零后原地卡住
+    if (d < 1e-4) return [-b.r, 0, -1] as const
     return [d - b.r, dx / d, dy / d] as const
   }
 
@@ -343,7 +371,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     }
     // 水位只由"粒子数 × 每颗占的面积"决定 —— 总量恒定，滚动/晃动不会改变整体水位
     const level = H - (count * CFG.spacing * CFG.spacing * 0.9) / W
-    waterLevel = level
 
     // 1) 每格的水面候选：最高的粒子（粒子太少说明这格被刚体占了，先留空）
     let valid = 0
@@ -450,6 +477,14 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       const k = moving ? 0.9 : Math.min(0.6, 0.16 + Math.abs(err) / 120)
       bottom[b] = surfaceInit ? bottom[b] + err * k : smooth
     }
+    // 浮力用的水位必须跟着真实液面走：理论水位假设每颗占 0.9·spacing²，
+    // 而密度投影后的实际液面会低十几像素。继续用理论值，人偶就会"站在水面上"。
+    const sortedSurface = refBuf.subarray(0, BINS)
+    sortedSurface.set(surface)
+    sortedSurface.sort()
+    const freeLevel = sortedSurface[BINS >> 1]
+    const wlK = surfaceInit ? (moving ? 0.55 : 0.12) : 1
+    waterLevel = surfaceInit ? waterLevel + (freeLevel - waterLevel) * wlK : freeLevel
     surfaceInit = true
   }
 
@@ -499,7 +534,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       // 水的阻力 + 姿态回正（阻尼够大才不会上下弹）
       const drag = Math.min(1, b.frac * 6)
       b.vx *= 1 - Math.min(0.5, drag * 3.2 * dt)
-      b.vy *= 1 - Math.min(0.6, drag * 4.2 * dt)
+      b.vy *= 1 - Math.min(0.75, drag * 8.5 * dt)
+      // 入水后限速：从画布上方落下来时速度很高，会把浅水一下压扁
+      if (b.frac > 0.1 && b.vy > 300) b.vy = 300
       // 姿态：允许自由旋转，只保留很弱的回正和水阻（不然会一直挺着不动）
       b.av *= 1 - Math.min(0.8, 0.35 + b.frac * 1.6) * dt
       if (b.frac > 0.02) b.av += (-b.a * 2.6 - b.av * 1.5) * b.frac * dt
@@ -534,10 +571,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
         b.vy = -Math.abs(b.vy) * 0.25
         b.av *= 0.9
       }
-      if (b.y < lim) {
-        b.y = lim
-        b.vy = Math.abs(b.vy) * 0.2
-      }
+      // 顶部不再夹住：刷新时人偶要从画布上方落进来
     }
 
     /* 2. 刚体-刚体碰撞（胶囊用线段近似） */
@@ -693,7 +727,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
         rho[i] = d + poly6(0)
         const C = rho[i] / rho0 - 1
         // 分母是 Σ|∇C_j|²（逐邻居累加），不是 |Σ∇C|²
-        lam[i] = -C / (sumG2 + 1e-4)
+        // 自由表面的密度天然低于静止密度。λ 允许为正时，表面粒子会互相吸引，
+        // 整片水被慢慢压扁、表面自己泛波。只保留抗压缩的一半（λ ≤ 0）。
+        lam[i] = Math.min(0, -C / (sumG2 + 1e-4))
       }
       for (let i = 0; i < count; i++) {
         const cx = Math.min(cols - 1, Math.max(0, (qx[i] / h) | 0))
@@ -729,6 +765,19 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
         const maxStep = h * 0.08
         qx[i] += Math.max(-maxStep, Math.min(maxStep, dxSum * CFG.relaxation))
         qy[i] += Math.max(-maxStep, Math.min(maxStep, dySum * CFG.relaxation))
+      }
+    }
+
+    /* 5b. 密度投影后再分离一次：前面那次推出发生在投影之前，
+          投影会把粒子重新挤进人偶里，水就会从身体中间穿过去。 */
+    for (let pass = 0; pass < 2; pass++) {
+      for (const b of bodies) {
+        for (let i = 0; i < count; i++) {
+          const [d, nx, ny] = capsuleDistance(b, qx[i], qy[i])
+          if (d >= 0) continue
+          qx[i] -= nx * d
+          qy[i] -= ny * d
+        }
       }
     }
 
@@ -984,8 +1033,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
         const sw = (img.naturalWidth / img.naturalHeight) * sh
         // 始终用原图：以前浸没超过 25% 会换压暗贴图，人偶在阈值上下浮动
         // 就会一亮一暗地闪，而且看不出任何信息量
-        // 立绘锚点比旧贴图抬高一些：新素材的重心在腿部，半浸没时只剩一个头
-        ctx.drawImage(img, -sw / 2, -sh * 0.78, sw, sh)
+        // 立绘中心对准刚体中心：半浸没时水线落在腰附近，而不是脚底
+        ctx.drawImage(img, -sw / 2, -sh * 0.5, sw, sh)
       } else {
         ctx.fillStyle = 'rgba(200,220,255,0.5)'
         ctx.fillRect(-b.r, -b.hl - b.r, b.r * 2, (b.hl + b.r) * 2)
@@ -1003,7 +1052,10 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   }
 
   function onDown(e: PointerEvent) {
-    canvas.setPointerCapture(e.pointerId)
+    // 合成事件 / 某些触控笔没有活动指针时 capture 会抛错，不能让它中断拖拽
+    try {
+      canvas.setPointerCapture(e.pointerId)
+    } catch {}
     const [x, y] = toLocal(e)
     pointer.down = true
     pointer.x = x
@@ -1225,6 +1277,22 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   ;(window as any).__tank = {
     // 水面高度场本身（96 格），排查锯齿用
     surface: () => Array.from(surface, (v) => Math.round(v)),
+    // 最深的穿透量（负值 = 粒子陷进人偶多深），用来验收刚体分离
+    penetration: () => {
+      let worst = 0
+      let nan = 0
+      for (let i = 0; i < count; i++) {
+        for (const b of bodies) {
+          const [d] = capsuleDistance(b, px[i], py[i])
+          if (!Number.isFinite(d)) {
+            nan++
+            continue
+          }
+          if (d < worst) worst = d
+        }
+      }
+      return { worst: +worst.toFixed(2), nan }
+    },
     // 最快的几颗粒子：位置 / 速度 / 相对密度 / 离最近刚体多远
     probe: (n = 8) => {
       const idx: number[] = []
@@ -1295,6 +1363,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
         bodies: bodies.map((b) => ({
           x: Math.round(b.x),
           y: Math.round(b.y),
+          sprite: b.spriteIndex,
           frac: +b.frac.toFixed(2),
           vy: Math.round(b.vy),
           a: +b.a.toFixed(2),
@@ -1303,16 +1372,19 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     },
   }
 
-  return () => {
-    cancelAnimationFrame(raf)
-    io.disconnect()
-    document.removeEventListener('visibilitychange', onVisibility)
-    window.removeEventListener('resize', onResize)
-    canvas.removeEventListener('pointerdown', onDown)
-    canvas.removeEventListener('pointermove', onMove)
-    canvas.removeEventListener('pointerup', onUp)
-    canvas.removeEventListener('pointercancel', onUp)
-    canvas.removeEventListener('pointerleave', onUp)
+  return {
+    refresh: refreshBodies,
+    dispose: () => {
+      cancelAnimationFrame(raf)
+      io.disconnect()
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('resize', onResize)
+      canvas.removeEventListener('pointerdown', onDown)
+      canvas.removeEventListener('pointermove', onMove)
+      canvas.removeEventListener('pointerup', onUp)
+      canvas.removeEventListener('pointercancel', onUp)
+      canvas.removeEventListener('pointerleave', onUp)
+    },
   }
 }
 </script>
