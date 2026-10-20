@@ -114,7 +114,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   let bgReady = false
   let bgIsSmall = false
   let bgCache: HTMLCanvasElement | null = null
-  let spriteDim: HTMLCanvasElement | null = null
 
   /* ---------------- 交互状态 ---------------- */
   const pointer = { x: 0, y: 0, down: false, id: -1 }
@@ -955,7 +954,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
 
     // 小人
     for (const b of bodies) {
-      const submerged = b.frac > 0.25
       ctx.save()
       ctx.translate(b.x, b.y + b.r * 0.55)
       ctx.rotate(b.a)
@@ -965,8 +963,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       if (spriteReady && sprite) {
         const sw = 274 * b.scale
         const sh = 512 * b.scale
-        const img = submerged && spriteDim ? spriteDim : sprite
-        ctx.drawImage(img, -sw / 2, -sh * 0.55, sw, sh)
+        // 始终用原图：以前浸没超过 25% 会换压暗贴图，人偶在阈值上下浮动
+        // 就会一亮一暗地闪，而且看不出任何信息量
+        ctx.drawImage(sprite, -sw / 2, -sh * 0.55, sw, sh)
       } else {
         ctx.fillStyle = 'rgba(200,220,255,0.5)'
         ctx.fillRect(-b.r, -b.hl - b.r, b.r * 2, (b.hl + b.r) * 2)
@@ -1120,7 +1119,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   sprite = new Image()
   sprite.onload = () => {
     spriteReady = true
-    buildSpriteDim()
     if (W > 0 && H > 0) render()
   }
   sprite.src = withBase('/sprites/hongshexin.png')
@@ -1136,20 +1134,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     const s = Math.max(W / bg.width, H / bg.height)
     g.drawImage(bg, (W - bg.width * s) / 2, (H - bg.height * s) / 2, bg.width * s, bg.height * s)
     bgCache = c
-  }
-
-  // 浸泡状态用一张预先压暗的贴图，避免每帧用 ctx.filter（很慢）
-  function buildSpriteDim() {
-    if (!sprite) return
-    const c = document.createElement('canvas')
-    c.width = sprite.naturalWidth || 274
-    c.height = sprite.naturalHeight || 512
-    const g = c.getContext('2d')!
-    g.drawImage(sprite, 0, 0)
-    g.globalCompositeOperation = 'source-atop'
-    g.fillStyle = 'rgba(10, 38, 92, 0.34)'
-    g.fillRect(0, 0, c.width, c.height)
-    spriteDim = c
   }
 
   function loadBg(force = false) {
@@ -1313,7 +1297,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
 <template>
   <div ref="root" class="fluid-tank">
     <canvas ref="canvasEl" class="fluid-tank__canvas"></canvas>
-    <div class="fluid-tank__credit">立绘素材仅作技术演示，版权归原作者</div>
   </div>
 </template>
 
@@ -1362,28 +1345,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   cursor: crosshair;
 }
 
-.fluid-tank__credit {
-  position: absolute;
-  color: rgba(220, 235, 255, 0.62);
-  font-size: 12px;
-  line-height: 1.6;
-  pointer-events: none;
-  user-select: none;
-}
-
-.fluid-tank__credit {
-  right: 16px;
-  bottom: 14px;
-  opacity: 0.5;
-  font-size: 11px;
-}
-
 @media (max-width: 640px) {
   .fluid-tank {
     height: 300px;
-  }
-  .fluid-tank__credit {
-    display: none;
   }
 }
 </style>
