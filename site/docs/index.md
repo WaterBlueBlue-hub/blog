@@ -30,6 +30,8 @@ features:
 
 <FluidTank />
 
+<div class="home-panel">
+
 <p class="home-section-title">常读的几篇</p>
 <p class="home-section-desc">如果只看一篇，从这里开始。</p>
 
@@ -67,3 +69,5 @@ features:
 
 全部内容用 Markdown 维护、公式是 LaTeX，侧边栏与搜索都从笔记目录自动生成。
 想按主题翻，去 [笔记总览](/notes/)；想找某个关键词，按右上角的搜索（或 <kbd>Ctrl</kbd> + <kbd>K</kbd>）。
+
+</div>

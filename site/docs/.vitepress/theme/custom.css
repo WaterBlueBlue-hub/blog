@@ -254,3 +254,312 @@
 .vp-doc ul li a {
   text-decoration: none;
 }
+
+/* ------------------------------------------------------------------ *
+ *  全站背景：黛玉葬花（模糊 + 半透明遮罩）+ 磨砂面板 + 樱花层
+ *  机制跟参考站一致：固定背景图 → 模糊 → 半透明遮罩压住细节，
+ *  导航 / 侧栏 / 卡片 / 正文再各自做一层玻璃，正文始终压在樱花层之上。
+ * ------------------------------------------------------------------ */
+:root {
+  --glass-bg: rgba(255, 255, 255, 0.62);
+  --glass-bg-strong: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --glass-shadow: 0 24px 60px -44px rgba(90, 40, 60, 0.55);
+}
+
+.dark {
+  --glass-bg: rgba(22, 24, 36, 0.6);
+  --glass-bg-strong: rgba(20, 22, 34, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 24px 60px -44px rgba(0, 0, 0, 0.8);
+}
+
+html {
+  background-color: #f6f0ef;
+}
+
+html.dark {
+  background-color: #0b0d16;
+}
+
+body,
+#app {
+  background: transparent !important;
+}
+
+/* 背景图：模糊已经烘进图片里（省掉全屏 filter 的重绘开销） */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background-image: url('/bg/daiyu.webp');
+  background-size: cover;
+  background-position: center 42%;
+  background-repeat: no-repeat;
+}
+
+@media (max-width: 820px) {
+  body::before {
+    background-image: url('/bg/daiyu-sm.webp');
+  }
+}
+
+/* 遮罩：上轻下重保证长文可读，另叠两团柔光贴近参考站的氛围 */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      44% 38% at 14% 6%,
+      rgba(255, 255, 255, 0.52),
+      rgba(255, 255, 255, 0) 72%
+    ),
+    radial-gradient(
+      46% 42% at 86% 94%,
+      rgba(255, 208, 224, 0.28),
+      rgba(255, 214, 228, 0) 74%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 251, 250, 0.28) 0%,
+      rgba(255, 248, 246, 0.36) 46%,
+      rgba(255, 249, 247, 0.54) 100%
+    );
+}
+
+.dark body::after {
+  background:
+    radial-gradient(
+      40% 34% at 14% 6%,
+      rgba(120, 140, 200, 0.16),
+      rgba(0, 0, 0, 0) 72%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(12, 14, 24, 0.44) 0%,
+      rgba(9, 11, 20, 0.6) 100%
+    );
+}
+
+/* 正文整体抬到樱花层之上（VitePress 1.6 的根节点是 #app，没有 .VPApp） */
+.VPContent {
+  position: relative;
+  z-index: 1;
+}
+
+/* 首页左侧文字区再垫一层很淡的柔光，背景图在右侧仍然保留颜色 */
+.VPHome .VPHero.has-image .main {
+  position: relative;
+}
+
+.VPHome .VPHero.has-image .main::before {
+  content: '';
+  position: absolute;
+  inset: -28px -46px -28px -38px;
+  z-index: -1;
+  border-radius: 36px;
+  background: radial-gradient(
+    62% 78% at 32% 50%,
+    rgba(255, 252, 251, 0.6),
+    rgba(255, 252, 251, 0) 72%
+  );
+  pointer-events: none;
+}
+
+.dark .VPHome .VPHero.has-image .main::before {
+  background: radial-gradient(
+    62% 78% at 32% 50%,
+    rgba(8, 10, 20, 0.36),
+    rgba(8, 10, 20, 0) 72%
+  );
+}
+
+/* 亮背景上的标题加一层极淡的白色描边光，压住花枝细节 */
+.VPHero .name,
+.VPHero .text,
+.VPHero .tagline {
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.dark .VPHero .name,
+.dark .VPHero .text,
+.dark .VPHero .tagline {
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+}
+
+.dark .VPHero .tagline {
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.dark .VPHero .name {
+  color: rgba(255, 255, 255, 0.64);
+}
+
+/* 顶栏：玻璃 */
+.VPNav .VPNavBar {
+  background: rgba(255, 255, 255, 0.52) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  backdrop-filter: blur(14px) saturate(1.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.dark .VPNav .VPNavBar {
+  background: rgba(16, 18, 30, 0.55) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+/* 侧栏：玻璃 */
+.VPSidebar {
+  background: rgba(255, 255, 255, 0.64) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  backdrop-filter: blur(16px) saturate(1.15);
+}
+
+.dark .VPSidebar {
+  background: rgba(16, 18, 30, 0.64) !important;
+}
+
+/* 正文：一张半透明的纸，长文才压得住背景 */
+@media (min-width: 960px) {
+  .VPDoc .content-container {
+    background: rgba(255, 255, 255, 0.84);
+    -webkit-backdrop-filter: blur(18px) saturate(1.18);
+    backdrop-filter: blur(18px) saturate(1.18);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    box-shadow: var(--glass-shadow);
+    padding: 28px 40px 44px;
+    margin-bottom: 44px;
+  }
+}
+
+.dark .VPDoc .content-container {
+  background: rgba(20, 22, 34, 0.82);
+}
+
+/* 手机上没有侧栏和右侧目录，正文也要有一张玻璃纸，不能直接压在图上 */
+@media (max-width: 959px) {
+  .VPDoc .content-container {
+    margin: 12px 0 28px;
+    padding: 18px 18px 28px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.82);
+    -webkit-backdrop-filter: blur(16px) saturate(1.16);
+    backdrop-filter: blur(16px) saturate(1.16);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .dark .VPDoc .content-container {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(20, 22, 34, 0.82);
+  }
+}
+
+/* 右侧目录：单独一张小玻璃卡，别直接压在花枝上 */
+.VPDocAsideOutline .content {
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  border-radius: 14px;
+  padding: 10px 14px 12px;
+  background: rgba(255, 255, 255, 0.52);
+  -webkit-backdrop-filter: blur(14px) saturate(1.12);
+  backdrop-filter: blur(14px) saturate(1.12);
+  box-shadow: 0 18px 44px -38px rgba(90, 40, 60, 0.5);
+}
+
+.dark .VPDocAsideOutline .content {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(16, 18, 30, 0.56);
+}
+
+.aside-curtain {
+  background: linear-gradient(
+    transparent,
+    rgba(255, 255, 255, 0.5) 70%
+  ) !important;
+}
+
+.dark .aside-curtain {
+  background: linear-gradient(
+    transparent,
+    rgba(16, 18, 30, 0.62) 70%
+  ) !important;
+}
+
+/* 卡片：半透明 + 磨砂 */
+.VPFeature,
+.topic-card {
+  background: var(--glass-bg) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.18);
+  backdrop-filter: blur(14px) saturate(1.18);
+  border: 1px solid var(--glass-border) !important;
+}
+
+/* 首页下半部分：整块磨砂面板，长文和卡片都不直接压在花枝上 */
+.home-panel {
+  margin: 36px 0 0;
+  padding: 4px 34px 30px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.46);
+  -webkit-backdrop-filter: blur(18px) saturate(1.16);
+  backdrop-filter: blur(18px) saturate(1.16);
+  box-shadow: var(--glass-shadow);
+}
+
+.dark .home-panel {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(20, 22, 34, 0.52);
+}
+
+.home-panel .home-section-title:first-child {
+  margin-top: 30px;
+}
+
+/* 首页是 6 张卡片：三列刚好两行，避免磨砂面板右侧空出一大块 */
+.home-panel .topic-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 960px) {
+  .home-panel .topic-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .home-panel {
+    padding: 2px 18px 24px;
+    border-radius: 18px;
+  }
+
+  .home-panel .topic-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 页脚也留一层玻璃，背景图一直贯到底 */
+.VPFooter {
+  background: rgba(255, 255, 255, 0.55) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.12);
+  backdrop-filter: blur(14px) saturate(1.12);
+  border-top-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.dark .VPFooter {
+  background: rgba(16, 18, 30, 0.55) !important;
+  border-top-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* 搜索框也做成玻璃 */
+.DocSearch-Button {
+  background: rgba(255, 255, 255, 0.5) !important;
+}
+
+.dark .DocSearch-Button {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
