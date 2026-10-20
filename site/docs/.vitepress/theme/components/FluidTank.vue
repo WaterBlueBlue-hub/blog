@@ -1130,9 +1130,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     ctx.restore()
   }
 
-  // 分步重建第 1 步：完全移除背景图、水体、立绘和所有水面特效，
-  // 只保留这一帧的粒子与胶囊体，作为后续每一步的物理基准。
-  function drawStage1() {
+  // 分步重建的隔离舞台：第 1 步只画物理，第 2 步加回立绘。
+  // 两种阶段都不画背景图、水体和任何水面特效。
+  function drawPhysicsStage(stage: 1 | 2) {
     ctx.clearRect(0, 0, W, H)
     const bg = ctx.createLinearGradient(0, 0, 0, H)
     bg.addColorStop(0, '#08172f')
@@ -1158,23 +1158,24 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
 
     ctx.save()
     ctx.translate(0, camOffset)
+    if (stage >= 2) drawBodies()
     drawDebug(false)
     ctx.restore()
 
     ctx.strokeStyle = 'rgba(170, 215, 255, 0.35)'
     ctx.strokeRect(0.5, 0.5, W - 1, H - 1)
     ctx.fillStyle = 'rgba(4, 12, 26, 0.82)'
-    ctx.fillRect(6, 38, 146, 17)
+    ctx.fillRect(6, 38, stage >= 2 ? 184 : 146, 17)
     ctx.fillStyle = '#dff4ff'
     ctx.font = '9px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
     ctx.textAlign = 'left'
     ctx.textBaseline = 'middle'
-    ctx.fillText('STAGE 1 · 只画物理', 11, 47)
+    ctx.fillText(stage >= 2 ? 'STAGE 2 · 立绘跟随胶囊' : 'STAGE 1 · 只画物理', 11, 47)
   }
 
   function render() {
-    if (renderStage === 1) {
-      drawStage1()
+    if (renderStage === 1 || renderStage === 2) {
+      drawPhysicsStage(renderStage)
       return
     }
 
