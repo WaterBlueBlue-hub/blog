@@ -41,6 +41,8 @@ function setup(canvas: HTMLCanvasElement) {
   let raf = 0
   let running = !document.hidden
   let last = performance.now()
+  let lastPaint = 0
+  const paintInterval = 1000 / 30
 
   function makePetal(seeded: boolean): Petal {
     const r = rnd(6, 11.5)
@@ -62,7 +64,7 @@ function setup(canvas: HTMLCanvasElement) {
   }
 
   function resize() {
-    dpr = Math.min(2, window.devicePixelRatio || 1)
+    dpr = Math.min(1.5, window.devicePixelRatio || 1)
     W = window.innerWidth
     H = window.innerHeight
     canvas.width = Math.round(W * dpr)
@@ -74,7 +76,7 @@ function setup(canvas: HTMLCanvasElement) {
       petals = []
       return
     }
-    const target = W < 720 ? 24 : W < 1200 ? 34 : 50
+    const target = W < 720 ? 14 : W < 1200 ? 24 : 36
     petals = Array.from({ length: target }, (_, i) => makePetal(i < target * 0.75))
   }
 
@@ -106,9 +108,11 @@ function setup(canvas: HTMLCanvasElement) {
 
   function frame(now: number) {
     raf = requestAnimationFrame(frame)
-    const dt = Math.min(0.05, (now - last) / 1000)
-    last = now
     if (!running || !W) return
+    if (now - lastPaint < paintInterval) return
+    const dt = Math.min(0.08, (now - last) / 1000)
+    last = now
+    lastPaint = now
     ctx.clearRect(0, 0, W, H)
     for (const p of petals) {
       p.swayPhase += p.swaySpeed * dt
@@ -126,6 +130,7 @@ function setup(canvas: HTMLCanvasElement) {
   const onVisibility = () => {
     running = !document.hidden
     last = performance.now()
+    lastPaint = 0
   }
   const onReduce = () => resize()
 

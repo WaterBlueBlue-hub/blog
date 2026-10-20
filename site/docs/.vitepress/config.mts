@@ -88,7 +88,7 @@ export default defineConfig({
   },
 
   themeConfig: {
-    logo: '/avatar.png',
+    logo: '/avatar.webp',
     siteTitle: SITE_TITLE,
 
     nav: [

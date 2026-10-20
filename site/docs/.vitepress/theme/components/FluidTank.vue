@@ -152,16 +152,16 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   }
   let bodies: Body[] = []
   const SPRITE_SOURCES = [
-    '/sprites/limbus/01-shanfu.png',
-    '/sprites/limbus/02-tufu.png',
-    '/sprites/limbus/03-souschef.png',
-    '/sprites/limbus/04-puyi.png',
-    '/sprites/limbus/05-xichun.png',
-    '/sprites/limbus/06-sancho.png',
-    '/sprites/limbus/07-vergilius.png',
-    '/sprites/limbus/08-vespa.png',
-    '/sprites/limbus/09-luo.png',
-    '/sprites/limbus/10-jiaqiu.png',
+    '/sprites/limbus/01-shanfu.webp',
+    '/sprites/limbus/02-tufu.webp',
+    '/sprites/limbus/03-souschef.webp',
+    '/sprites/limbus/04-puyi.webp',
+    '/sprites/limbus/05-xichun.webp',
+    '/sprites/limbus/06-sancho.webp',
+    '/sprites/limbus/07-vergilius.webp',
+    '/sprites/limbus/08-vespa.webp',
+    '/sprites/limbus/09-luo.webp',
+    '/sprites/limbus/10-jiaqiu.webp',
   ]
   // 每张立绘的绘制高度系数：带长武器/特效的稍微缩小，避免压住旁边的人
   const SPRITE_ZOOM = [1, 0.92, 0.9, 1, 0.95, 1, 1, 0.95, 0.9, 0.92]
@@ -170,7 +170,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   let charH = 0
   let bg: HTMLImageElement | null = null
   let bgReady = false
-  let bgIsSmall = false
   let bgCache: HTMLCanvasElement | null = null
 
   /* ---------------- 交互状态 ---------------- */
@@ -197,7 +196,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   function layout() {
     W = SIM_W
     H = SIM_H
-    dpr = Math.min(2, window.devicePixelRatio || 1)
+    dpr = Math.min(1.5, window.devicePixelRatio || 1)
     canvas.width = Math.round(W * dpr)
     canvas.height = Math.round(H * dpr)
     canvas.style.width = '100%'
@@ -215,7 +214,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
 
   // 只同步像素密度，不重建粒子 / 人偶：卡片缩放不打断正在跑的物理
   function syncDpr() {
-    const next = Math.min(2, window.devicePixelRatio || 1)
+    const next = Math.min(1.5, window.devicePixelRatio || 1)
     if (next === dpr) return
     dpr = next
     canvas.width = Math.round(W * dpr)
@@ -1663,6 +1662,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   /* ---------------- 主循环 ---------------- */
   let raf = 0
   let last = performance.now()
+  let lastRender = 0
   let acc = 0
   let visible = true
   let running = true
@@ -1677,7 +1677,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     const dtReal = Math.min(0.05, (now - last) / 1000)
     last = now
     fpsTime += dtReal
-    fpsFrames++
     if (fpsTime > 0.5) {
       fps = Math.round(fpsFrames / fpsTime)
       fpsTime = 0
@@ -1712,10 +1711,11 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       acc -= FIXED
       steps++
     }
-    if (steps === 0) {
-      // 仍然刷新一次画面（例如刚恢复）
+    if (now - lastRender >= 1000 / 45) {
+      lastRender = now
+      render()
+      fpsFrames++
     }
-    render()
   }
 
   /* ---------------- 生命周期 ---------------- */
@@ -1748,9 +1748,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   }
 
   function loadBg(force = false) {
-    const small = W <= 800
-    if (!force && bgReady && small === bgIsSmall) return
-    bgIsSmall = small
+    if (!force && bgReady) return
     if (force) bgReady = false
     const img = new Image()
     img.onload = () => {
@@ -1760,7 +1758,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       buildBgCache()
       if (W > 0 && H > 0) render()
     }
-    img.src = withBase(small ? '/bg/tank-bg-sm.webp' : '/bg/tank-bg.webp')
+    img.src = withBase('/bg/tank-bg-sm.webp')
   }
   loadBg(true)
 
@@ -1777,6 +1775,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
         // 物理尺寸是固定的；从屏外回来只补一次像素密度
         syncDpr()
         last = performance.now()
+        lastRender = 0
       }
     },
     { threshold: 0.05 },
@@ -1785,6 +1784,10 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
 
   const onVisibility = () => {
     running = !document.hidden
+    if (running) {
+      last = performance.now()
+      lastRender = 0
+    }
   }
   document.addEventListener('visibilitychange', onVisibility)
 

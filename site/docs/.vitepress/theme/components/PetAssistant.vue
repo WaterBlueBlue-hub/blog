@@ -544,11 +544,12 @@ onBeforeUnmount(() => {
           class="pet__video"
           :class="{ 'is-ready': videoOk }"
           :src="withBase(CLIPS[clip])"
+          :poster="withBase('/pet/poster.webp')"
           autoplay
           muted
           playsinline
           loop
-          preload="auto"
+          preload="metadata"
           @canplay="videoOk = true"
           @ended="onClipEnded"
         />

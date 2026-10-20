@@ -19,7 +19,7 @@ export default {
       'home-hero-info-before': () =>
         h('div', { class: 'hero-portrait' }, [
           h('img', {
-            src: withBase('/avatar.png'),
+            src: withBase('/avatar.webp'),
             alt: 'WaterBlueBlue',
             width: 88,
             height: 88,

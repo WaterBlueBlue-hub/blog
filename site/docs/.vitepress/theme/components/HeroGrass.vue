@@ -66,8 +66,11 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
   let canopyLeaves: CanopyLeaf[] = []
   let fallingLeaves: FallingLeaf[] = []
   let leafSpawnClock = 0
+  let treeLayer: HTMLCanvasElement | null = null
+  let treeLayerCtx: CanvasRenderingContext2D | null = null
   let raf = 0
   let last = performance.now()
+  let lastPaint = 0
   let acc = 0
   let visible = true
   let running = !document.hidden
@@ -145,11 +148,17 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
     H = Math.max(1, Math.round(height))
     flowerBandHeight = flowerHeight
     treeRootX = W * 0.45
-    dpr = Math.min(2, window.devicePixelRatio || 1)
+    dpr = Math.min(1.5, window.devicePixelRatio || 1)
     canvas.width = Math.round(W * dpr)
     canvas.height = Math.round(H * dpr)
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     buildBlades()
+    if (!treeLayer) treeLayer = document.createElement('canvas')
+    treeLayer.width = canvas.width
+    treeLayer.height = canvas.height
+    treeLayerCtx = treeLayer.getContext('2d')
+    treeLayerCtx?.setTransform(dpr, 0, 0, dpr, 0, 0)
+    cacheTree()
   }
 
   function buildBlades() {
@@ -304,6 +313,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
   }
 
   function drawMapleLeaf(
+    target: CanvasRenderingContext2D,
     x: number,
     y: number,
     size: number,
@@ -311,47 +321,53 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
     color: string,
     alpha: number,
   ) {
-    ctx.save()
-    ctx.translate(x, y)
-    ctx.rotate(rotation)
-    ctx.globalAlpha = alpha
-    ctx.fillStyle = color
-    ctx.beginPath()
-    ctx.moveTo(0, -size)
-    ctx.lineTo(size * 0.24, -size * 0.34)
-    ctx.lineTo(size * 0.74, -size * 0.56)
-    ctx.lineTo(size * 0.43, -size * 0.06)
-    ctx.lineTo(size * 0.88, size * 0.1)
-    ctx.lineTo(size * 0.27, size * 0.27)
-    ctx.lineTo(size * 0.34, size * 0.78)
-    ctx.lineTo(0, size * 0.42)
-    ctx.lineTo(-size * 0.34, size * 0.78)
-    ctx.lineTo(-size * 0.27, size * 0.27)
-    ctx.lineTo(-size * 0.88, size * 0.1)
-    ctx.lineTo(-size * 0.43, -size * 0.06)
-    ctx.lineTo(-size * 0.74, -size * 0.56)
-    ctx.lineTo(-size * 0.24, -size * 0.34)
-    ctx.closePath()
-    ctx.fill()
-    ctx.restore()
+    target.save()
+    target.translate(x, y)
+    target.rotate(rotation)
+    target.globalAlpha = alpha
+    target.fillStyle = color
+    target.beginPath()
+    target.moveTo(0, -size)
+    target.lineTo(size * 0.24, -size * 0.34)
+    target.lineTo(size * 0.74, -size * 0.56)
+    target.lineTo(size * 0.43, -size * 0.06)
+    target.lineTo(size * 0.88, size * 0.1)
+    target.lineTo(size * 0.27, size * 0.27)
+    target.lineTo(size * 0.34, size * 0.78)
+    target.lineTo(0, size * 0.42)
+    target.lineTo(-size * 0.34, size * 0.78)
+    target.lineTo(-size * 0.27, size * 0.27)
+    target.lineTo(-size * 0.88, size * 0.1)
+    target.lineTo(-size * 0.43, -size * 0.06)
+    target.lineTo(-size * 0.74, -size * 0.56)
+    target.lineTo(-size * 0.24, -size * 0.34)
+    target.closePath()
+    target.fill()
+    target.restore()
   }
 
-  function drawTree() {
-    ctx.save()
-    ctx.lineCap = 'round'
-    ctx.lineJoin = 'round'
+  function drawTree(target: CanvasRenderingContext2D) {
+    target.save()
+    target.lineCap = 'round'
+    target.lineJoin = 'round'
     for (const branch of branches) {
-      ctx.beginPath()
-      ctx.moveTo(branch.x1, branch.y1)
-      ctx.lineTo(branch.x2, branch.y2)
-      ctx.strokeStyle = 'rgba(119, 83, 83, 0.4)'
-      ctx.lineWidth = branch.width
-      ctx.stroke()
+      target.beginPath()
+      target.moveTo(branch.x1, branch.y1)
+      target.lineTo(branch.x2, branch.y2)
+      target.strokeStyle = 'rgba(119, 83, 83, 0.4)'
+      target.lineWidth = branch.width
+      target.stroke()
     }
     for (const leaf of canopyLeaves) {
-      drawMapleLeaf(leaf.x, leaf.y, leaf.size, leaf.rotation, leaf.color, leaf.alpha)
+      drawMapleLeaf(target, leaf.x, leaf.y, leaf.size, leaf.rotation, leaf.color, leaf.alpha)
     }
-    ctx.restore()
+    target.restore()
+  }
+
+  function cacheTree() {
+    if (!treeLayerCtx) return
+    treeLayerCtx.clearRect(0, 0, W, H)
+    drawTree(treeLayerCtx)
   }
 
   function stepBlade(blade: Blade, dt: number, time: number) {
@@ -462,9 +478,10 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
     haze.addColorStop(1, 'rgba(111, 76, 96, 0.08)')
     ctx.fillStyle = haze
     ctx.fillRect(0, H - 28, W, 28)
-    drawTree()
+    if (treeLayer) ctx.drawImage(treeLayer, 0, 0, W, H)
+    else drawTree(ctx)
     for (const leaf of fallingLeaves) {
-      drawMapleLeaf(leaf.x, leaf.y, leaf.size, leaf.rotation, leaf.color, leaf.alpha)
+      drawMapleLeaf(ctx, leaf.x, leaf.y, leaf.size, leaf.rotation, leaf.color, leaf.alpha)
     }
     for (const blade of blades) drawBlade(blade)
     ctx.globalAlpha = 1
@@ -487,7 +504,10 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
       acc -= 1 / 60
       steps++
     }
-    draw()
+    if (now - lastPaint >= 1000 / 45) {
+      lastPaint = now
+      draw()
+    }
   }
 
   function localX(clientX: number) {
