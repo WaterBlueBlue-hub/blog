@@ -3,9 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "sync": "node scripts/sync-notes.mjs",
-    "dev": "node scripts/sync-notes.mjs && vitepress dev docs --port 5173",
-    "build": "node scripts/sync-notes.mjs && vitepress build docs",
+    "sync": "node scripts/sync-notes.mjs && node scripts/build-papers.mjs",
+    "papers": "node scripts/build-papers.mjs",
+    "dev": "node scripts/sync-notes.mjs && node scripts/build-papers.mjs && vitepress dev docs --port 5173",
+    "build": "node scripts/sync-notes.mjs && node scripts/build-papers.mjs && vitepress build docs",
     "preview": "vitepress preview docs --port 4173"
   },
   "devDependencies": {
