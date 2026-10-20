@@ -278,9 +278,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     binMin.fill(H)
     binMin2.fill(H)
     binCnt.fill(0)
-    let sumY = 0
     for (let i = 0; i < count; i++) {
-      sumY += py[i]
       const bin = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
       // 记最小的两个 y：第二个能顶掉单个飞溅粒子造成的尖刺
       if (py[i] < binMin[bin]) {
@@ -291,10 +289,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       }
       binCnt[bin]++
     }
-    // 水位 = 2×平均高度 − 池高（均匀液柱下是精确解，不依赖粒子间距）
-    const meanY = count ? sumY / count : H
-    const level = Math.min(H - 16, Math.max(16, 2 * meanY - H))
-    waterLevel = waterLevel === 0 ? level : waterLevel + (level - waterLevel) * 0.15
+    // 水位只由"粒子数 × 每颗占的面积"决定 —— 总量恒定，滚动/晃动不会改变整体水位
+    const level = H - (count * CFG.spacing * CFG.spacing * 0.9) / W
+    waterLevel = level
     // 每格取最低点，但限制在平均水位附近，飞溅粒子不会把水面抬到顶
     for (let b = 0; b < BINS; b++) {
       // 粒子太少（被刚体占了）就直接用平均水位，避免在"最低点"和"平均水位"之间来回跳
