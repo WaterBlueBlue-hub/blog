@@ -152,21 +152,51 @@ onBeforeUnmount(() => {
   position: relative;
   min-width: 0;
   width: 100%;
-  padding: 10px;
+  padding: 8px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.58);
-  box-shadow: 0 24px 70px -36px rgba(24, 40, 80, 0.55);
-  -webkit-backdrop-filter: blur(16px) saturate(1.15);
-  backdrop-filter: blur(16px) saturate(1.15);
+  background:
+    linear-gradient(145deg, rgba(255, 252, 252, 0.42), rgba(247, 235, 241, 0.24)),
+    rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 24px 58px -42px rgba(74, 43, 64, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.58);
+  -webkit-backdrop-filter: blur(12px) saturate(1.08);
+  backdrop-filter: blur(12px) saturate(1.08);
+}
+
+.fluid-float__stage::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  inset: 8px;
+  pointer-events: none;
+  border-radius: 13px;
+  background:
+    linear-gradient(155deg, rgba(255, 244, 248, 0.08), transparent 38%),
+    radial-gradient(110% 80% at 50% 100%, rgba(18, 27, 61, 0.16), transparent 58%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 18px 34px -24px rgba(255, 255, 255, 0.35);
+}
+
+.fluid-float__stage :deep(.fluid-tank) {
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow:
+    0 14px 34px -25px rgba(27, 43, 92, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.fluid-float__stage :deep(.fluid-tank__canvas) {
+  filter: saturate(0.88) contrast(0.95) brightness(0.97);
 }
 
 .fluid-float__tools {
   position: absolute;
+  z-index: 3;
   top: 17px;
   right: 17px;
-  z-index: 2;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -178,9 +208,9 @@ onBeforeUnmount(() => {
   width: 26px;
   height: 26px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.58);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(252, 248, 250, 0.62);
   color: #2b3a55;
   cursor: pointer;
   box-shadow: 0 4px 12px -6px rgba(20, 40, 80, 0.6);
@@ -248,13 +278,13 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(111, 181, 255, 0.34);
   border-radius: 18px;
   background:
-    linear-gradient(180deg, rgba(7, 18, 39, 0.96), rgba(4, 10, 25, 0.97)),
-    radial-gradient(circle at 100% 0%, rgba(64, 151, 255, 0.18), transparent 48%);
+    linear-gradient(165deg, rgba(23, 35, 56, 0.87), rgba(28, 28, 47, 0.9)),
+    radial-gradient(circle at 100% 0%, rgba(165, 191, 255, 0.18), transparent 54%);
   color: #a8ccef;
   line-height: 1;
   box-shadow:
-    0 22px 54px -34px rgba(5, 18, 48, 0.8),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 22px 54px -36px rgba(51, 35, 62, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   font-family: var(--vp-font-family-mono);
   -webkit-backdrop-filter: blur(16px) saturate(1.2);
   backdrop-filter: blur(16px) saturate(1.2);
@@ -265,7 +295,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 6px;
   padding: 0 2px 8px;
-  color: #6e94bb;
+  color: #a6b7cb;
   font-size: 8px;
   line-height: 1;
   letter-spacing: 1px;
@@ -276,8 +306,8 @@ onBeforeUnmount(() => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #43dfa2;
-  box-shadow: 0 0 8px rgba(67, 223, 162, 0.8);
+  background: #63e3ad;
+  box-shadow: 0 0 8px rgba(99, 227, 173, 0.72);
 }
 
 .fluid-hud__rows {
@@ -302,7 +332,7 @@ onBeforeUnmount(() => {
 
 .fluid-hud__row small {
   overflow: hidden;
-  color: #6488ae;
+  color: #9aaabc;
   font-family: var(--vp-font-family-base);
   font-size: 9px;
   line-height: 1.1;
@@ -311,7 +341,7 @@ onBeforeUnmount(() => {
 
 .fluid-hud__row b {
   overflow: hidden;
-  color: #d5efff;
+  color: #eef6ff;
   font-size: 12px;
   line-height: 1.1;
   font-weight: 600;
@@ -323,8 +353,10 @@ onBeforeUnmount(() => {
 }
 
 .dark .fluid-float__stage {
-  border-color: rgba(255, 255, 255, 0.14);
-  background: rgba(18, 20, 32, 0.62);
+  border-color: rgba(255, 255, 255, 0.13);
+  background:
+    linear-gradient(145deg, rgba(34, 32, 45, 0.68), rgba(25, 25, 39, 0.46)),
+    rgba(20, 22, 34, 0.34);
 }
 
 .dark .fluid-float__tool {
