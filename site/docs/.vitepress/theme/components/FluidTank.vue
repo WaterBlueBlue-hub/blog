@@ -25,14 +25,14 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     spacing: 10, // 粒子间距（px）
     hFactor: 2.0, // 核半径 / 间距（太小邻居不足，密度估计会抖）
     iterations: 2, // 密度约束迭代次数
-    relaxation: 0.65, // 位置修正松弛
+    relaxation: 0.62, // 位置修正松弛
     viscosity: 0.08, // XSPH 粘性
     wallDamp: 0.35, // 撞墙速度保留
     scrollInertia: 0.85, // 滚动惯性强度
     dragStiffness: 75, // 拖拽弹簧刚度（越大跟手越快）
     dragDamping: 4, // 拖拽阻尼（越小越轻）
     bodyCount: 5,
-    bodyHeightRatio: 0.42, // 小人高度 / 水槽高度
+    bodyHeightRatio: 0.36, // 小人高度 / 水槽高度（太大会踩到底就浮不起来）
     waterFill: 0.76, // 水面初始高度（从顶部算）：水占三分之一左右
   }
 
@@ -62,12 +62,14 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   let cellStart = new Int32Array(2)
   let cellItems = new Int32Array(capacity)
   let cellCount = new Int32Array(2)
-  let surface = new Float32Array(64)
-  let rawSurface = new Float32Array(64)
-  let binMin = new Float32Array(64)
-  let binCnt = new Int32Array(64)
+  let surface = new Float32Array(96)
+  let rawSurface = new Float32Array(96)
+  let binMin = new Float32Array(96)
+  let binMin2 = new Float32Array(96)
+  let binCnt = new Int32Array(96)
   let surfaceInit = false
-  const BINS = 48
+  let waterLevel = 0 // 平滑后的平均水位，浮力只认它（不跟局部波峰联动）
+  const BINS = 96
 
   /* ---------------- 刚体 ---------------- */
   type Body = {
@@ -85,6 +87,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     flip: number
     scale: number
     frac: number
+    rawPrev: number
+    inWater: boolean
     squash: number
   }
   let bodies: Body[] = []
@@ -93,6 +97,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   let bg: HTMLImageElement | null = null
   let bgReady = false
   let bgIsSmall = false
+  let bgCache: HTMLCanvasElement | null = null
+  let spriteDim: HTMLCanvasElement | null = null
 
   /* ---------------- 交互状态 ---------------- */
   const pointer = { x: 0, y: 0, down: false, id: -1 }
@@ -100,6 +106,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   let grabOx = 0
   let grabOy = 0
   const splashes: { x: number; y: number; vx: number; vy: number; life: number; r: number }[] = []
+  let splashTotal = 0
+  let entryEvents = 0
+  const trail: string[] = []
 
   /* ---------------- 滚动惯性 ---------------- */
   let lastScroll = window.scrollY
@@ -122,10 +131,12 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     canvas.style.height = `${H}px`
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     waterGrad = null
+    bgCache = null
     surfaceInit = false
   }
 
   function buildParticles() {
+    refreshKernels()
     const top = H * CFG.waterFill
     const sp = CFG.spacing
     let i = 0
@@ -171,8 +182,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       const t = (i + 0.5) / CFG.bodyCount
       bodies.push({
         x: W * (0.1 + 0.8 * t) + (Math.random() - 0.5) * 20,
-        // 从水面上方一点点落下，冲击别太猛
-        y: waterY - charH * 0.55 - i * 16,
+        // 从水面上方落下来，落水才有明显的水花
+        y: waterY - charH * 0.85 - i * 14,
         vx: (Math.random() - 0.5) * 40,
         vy: 80 + i * 20,
         a: (Math.random() - 0.5) * 0.12,
@@ -185,19 +196,28 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
         flip: i % 2 === 1 ? -1 : 1,
         scale: charH / 501,
         frac: 0,
+        rawPrev: 0,
+        inWater: false,
         squash: 1,
       })
     }
   }
 
   /* ---------------- 核函数 ---------------- */
+  // 系数提到外面：每帧上万次调用，别在里面算 pow
+  let poly6K = 1
+  let spikyK = 1
+  function refreshKernels() {
+    poly6K = 4 / (Math.PI * Math.pow(h, 8))
+    spikyK = -30 / (Math.PI * Math.pow(h, 5))
+  }
   function poly6(r2: number) {
     const d = h * h - r2
-    return d <= 0 ? 0 : (4 / (Math.PI * Math.pow(h, 8))) * d * d * d
+    return d <= 0 ? 0 : poly6K * d * d * d
   }
   function spikyGrad(r: number, dx: number, dy: number) {
     if (r <= 0 || r >= h) return [0, 0]
-    const k = (-30 / (Math.PI * Math.pow(h, 5))) * (h - r) * (h - r) / r
+    const k = (spikyK * (h - r) * (h - r)) / r
     return [k * dx, k * dy]
   }
 
@@ -252,21 +272,31 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     if (rawSurface.length !== BINS) rawSurface = new Float32Array(BINS)
     if (binMin.length !== BINS) {
       binMin = new Float32Array(BINS)
+      binMin2 = new Float32Array(BINS)
       binCnt = new Int32Array(BINS)
     }
     binMin.fill(H)
+    binMin2.fill(H)
     binCnt.fill(0)
     for (let i = 0; i < count; i++) {
       const bin = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
-      if (py[i] < binMin[bin]) binMin[bin] = py[i]
+      // 记最小的两个 y：第二个能顶掉单个飞溅粒子造成的尖刺
+      if (py[i] < binMin[bin]) {
+        binMin2[bin] = binMin[bin]
+        binMin[bin] = py[i]
+      } else if (py[i] < binMin2[bin]) {
+        binMin2[bin] = py[i]
+      }
       binCnt[bin]++
     }
     // 平均水位只用粒子算（把刚体排水算进来会和水面形成反馈，导致来回跳）
     const level = H - (count * CFG.spacing * CFG.spacing) / W
+    waterLevel = waterLevel === 0 ? level : waterLevel + (level - waterLevel) * 0.15
     // 每格取最低点，但限制在平均水位附近，飞溅粒子不会把水面抬到顶
     for (let b = 0; b < BINS; b++) {
-      const v = binCnt[b] > 3 ? binMin[b] : level
-      rawSurface[b] = Math.min(level + 30, Math.max(level - 25, v))
+      // 粒子太少（被刚体占了）就直接用平均水位，避免在"最低点"和"平均水位"之间来回跳
+      const v = binCnt[b] >= 8 ? binMin2[b] : level
+      rawSurface[b] = Math.min(level + 34, Math.max(level - 26, v))
     }
     // 宽一点的平滑：水面整体要平，只留缓的起伏
     const tmp = rawSurface.slice()
@@ -281,7 +311,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       }
       const smooth = s / w
       // 时间上也做一次平滑：帧间跳动会让人看到水面闪
-      surface[b] = surfaceInit ? surface[b] + (smooth - surface[b]) * 0.25 : smooth
+      surface[b] = surfaceInit ? surface[b] + (smooth - surface[b]) * 0.14 : smooth
     }
     surfaceInit = true
   }
@@ -309,7 +339,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
         const t = k / (N - 1)
         const sx = ax + (bx - ax) * t
         const sy = ay + (by - ay) * t
-        const surf = surfaceAt(sx)
+        // 浮力用平均水位，不用局部水面：否则刚体排水 → 水面升高 → 浮力变大 → 又弹起来
+        const surf = waterLevel
         // 圆的哪一部分在水面以下：y 向下，所以是 (圆心 + 半径 - 水面) / 直径
         const f = Math.min(1, Math.max(0, (sy + b.r - surf) / (2 * b.r)))
         fracSum += f
@@ -319,8 +350,10 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
           nSub++
         }
       }
-    // 浸没比例做时间平滑，浮力才不会一帧一帧地抖
-    b.frac += (fracSum / N - b.frac) * 0.3
+      // 浸没比例做时间平滑，浮力才不会一帧一帧地抖
+      const prevFrac = b.frac
+      const fracRaw = fracSum / N
+      b.frac += (fracRaw - b.frac) * 0.25
       const area = 4 * b.r * b.hl + Math.PI * b.r * b.r
       const weight = b.m * CFG.gravity
       const buoy = area * b.frac * RHO_AREA * CFG.gravity
@@ -329,15 +362,26 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       // 水的阻力 + 姿态回正（阻尼够大才不会上下弹）
       const drag = Math.min(1, b.frac * 6)
       b.vx *= 1 - Math.min(0.5, drag * 3.2 * dt)
-      b.vy *= 1 - Math.min(0.5, drag * 2.8 * dt)
-      // 姿态：入水后被水压着回正，离水后几乎不转
-      b.av *= 1 - Math.min(0.9, 1.2 + b.frac * 5) * dt
-      if (b.frac > 0.02) b.av += (-b.a * 6 - b.av * 4) * b.frac * dt
-      b.av = Math.max(-6, Math.min(6, b.av))
+      b.vy *= 1 - Math.min(0.6, drag * 4.2 * dt)
+      // 姿态：允许自由旋转，只保留很弱的回正和水阻（不然会一直挺着不动）
+      b.av *= 1 - Math.min(0.85, 0.5 + b.frac * 2.4) * dt
+      if (b.frac > 0.02) b.av += (-b.a * 4 - b.av * 2) * b.frac * dt
+      b.av = Math.max(-7, Math.min(7, b.av))
       b.x += b.vx * dt
       b.y += b.vy * dt
       b.a += b.av * dt
-      b.a = Math.max(-0.5, Math.min(0.5, b.a))
+
+      // 入水那一瞬间：溅水 + 给水面一个冲击
+      // 入水判定用"是否在水里"的状态切换（逐帧比值更稳，不会被渐变跨过）
+      const nowIn = fracRaw > 0.1
+      if (!b.inWater && nowIn && b.vy > 90) {
+        entryEvents++
+        const power = Math.min(1.9, 0.35 + b.vy / 650)
+        splash(b.x, Math.max(0, waterLevel), power)
+      }
+      b.inWater = nowIn
+      b.rawPrev = fracRaw
+      if (trail.length < 80 && b === bodies[0]) trail.push(`${Math.round(b.vy)}|${fracRaw.toFixed(2)}|${Math.round(b.y)}`)
       // 落地/撞墙
       const lim = b.hl + b.r
       if (b.x < lim) {
@@ -431,16 +475,26 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
             d = 1
           }
           // 单帧最多推 3px，剩下的靠后续帧慢慢分开，避免把水打飞
-          const push = Math.min(3, b.r - d + 0.3)
+          const push = Math.min(6, b.r - d + 0.3)
           const nx = dx / d
           const ny = dy / d
           qx[i] += nx * push
           qy[i] += ny * push
           // 速度也做一次分离，避免粒子粘在表面
-          const vn = vx[i] * nx + vy[i] * ny - (b.vx * nx + b.vy * ny)
+          // 刚体表面速度（含转动）
+          const bxv = b.vx - b.av * (cyp - b.y)
+          const byv = b.vy + b.av * (cxp - b.x)
+          const vn = (vx[i] - bxv) * nx + (vy[i] - byv) * ny
           if (vn < 0) {
-            vx[i] -= nx * vn * 1.1
-            vy[i] -= ny * vn * 1.1
+            // 把压进去的相对速度推回去，再加一点跟穿透深度相关的冲量 → 水被明显推开
+            const kick = -vn * 1.25 + push * 7
+            vx[i] += nx * kick
+            vy[i] += ny * kick
+            // 反作用：水推刚体，并产生力矩
+            const imp = Math.min(1.4, push * 0.06) * b.invM * 8
+            b.vx -= nx * imp
+            b.vy -= ny * imp
+            b.av += ((cxp - b.x) * -ny - (cyp - b.y) * -nx) * imp * 0.0006
           }
         }
       }
@@ -515,7 +569,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
             }
           }
         }
-        const maxStep = h * 0.3
+        const maxStep = h * 0.15
         qx[i] += Math.max(-maxStep, Math.min(maxStep, dxSum * CFG.relaxation))
         qy[i] += Math.max(-maxStep, Math.min(maxStep, dySum * CFG.relaxation))
       }
@@ -590,8 +644,15 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     if (grabbed && pointer.down) {
       const tx = pointer.x + grabOx
       const ty = pointer.y + grabOy
-      grabbed.vx += (tx - grabbed.x) * CFG.dragStiffness * dt
-      grabbed.vy += (ty - grabbed.y) * CFG.dragStiffness * dt
+      const fx = (tx - grabbed.x) * CFG.dragStiffness
+      const fy = (ty - grabbed.y) * CFG.dragStiffness
+      grabbed.vx += fx * dt
+      grabbed.vy += fy * dt
+      // 抓的点不在质心 → 有力矩，拖着会转
+      const armX = -grabOx
+      const armY = -grabOy
+      const inertia = grabbed.r * grabbed.r + grabbed.hl * grabbed.hl
+      grabbed.av += ((armX * fy - armY * fx) / inertia) * 0.06
       grabbed.vx *= 1 - CFG.dragDamping * dt
       grabbed.vy *= 1 - CFG.dragDamping * dt
       grabbed.av *= 1 - 8 * dt
@@ -654,15 +715,13 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     // 背景：融合背景图（cover 自适应），没加载好时退回深色渐变
     ctx.clearRect(0, 0, W, H)
     if (bgReady && bg) {
-      const s = Math.max(W / bg.width, H / bg.height)
-      const dw = bg.width * s
-      const dh = bg.height * s
-      // 轻微模糊 + 半透明 = 亚克力（隔着板子看画）
-      ctx.save()
-      ctx.filter = 'saturate(1.08)'
-      ctx.globalAlpha = 0.95
-      ctx.drawImage(bg, (W - dw) / 2, (H - dh) / 2, dw, dh)
-      ctx.restore()
+      // 背景提前缩放到水槽尺寸缓存起来，每帧只做一次 1:1 贴图
+      if (!bgCache) buildBgCache()
+      if (bgCache) {
+        ctx.globalAlpha = 0.96
+        ctx.drawImage(bgCache, 0, 0, W, H)
+        ctx.globalAlpha = 1
+      }
       ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'
       ctx.fillRect(0, 0, W, H)
       const shade = ctx.createLinearGradient(0, H * 0.4, 0, H)
@@ -720,16 +779,15 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       const sy = 1 + Math.max(-0.18, Math.min(0.18, b.vy * 0.00035))
       const sx = 1 / sy
       ctx.scale(b.flip * sx, sy)
-      if (submerged) ctx.filter = 'brightness(0.86) saturate(0.92)'
       if (spriteReady && sprite) {
         const sw = 274 * b.scale
         const sh = 512 * b.scale
-        ctx.drawImage(sprite, -sw / 2, -sh * 0.55, sw, sh)
+        const img = submerged && spriteDim ? spriteDim : sprite
+        ctx.drawImage(img, -sw / 2, -sh * 0.55, sw, sh)
       } else {
         ctx.fillStyle = 'rgba(200,220,255,0.5)'
         ctx.fillRect(-b.r, -b.hl - b.r, b.r * 2, (b.hl + b.r) * 2)
       }
-      ctx.filter = 'none'
       ctx.restore()
     }
 
@@ -816,27 +874,28 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   }
 
   function splash(x: number, y: number, power: number) {
-    const R = 70
+    splashTotal++
+    const R = 84
     for (let i = 0; i < count; i++) {
       const dx = px[i] - x
       const dy = py[i] - y
       const d2 = dx * dx + dy * dy
       if (d2 > R * R) continue
       const d = Math.sqrt(d2) || 1
-      const f = (1 - d / R) * 260 * power
+      const f = (1 - d / R) * 300 * power
       vx[i] += (dx / d) * f
       vy[i] += (dy / d) * f - 120 * power
     }
-    for (let k = 0; k < 14; k++) {
+    for (let k = 0; k < 26; k++) {
       const a = Math.random() * Math.PI * 2
-      const sp = 60 + Math.random() * 220
+      const sp = 90 + Math.random() * 340
       splashes.push({
         x,
         y,
-        vx: Math.cos(a) * sp,
-        vy: Math.sin(a) * sp - 140,
-        life: 0.5 + Math.random() * 0.4,
-        r: 1 + Math.random() * 1.8,
+        vx: Math.cos(a) * sp * power,
+        vy: Math.sin(a) * sp * power - 190 * power,
+        life: 0.55 + Math.random() * 0.5,
+        r: 1.2 + Math.random() * 2.2,
       })
     }
   }
@@ -897,11 +956,38 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   sprite = new Image()
   sprite.onload = () => {
     spriteReady = true
+    buildSpriteDim()
     if (W > 0 && H > 0) render()
   }
   sprite.src = withBase('/sprites/hongshexin.png')
 
   // 背景图：手机用 1100px 那张，桌面用 1600px 的
+  function buildBgCache() {
+    if (!bg || W <= 0 || H <= 0) return
+    const c = document.createElement('canvas')
+    c.width = Math.round(W * dpr)
+    c.height = Math.round(H * dpr)
+    const g = c.getContext('2d')!
+    g.scale(dpr, dpr)
+    const s = Math.max(W / bg.width, H / bg.height)
+    g.drawImage(bg, (W - bg.width * s) / 2, (H - bg.height * s) / 2, bg.width * s, bg.height * s)
+    bgCache = c
+  }
+
+  // 浸泡状态用一张预先压暗的贴图，避免每帧用 ctx.filter（很慢）
+  function buildSpriteDim() {
+    if (!sprite) return
+    const c = document.createElement('canvas')
+    c.width = sprite.naturalWidth || 274
+    c.height = sprite.naturalHeight || 512
+    const g = c.getContext('2d')!
+    g.drawImage(sprite, 0, 0)
+    g.globalCompositeOperation = 'source-atop'
+    g.fillStyle = 'rgba(10, 38, 92, 0.34)'
+    g.fillRect(0, 0, c.width, c.height)
+    spriteDim = c
+  }
+
   function loadBg(force = false) {
     const small = W <= 800
     if (!force && bgReady && small === bgIsSmall) return
@@ -911,6 +997,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     img.onload = () => {
       bg = img
       bgReady = true
+      bgCache = null
+      buildBgCache()
       if (W > 0 && H > 0) render()
     }
     img.src = withBase(small ? '/bg/tank-bg-sm.webp' : '/bg/tank-bg.webp')
@@ -980,6 +1068,11 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
         fps,
         spriteOk: spriteReady,
         size: [Math.round(W), Math.round(H)],
+        splashes: splashes.length,
+        splashTotal,
+        entryEvents,
+        trail,
+        dbg0: { vy: Math.round(bodies[0]?.vy ?? 0), raw: +(bodies[0]?.rawPrev ?? 0).toFixed(2) },
         minY: Math.round(minY),
         maxY: Math.round(maxY),
         avgC: +(rhoSum / Math.max(1, count) / rho0 - 1).toFixed(3),
