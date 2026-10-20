@@ -320,6 +320,15 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     bodies = saved
   }
 
+  // 建好五个人偶后再跑一小段，让初始排水和浮力平衡在首帧之前完成。
+  // 否则页面刚打开的前几帧会看到水被五个人偶顶成尖峰。
+  function settleBodies() {
+    for (let i = 0; i < 45; i++) step(FIXED)
+    splashTotal = 0
+    entryEvents = 0
+    trail.length = 0
+  }
+
   // 换一批：重新抽人、从池子上方重新落下
   function refreshBodies() {
     grabbed = null
@@ -1059,8 +1068,13 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
         // 立绘中心对准刚体中心：半浸没时水线落在腰附近，而不是脚底
         ctx.drawImage(img, -sw / 2, -sh * 0.5, sw, sh)
       } else {
-        ctx.fillStyle = 'rgba(200,220,255,0.5)'
-        ctx.fillRect(-b.r, -b.hl - b.r, b.r * 2, (b.hl + b.r) * 2)
+        // 立绘还没加载时也不要显示一个灰色矩形；先画一个胶囊占位。
+        traceCapsule(b.r, b.hl)
+        ctx.fillStyle = 'rgba(200, 220, 255, 0.22)'
+        ctx.fill()
+        ctx.strokeStyle = 'rgba(200, 230, 255, 0.55)'
+        ctx.lineWidth = 1
+        ctx.stroke()
       }
       ctx.restore()
     }
@@ -1679,6 +1693,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   buildParticles()
   settleWater()
   buildBodies(undefined, false)
+  settleBodies()
   sprites = SPRITE_SOURCES.map((src) => {
     const img = new Image()
     img.onload = () => {
