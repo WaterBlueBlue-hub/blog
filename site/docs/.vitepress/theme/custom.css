@@ -131,8 +131,16 @@
 .VPHome .VPHero .tagline {
   line-height: 1.8;
   max-width: 620px;
-  margin-top: 14px;
+  margin: 14px 0 0;
   text-wrap: balance;
+}
+
+.VPHome .VPHero.has-image .main {
+  text-align: left;
+}
+
+.VPHome .VPHero.has-image .actions {
+  justify-content: flex-start;
 }
 
 /* 没有配图时，把 hero 收成居中的一栏 */
@@ -144,6 +152,17 @@
   max-width: 760px;
   margin: 0 auto;
   text-align: center;
+}
+
+.VPHome .VPHero .image {
+  margin: 0 auto 28px;
+}
+
+.VPHome .VPHero .VPImage {
+  width: 132px;
+  height: 132px;
+  border-radius: 28px;
+  box-shadow: 0 18px 40px -22px rgba(47, 109, 246, 0.65);
 }
 
 .VPHome .VPHero .actions {

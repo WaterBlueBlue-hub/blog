@@ -56,7 +56,7 @@ function tokenizeCJK(text: string): string[] {
   return tokens
 }
 
-const SITE_TITLE = '李晨煜的笔记'
+const SITE_TITLE = 'WaterBlue 的笔记'
 const SITE_DESC =
   '实时物理模拟、图形学与 Unity 工程实践的技术笔记：XPBD 约束推导、PBF 流体、数值方法与实现细节。'
 
@@ -88,7 +88,7 @@ export default defineConfig({
   },
 
   themeConfig: {
-    logo: '/favicon.svg',
+    logo: '/avatar.png',
     siteTitle: SITE_TITLE,
 
     nav: [
@@ -147,7 +147,7 @@ export default defineConfig({
 
     footer: {
       message: '笔记持续更新中 · 公式由 MathJax 渲染',
-      copyright: '© 2026 李晨煜',
+      copyright: '© 2026 WaterBlue',
     },
 
   },
