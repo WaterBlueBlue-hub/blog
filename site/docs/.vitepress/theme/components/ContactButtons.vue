@@ -11,15 +11,14 @@ type Contact = {
 
 /**
  * 账号集中放在这里：以后换号只改 value。
- * 微信 / B站 / 边狱巴士 UID 目前没有现成值，先保留按钮位。
  */
 const contacts: Contact[] = [
   { id: 'qq', label: 'QQ', value: '205908757', icon: 'qq' },
-  { id: 'wechat', label: '微信', value: '', icon: 'wechat', pending: true },
+  { id: 'wechat', label: '微信', value: 'ikun1122333322111', icon: 'wechat' },
   { id: 'github', label: 'GitHub', value: 'WaterBlueBlue-hub', icon: 'github' },
   { id: 'email', label: '邮箱', value: '205908757@qq.com', icon: 'email' },
-  { id: 'bilibili', label: 'B站', value: '', icon: 'bilibili', pending: true },
-  { id: 'limbus', label: '边狱', value: '', icon: 'limbus', pending: true },
+  { id: 'bilibili', label: 'B站', value: 'https://space.bilibili.com/494748666', icon: 'bilibili' },
+  { id: 'limbus', label: '边狱', value: 'J907031978', icon: 'limbus' },
 ]
 
 /* Simple Icons（CC0）里的品牌路径；邮箱是通用信封 */
