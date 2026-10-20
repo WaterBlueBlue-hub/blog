@@ -321,7 +321,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   function settleWater() {
     const saved = bodies
     bodies = []
-    for (let i = 0; i < 75; i++) step(FIXED)
+    for (let i = 0; i < 40; i++) step(FIXED)
     updateSurface()
     const sorted = Array.from(surface).sort((a, b) => a - b)
     restLevel = sorted[BINS >> 1]
@@ -334,7 +334,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   // 建好全部人偶后再跑一小段，让初始排水和浮力平衡在首帧之前完成。
   // 否则页面刚打开的前几帧会看到水被一群人偶顶成尖峰。
   function settleBodies() {
-    for (let i = 0; i < 45; i++) step(FIXED)
+    for (let i = 0; i < 24; i++) step(FIXED)
     splashTotal = 0
     entryEvents = 0
     trail.length = 0
@@ -1720,12 +1720,11 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
 
   /* ---------------- 生命周期 ---------------- */
   layout()
-  buildParticles()
-  settleWater()
-  buildBodies(undefined, false)
-  settleBodies()
+  loadBg(true)
   sprites = SPRITE_SOURCES.map((src) => {
     const img = new Image()
+    img.decoding = 'async'
+    img.setAttribute('fetchpriority', 'high')
     img.onload = () => {
       spritesLoaded++
       if (W > 0 && H > 0) render()
@@ -1733,6 +1732,10 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     img.src = withBase(src)
     return img
   })
+  buildParticles()
+  settleWater()
+  buildBodies(undefined, false)
+  settleBodies()
 
   // 背景图：手机用 1100px 那张，桌面用 1600px 的
   function buildBgCache() {
@@ -1751,6 +1754,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     if (!force && bgReady) return
     if (force) bgReady = false
     const img = new Image()
+    img.decoding = 'async'
+    img.setAttribute('fetchpriority', 'high')
     img.onload = () => {
       bg = img
       bgReady = true
@@ -1760,8 +1765,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     }
     img.src = withBase('/bg/tank-bg-sm.webp')
   }
-  loadBg(true)
-
   canvas.addEventListener('pointerdown', onDown)
   canvas.addEventListener('pointermove', onMove)
   canvas.addEventListener('pointerup', onUp)
