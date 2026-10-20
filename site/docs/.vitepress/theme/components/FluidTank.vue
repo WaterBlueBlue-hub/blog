@@ -33,7 +33,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     dragDamping: 4, // 拖拽阻尼（越小越轻）
     bodyCount: 5,
     bodyHeightRatio: 0.36, // 小人高度 / 水槽高度（太大会踩到底就浮不起来）
-    waterFill: 0.76, // 水面初始高度（从顶部算）：水占三分之一左右
+    waterFill: 0.66, // 水面初始高度（从顶部算）：水占三分之一
   }
 
   const FIXED = 1 / 60
@@ -105,7 +105,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   let grabbed: Body | null = null
   let grabOx = 0
   let grabOy = 0
-  const splashes: { x: number; y: number; vx: number; vy: number; life: number; r: number }[] = []
   let splashTotal = 0
   let entryEvents = 0
   const trail: string[] = []
@@ -116,6 +115,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   let scrollA = 0
   let inertia = 0
   let camOffset = 0
+  let scrollSpinCd = 0
   let fps = 0
   let fpsFrames = 0
   let fpsTime = 0
@@ -364,8 +364,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       b.vx *= 1 - Math.min(0.5, drag * 3.2 * dt)
       b.vy *= 1 - Math.min(0.6, drag * 4.2 * dt)
       // 姿态：允许自由旋转，只保留很弱的回正和水阻（不然会一直挺着不动）
-      b.av *= 1 - Math.min(0.85, 0.5 + b.frac * 2.4) * dt
-      if (b.frac > 0.02) b.av += (-b.a * 4 - b.av * 2) * b.frac * dt
+      b.av *= 1 - Math.min(0.8, 0.35 + b.frac * 1.6) * dt
+      if (b.frac > 0.02) b.av += (-b.a * 2.6 - b.av * 1.5) * b.frac * dt
       b.av = Math.max(-7, Math.min(7, b.av))
       b.x += b.vx * dt
       b.y += b.vy * dt
@@ -770,6 +770,26 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       }
     }
 
+    // 飞溅：直接把"飞到水面以上"的模拟粒子画成短水线（不是额外特效）
+    ctx.lineCap = 'round'
+    for (let i = 0; i < count; i++) {
+      const bin = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
+      const above = surface[bin] - py[i]
+      if (above <= 2) continue
+      const sp = Math.hypot(vx[i], vy[i])
+      const len = Math.min(7, Math.max(1.4, sp * 0.01))
+      const nx = sp > 1 ? vx[i] / sp : 0
+      const ny = sp > 1 ? vy[i] / sp : 1
+      ctx.globalAlpha = Math.min(0.9, 0.25 + above / 70)
+      ctx.strokeStyle = above > 40 ? '#f2fbff' : '#cfe8ff'
+      ctx.lineWidth = above > 30 ? 1.8 : 1.4
+      ctx.beginPath()
+      ctx.moveTo(px[i], py[i])
+      ctx.lineTo(px[i] - nx * len, py[i] - ny * len)
+      ctx.stroke()
+    }
+    ctx.globalAlpha = 1
+
     // 小人
     for (const b of bodies) {
       const submerged = b.frac > 0.25
@@ -791,24 +811,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       ctx.restore()
     }
 
-    // 溅射
-    for (let i = splashes.length - 1; i >= 0; i--) {
-      const p = splashes[i]
-      p.life -= 1 / 60
-      if (p.life <= 0) {
-        splashes.splice(i, 1)
-        continue
-      }
-      p.vy += CFG.gravity * 0.55 / 60
-      p.x += p.vx / 60
-      p.y += p.vy / 60
-      ctx.globalAlpha = Math.min(1, p.life * 2)
-      ctx.fillStyle = '#dff0ff'
-      ctx.beginPath()
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
-      ctx.fill()
-    }
-    ctx.globalAlpha = 1
     ctx.restore()
   }
 
@@ -882,21 +884,11 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       const d2 = dx * dx + dy * dy
       if (d2 > R * R) continue
       const d = Math.sqrt(d2) || 1
-      const f = (1 - d / R) * 300 * power
-      vx[i] += (dx / d) * f
-      vy[i] += (dy / d) * f - 120 * power
-    }
-    for (let k = 0; k < 26; k++) {
-      const a = Math.random() * Math.PI * 2
-      const sp = 90 + Math.random() * 340
-      splashes.push({
-        x,
-        y,
-        vx: Math.cos(a) * sp * power,
-        vy: Math.sin(a) * sp * power - 190 * power,
-        life: 0.55 + Math.random() * 0.5,
-        r: 1.2 + Math.random() * 2.2,
-      })
+      const fall = 1 - d / R
+      const f = fall * 430 * power
+      vx[i] += (dx / d) * f * 0.9
+      // 向上抛，形成真实的水柱（这些就是模拟粒子，会自己落回去）
+      vy[i] += (dy / d) * f - 390 * power * fall
     }
   }
 
@@ -935,6 +927,13 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     inertia = inertia * 0.8 + target * 0.2
     const camTarget = Math.max(-16, Math.min(16, -scrollV * 0.02))
     camOffset = camOffset * 0.9 + camTarget * 0.1
+
+    // 滚动时给每个小人一个随机方向的力矩：只有平动太假
+    scrollSpinCd -= dtReal
+    if (Math.abs(scrollV) > 240 && scrollSpinCd <= 0) {
+      scrollSpinCd = 0.26
+      for (const b of bodies) b.av += (Math.random() - 0.5) * 5.6
+    }
 
     acc += dtReal
     let steps = 0
@@ -1068,7 +1067,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
         fps,
         spriteOk: spriteReady,
         size: [Math.round(W), Math.round(H)],
-        splashes: splashes.length,
         splashTotal,
         entryEvents,
         trail,
