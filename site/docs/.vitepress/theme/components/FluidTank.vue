@@ -25,10 +25,15 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     spacing: 10, // 粒子间距（px）
     hFactor: 2.0, // 核半径 / 间距（太小邻居不足，密度估计会抖）
     iterations: 2, // 密度约束迭代次数
-    relaxation: 0.62, // 位置修正松弛
-    viscosity: 0.08, // XSPH 粘性
+    relaxation: 0.55, // 位置修正松弛
+    viscosity: 0.12, // XSPH 粘性
     wallDamp: 0.35, // 撞墙速度保留
+    floorDamp: 0.08, // 池底几乎不回弹：水砸下来应该"停住"，不是弹起来
+    ceilDamp: 0.12,
     scrollLag: 2.4, // 滚动时水"滞空"的冲量系数（px 滚动 → px/s）
+    kickMaxUp: 520, // 单帧最多给水多少向上的速度
+    kickMaxDown: 320, // 向下（压进池底）的冲量小一些，压缩太狠会抖
+    maxLift: 110, // 水最多比静止水位抬多高，再滚也不给冲量
     dragStiffness: 75, // 拖拽弹簧刚度（越大跟手越快）
     dragDamping: 4, // 拖拽阻尼（越小越轻）
     bodyCount: 5,
@@ -69,11 +74,16 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   let rawSurface = new Float32Array(96)
   let binMin = new Float32Array(96)
   let binMin2 = new Float32Array(96)
+  let binVySum = new Float32Array(96)
+  let binMeanVy = new Float32Array(96)
+  let binKept = new Int32Array(96)
   let refBuf = new Float32Array(96)
   let smoothBuf = new Float32Array(96)
   let binCnt = new Int32Array(96)
   let surfaceInit = false
   let surfaceRefPrev = 0 // 上一帧水面基准（用来判断整片水是不是在快速移动）
+  let surfaceRefVel = 0 // 水面基准的平滑速度：避免在阈值上来回切
+  let surfaceRef = 0 // 当前水面基准（整片水的平均高度）
   let waterLevel = 0 // 平滑后的平均水位，浮力只认它（不跟局部波峰联动）
   const BINS = 96
 
@@ -279,6 +289,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     if (binMin.length !== BINS) {
       binMin = new Float32Array(BINS)
       binMin2 = new Float32Array(BINS)
+      binVySum = new Float32Array(BINS)
+      binMeanVy = new Float32Array(BINS)
+      binKept = new Int32Array(BINS)
       refBuf = new Float32Array(BINS)
       smoothBuf = new Float32Array(BINS)
       binMax = new Float32Array(BINS)
@@ -288,8 +301,21 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     binMin2.fill(H)
     binMax.fill(0)
     binCnt.fill(0)
+    binVySum.fill(0)
+    binKept.fill(0)
     for (let i = 0; i < count; i++) {
       const bin = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
+      binVySum[bin] += vy[i]
+      if (py[i] > binMax[bin]) binMax[bin] = py[i]
+      binCnt[bin]++
+    }
+    for (let b = 0; b < BINS; b++) binMeanVy[b] = binCnt[b] > 0 ? binVySum[b] / binCnt[b] : 0
+    for (let i = 0; i < count; i++) {
+      const bin = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
+      // 比同格平均速度还快 300px/s 的，是飞出去的水滴/水柱，不参与"水面在哪"的判断；
+      // 整片水一起滞空时同格平均同样很快，所以不会把整片水排除掉
+      if (vy[i] < binMeanVy[bin] - 300) continue
+      binKept[bin]++
       // 记最小的两个 y：水面取最高粒子，第二低的用来判断是不是孤立水滴
       if (py[i] < binMin[bin]) {
         binMin2[bin] = binMin[bin]
@@ -297,8 +323,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       } else if (py[i] < binMin2[bin]) {
         binMin2[bin] = py[i]
       }
-      if (py[i] > binMax[bin]) binMax[bin] = py[i]
-      binCnt[bin]++
     }
     // 水位只由"粒子数 × 每颗占的面积"决定 —— 总量恒定，滚动/晃动不会改变整体水位
     const level = H - (count * CFG.spacing * CFG.spacing * 0.9) / W
@@ -307,8 +331,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     // 1) 每格的水面候选：最高的粒子（粒子太少说明这格被刚体占了，先留空）
     let valid = 0
     for (let b = 0; b < BINS; b++) {
-      if (binCnt[b] >= 8) {
-        rawSurface[b] = binMin[b]
+      if (binKept[b] >= 8) {
+        // 只有"下面紧跟着一颗"才算水面；孤零零飞起来的颗粒用第二低的顶替
+        rawSurface[b] = binMin2[b] - binMin[b] < CFG.spacing * 1.4 ? binMin[b] : binMin2[b]
         valid++
       } else {
         rawSurface[b] = NaN
@@ -343,21 +368,26 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       const v = rawSurface[b]
       rawSurface[b] = Number.isNaN(v) ? ref : Math.min(ref + 48, Math.max(ref - 48, v))
     }
-    // 3) 空间平滑：水面整体要平，只留缓的起伏
-    smoothBuf.set(rawSurface)
+    // 3) 空间平滑：三遍 5 点二项平滑（[1,4,6,4,1]/16）。
+    //    一遍压不住逐格锯齿，两遍后静止时还留一层 40~60px 的小波纹；
+    //    三遍把它们削到看不见，200px 量级的大波浪只掉几个百分点
+    for (let pass = 0; pass < 3; pass++) {
+      smoothBuf.set(rawSurface)
+      for (let b = 0; b < BINS; b++) {
+        const l2 = smoothBuf[Math.max(0, b - 2)]
+        const l1 = smoothBuf[Math.max(0, b - 1)]
+        const c = smoothBuf[b]
+        const r1 = smoothBuf[Math.min(BINS - 1, b + 1)]
+        const r2 = smoothBuf[Math.min(BINS - 1, b + 2)]
+        rawSurface[b] = (l2 + 4 * l1 + 6 * c + 4 * r1 + r2) / 16
+      }
+    }
     // 整片水在快速上下移动（滞空 / 落回）时基准每帧会跳好几像素，
     // 这时时间平滑要几乎等于直接跟随，否则线会拖在水体后面
-    const moving = Math.abs(ref - surfaceRefPrev) > 3
+    surfaceRefVel = surfaceRefVel * 0.72 + (ref - surfaceRefPrev) * 0.28
+    const moving = Math.abs(surfaceRefVel) > 1.1
     for (let b = 0; b < BINS; b++) {
-      let s = 0
-      let w = 0
-      for (let k = -3; k <= 3; k++) {
-        const idx = Math.min(BINS - 1, Math.max(0, b + k))
-        const wk = 4 - Math.abs(k)
-        s += smoothBuf[idx] * wk
-        w += wk
-      }
-      const smooth = s / w
+      const smooth = rawSurface[b]
       // 4) 时间平滑：静止时压抖动，动得越快跟得越快。
       //    固定 0.14 会在快甩时严重滞后 —— 水已经飞上去了，线还留在原地。
       const err = smooth - surface[b]
@@ -365,6 +395,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       surface[b] = surfaceInit ? surface[b] + err * k : smooth
     }
     surfaceRefPrev = ref
+    surfaceRef = ref
     // 5) 下边界：平时贴着池底；整片水滞空时抬起来，露出下面的空隙
     let validB = 0
     for (let b = 0; b < BINS; b++) {
@@ -385,17 +416,19 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       const v = rawBottom[b]
       rawBottom[b] = Number.isNaN(v) ? refB : Math.min(refB + 60, Math.max(refB - 60, v))
     }
-    smoothBuf.set(rawBottom)
-    for (let b = 0; b < BINS; b++) {
-      let s = 0
-      let w = 0
-      for (let k = -4; k <= 4; k++) {
-        const idx = Math.min(BINS - 1, Math.max(0, b + k))
-        const wk = 5 - Math.abs(k)
-        s += smoothBuf[idx] * wk
-        w += wk
+    for (let pass = 0; pass < 2; pass++) {
+      smoothBuf.set(rawBottom)
+      for (let b = 0; b < BINS; b++) {
+        const l2 = smoothBuf[Math.max(0, b - 2)]
+        const l1 = smoothBuf[Math.max(0, b - 1)]
+        const c = smoothBuf[b]
+        const r1 = smoothBuf[Math.min(BINS - 1, b + 1)]
+        const r2 = smoothBuf[Math.min(BINS - 1, b + 2)]
+        rawBottom[b] = (l2 + 4 * l1 + 6 * c + 4 * r1 + r2) / 16
       }
-      const smooth = s / w
+    }
+    for (let b = 0; b < BINS; b++) {
+      const smooth = rawBottom[b]
       const err = smooth - bottom[b]
       const k = moving ? 0.9 : Math.min(0.6, 0.16 + Math.abs(err) / 120)
       bottom[b] = surfaceInit ? bottom[b] + err * k : smooth
@@ -525,12 +558,24 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     }
 
     /* 3. 粒子预测 */
+    // 滚动冲量按"已经抬了多高"衰减：连续滚轮以前每帧都叠 520px/s，
+    // 水会被一路顶到天花板、在顶边横着弹，恢复过程就一直在抖
+    let kick = 0
+    if (scrollKick !== 0) {
+      if (scrollKick > 0) {
+        const lift = Math.max(0, waterLevel - surfaceRef)
+        kick = Math.min(scrollKick, CFG.kickMaxUp) * Math.max(0, 1 - lift / CFG.maxLift)
+      } else {
+        kick = Math.max(scrollKick, -CFG.kickMaxDown)
+      }
+    }
     for (let i = 0; i < count; i++) {
       vy[i] += CFG.gravity * dt
-      vy[i] -= scrollKick
+      vy[i] -= kick
       // 轻微阻尼，避免能量堆积
-      vx[i] *= 0.999
-      vy[i] *= 0.999
+      // 整体阻尼：0.999 太弱，整片水会晃三四秒才停；0.997 大约两秒收住
+      vx[i] *= 0.997
+      vy[i] *= 0.997
       qx[i] = px[i] + vx[i] * dt
       qy[i] = py[i] + vy[i] * dt
       lam[i] = 0
@@ -574,10 +619,15 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
           const byv = b.vy + b.av * (cxp - b.x)
           const vn = (vx[i] - bxv) * nx + (vy[i] - byv) * ny
           if (vn < 0) {
-            // 把压进去的相对速度推回去，再加一点跟穿透深度相关的冲量 → 水被明显推开
-            const kick = -vn * 1.25 + push * 7
-            vx[i] += nx * kick
-            vy[i] += ny * kick
+            // 把相对法向速度直接设成"一个封顶的小分离速度"。
+            // 旧写法 -vn*1.25 + push*7 是每帧往上叠的：粒子被刚体和密度约束
+            // 来回挤时，一帧攒一点，最后攒到速度上限，恢复过程就一直在抖。
+            const sep = Math.min(90, 30 + push * 9)
+            // 只把相对法向速度补到 +sep，不额外叠加冲量：
+            // 以前每帧都往上加，被两个人偶夹住的粒子几帧就能冲到速度上限飞出去
+            const dv = Math.min(sep, -vn)
+            vx[i] += nx * dv
+            vy[i] += ny * dv
             // 反作用：水推刚体，并产生力矩
             const imp = Math.min(1.4, push * 0.06) * b.invM * 8
             b.vx -= nx * imp
@@ -657,7 +707,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
             }
           }
         }
-        const maxStep = h * 0.15
+        // 单次迭代最多挪 0.08h：0.15h 虽然收敛快，但位置修正会直接变成速度，
+        // 压缩区里每帧都能灌 360px/s，水会一直"沸腾"
+        const maxStep = h * 0.08
         qx[i] += Math.max(-maxStep, Math.min(maxStep, dxSum * CFG.relaxation))
         qy[i] += Math.max(-maxStep, Math.min(maxStep, dySum * CFG.relaxation))
       }
@@ -665,29 +717,40 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
 
     /* 6. 边界 + 速度回写 + 粘性 */
     for (let i = 0; i < count; i++) {
-      if (qx[i] < 4) {
-        qx[i] = 4
-        vx[i] = Math.abs(vx[i]) * CFG.wallDamp
+      // 先把位置夹回槽内
+      if (qx[i] < 4) qx[i] = 4
+      else if (qx[i] > W - 4) qx[i] = W - 4
+      if (qy[i] > H - 4) qy[i] = H - 4
+      else if (qy[i] < 4) qy[i] = 4
+      // 再由位置差反推速度（PBD 的标准做法）
+      let nvx = (qx[i] - px[i]) / dt
+      let nvy = (qy[i] - py[i]) / dt
+      // 位置修正会把能量灌进速度：限制单步速度变化量，尖峰就不会一帧帧越滚越大
+      const dvx = nvx - vx[i]
+      const dvy = nvy - vy[i]
+      const dv = Math.hypot(dvx, dvy)
+      const dvMax = 500
+      if (dv > dvMax) {
+        const s = dvMax / dv
+        nvx = vx[i] + dvx * s
+        nvy = vy[i] + dvy * s
       }
-      if (qx[i] > W - 4) {
-        qx[i] = W - 4
-        vx[i] = -Math.abs(vx[i]) * CFG.wallDamp
-      }
-      if (qy[i] > H - 4) {
-        qy[i] = H - 4
-        vy[i] = -Math.abs(vy[i]) * CFG.wallDamp
+      vx[i] = nvx
+      vy[i] = nvy
+      // 贴着墙、还朝墙里走的速度必须在这里反射掉：
+      // 之前把反射写在反推之前，会被 (q-p)/dt 覆盖，粒子就沿着顶边一直加速
+      if (qx[i] <= 4.001 && vx[i] < 0) vx[i] = -vx[i] * CFG.wallDamp
+      if (qx[i] >= W - 4.001 && vx[i] > 0) vx[i] = -vx[i] * CFG.wallDamp
+      if (qy[i] >= H - 4.001 && vy[i] > 0) {
+        vy[i] = -vy[i] * CFG.floorDamp
         vx[i] *= 0.9
       }
-      if (qy[i] < 4) {
-        qy[i] = 4
-        vy[i] = Math.abs(vy[i]) * 0.2
-      }
-      vx[i] = (qx[i] - px[i]) / dt
-      vy[i] = (qy[i] - py[i]) / dt
+      if (qy[i] <= 4.001 && vy[i] < 0) vy[i] = -vy[i] * CFG.ceilDamp
       const speed = Math.hypot(vx[i], vy[i])
-      if (speed > 2600) {
-        vx[i] *= 2600 / speed
-        vy[i] *= 2600 / speed
+      // 120px≈1m，800px/s 已经是 6.7m/s；再高就只是被挤住的粒子在墙边乱弹
+      if (speed > 800) {
+        vx[i] *= 800 / speed
+        vy[i] *= 800 / speed
       }
       px[i] = qx[i]
       py[i] = qy[i]
@@ -872,9 +935,10 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     for (let i = 0; i < count; i++) {
       const bin = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
       const above = surface[bin] - py[i]
-      // 水面取的就是最高粒子，正常贴在水面的粒子几乎不会高于它；
-      // 这里留 4px 余量，只把真正飞离水面的画成水线
-      if (above <= 4) continue
+      // 正常贴在水面的粒子不会高于水面线，留一格间距的余量（8px），
+      // 只把真正飞离水面的画成水线，水面上沿就不会有一层细白点。
+      // （不要用"密度低"当判据：水柱是一团一起飞的，密度并不低）
+      if (above <= 8) continue
       const sp = Math.hypot(vx[i], vy[i])
       const len = Math.min(7, Math.max(1.4, sp * 0.01))
       const nx = sp > 1 ? vx[i] / sp : 0
@@ -1152,20 +1216,50 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
 
   // 调试出口：控制台里 __tank.state() 看粒子与刚体状态
   ;(window as any).__tank = {
+    // 水面高度场本身（96 格），排查锯齿用
+    surface: () => Array.from(surface, (v) => Math.round(v)),
+    // 最快的几颗粒子：位置 / 速度 / 相对密度 / 离最近刚体多远
+    probe: (n = 8) => {
+      const idx: number[] = []
+      for (let i = 0; i < count; i++) idx.push(i)
+      idx.sort((a, b) => Math.hypot(vx[b], vy[b]) - Math.hypot(vx[a], vy[a]))
+      return idx.slice(0, n).map((i) => {
+        let bd = 1e9
+        for (const b of bodies) {
+          const [d] = capsuleDistance(b, px[i], py[i])
+          if (d < bd) bd = d
+        }
+        return {
+          x: Math.round(px[i]),
+          y: Math.round(py[i]),
+          vx: Math.round(vx[i]),
+          vy: Math.round(vy[i]),
+          rho: +(rho[i] / rho0).toFixed(2),
+          body: Math.round(bd),
+        }
+      })
+    },
     state: () => {
       let minY = H
       let maxY = 0
       let rhoSum = 0
       let topCount = 0
       let flying = 0
+      let drawn = 0
+      let vy2 = 0
+      let vmax = 0
       const ys: number[] = []
       for (let i = 0; i < count; i++) {
         if (py[i] < minY) minY = py[i]
         if (py[i] > maxY) maxY = py[i]
         rhoSum += rho[i]
+        vy2 += vy[i] * vy[i]
+        const sp = Math.hypot(vx[i], vy[i])
+        if (sp > vmax) vmax = sp
         if (py[i] < H * 0.3) topCount++
         const bin = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
         if (surface[bin] - py[i] > 5) flying++
+        if (surface[bin] - py[i] > 8) drawn++
         if (i % 17 === 0) ys.push(py[i])
       }
       ys.sort((a, b) => a - b)
@@ -1183,6 +1277,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
         avgC: +(rhoSum / Math.max(1, count) / rho0 - 1).toFixed(3),
         topCount,
         flying,
+        drawn,
+        vyRms: Math.round(Math.sqrt(vy2 / Math.max(1, count))),
+        vmax: Math.round(vmax),
         level: Math.round(waterLevel),
         p10y: Math.round(ys[Math.floor(ys.length * 0.1)] || 0),
         p50y: Math.round(ys[Math.floor(ys.length * 0.5)] || 0),
