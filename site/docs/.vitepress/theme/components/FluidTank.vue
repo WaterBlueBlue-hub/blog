@@ -192,9 +192,10 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     waterGrad = null
     if (!waterMaskCanvas) waterMaskCanvas = document.createElement('canvas')
-    waterMaskCanvas.width = W
-    waterMaskCanvas.height = H
+    waterMaskCanvas.width = W * 2
+    waterMaskCanvas.height = H * 2
     waterMaskCtx = waterMaskCanvas.getContext('2d')
+    waterMaskCtx?.setTransform(2, 0, 0, 2, 0, 0)
     bgCache = null
     surfaceInit = false
   }
@@ -1076,7 +1077,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   // Stage 3 的水体：把这一帧所有粒子当作半径约 0.78·spacing 的圆，
   // 先在一次路径里取并集，再整体半透明贴回主画布。
   // 没有高度场、没有水线，水体轮廓完全由粒子位置决定。
-  function drawParticleWater() {
+  function drawParticleWater(alpha = 0.58) {
     const wc = waterMaskCtx
     if (!wc || !waterMaskCanvas) return
     wc.clearRect(0, 0, W, H)
@@ -1090,13 +1091,43 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       wc.moveTo(px[i] + r, py[i])
       wc.arc(px[i], py[i], r, 0, Math.PI * 2)
     }
+    wc.filter = 'blur(0.8px)'
     wc.fillStyle = grad
     wc.fill()
+    wc.filter = 'none'
 
     ctx.save()
-    ctx.globalAlpha = 0.58
+    ctx.globalAlpha = alpha
+    ctx.imageSmoothingEnabled = true
     ctx.drawImage(waterMaskCanvas, 0, 0, W, H)
     ctx.restore()
+  }
+
+  // 最终合成时的水体底色：只填粒子轮廓以下的区域，用一层很淡的渐变
+  // 让粒子之间的微小空隙看起来仍是连续水体；顶边仍由粒子轮廓决定。
+  function drawWaterBaseFill() {
+    const grad = ctx.createLinearGradient(0, waterLevel - 20, 0, H)
+    grad.addColorStop(0, 'rgba(70, 160, 240, 0.26)')
+    grad.addColorStop(0.45, 'rgba(30, 95, 205, 0.3)')
+    grad.addColorStop(1, 'rgba(6, 26, 90, 0.44)')
+    ctx.beginPath()
+    ctx.moveTo(0, particleSurfaceSmooth[0])
+    for (let b = 1; b < BINS - 1; b++) {
+      const x0 = (b / (BINS - 1)) * W
+      const x1 = ((b + 1) / (BINS - 1)) * W
+      ctx.quadraticCurveTo(
+        x0,
+        particleSurfaceSmooth[b],
+        (x0 + x1) / 2,
+        (particleSurfaceSmooth[b] + particleSurfaceSmooth[b + 1]) / 2,
+      )
+    }
+    ctx.lineTo(W, particleSurfaceSmooth[BINS - 1])
+    ctx.lineTo(W, H)
+    ctx.lineTo(0, H)
+    ctx.closePath()
+    ctx.fillStyle = grad
+    ctx.fill()
   }
 
   // 从粒子圆的并集上边缘提取水线。这里没有高度场：每个 x 列取所有
@@ -1143,30 +1174,56 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       const r1 = particleSurface[Math.min(BINS - 1, b + 1)]
       particleSurfaceSmooth[b] = (l + 2 * c + r1) / 4
     }
+    const firstPass = particleSurfaceSmooth.slice()
+    for (let b = 0; b < BINS; b++) {
+      const l = firstPass[Math.max(0, b - 1)]
+      const c = firstPass[b]
+      const r1 = firstPass[Math.min(BINS - 1, b + 1)]
+      particleSurfaceSmooth[b] = (l + 2 * c + r1) / 4
+    }
   }
 
-  function drawParticleSurfaceFx() {
-    computeParticleSurface()
+  function drawParticleSurfaceFx(compute = true) {
+    if (compute) computeParticleSurface()
 
     // 水线：直接经过粒子并集的顶部，不再额外套高度场。
-    ctx.beginPath()
-    ctx.moveTo(0, particleSurfaceSmooth[0])
-    for (let b = 1; b < BINS - 1; b++) {
-      const x0 = (b / (BINS - 1)) * W
-      const x1 = ((b + 1) / (BINS - 1)) * W
-      ctx.quadraticCurveTo(x0, particleSurfaceSmooth[b], (x0 + x1) / 2, (particleSurfaceSmooth[b] + particleSurfaceSmooth[b + 1]) / 2)
+    const traceLine = () => {
+      ctx.beginPath()
+      ctx.moveTo(0, particleSurfaceSmooth[0])
+      for (let b = 1; b < BINS - 1; b++) {
+        const x0 = (b / (BINS - 1)) * W
+        const x1 = ((b + 1) / (BINS - 1)) * W
+        ctx.quadraticCurveTo(
+          x0,
+          particleSurfaceSmooth[b],
+          (x0 + x1) / 2,
+          (particleSurfaceSmooth[b] + particleSurfaceSmooth[b + 1]) / 2,
+        )
+      }
+      ctx.lineTo(W, particleSurfaceSmooth[BINS - 1])
     }
-    ctx.lineTo(W, particleSurfaceSmooth[BINS - 1])
-    ctx.strokeStyle = 'rgba(205, 242, 255, 0.9)'
-    ctx.lineWidth = 1.7
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    traceLine()
+    ctx.strokeStyle = 'rgba(4, 20, 60, 0.38)'
+    ctx.lineWidth = 3
+    ctx.stroke()
+    traceLine()
+    ctx.strokeStyle = 'rgba(210, 244, 255, 0.92)'
+    ctx.lineWidth = 1.45
     ctx.stroke()
 
     // 泡沫：贴着粒子轮廓的粒子点。
-    ctx.fillStyle = 'rgba(235, 250, 255, 0.65)'
+    ctx.fillStyle = 'rgba(235, 250, 255, 0.7)'
     for (let i = 0; i < count; i++) {
       const b = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
       const d = py[i] - particleSurfaceSmooth[b]
-      if (d > -1 && d < 5) ctx.fillRect(px[i] - 0.8, py[i] - 0.8, 1.6, 1.6)
+      if (d > -1 && d < 5) {
+        const rr = 0.9 + ((i * 37) % 3) * 0.25
+        ctx.beginPath()
+        ctx.arc(px[i], py[i], rr, 0, Math.PI * 2)
+        ctx.fill()
+      }
     }
 
     // 飞溅：粒子圆本身已经画在水体里，这里只补运动方向的短水线。
@@ -1321,7 +1378,55 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     )
   }
 
+  // Stage 5：把粒子水体、粒子轮廓水线和背景合成到最终画面。
+  function drawFinalStage() {
+    ctx.clearRect(0, 0, W, H)
+    if (bgReady && bg) {
+      if (!bgCache) buildBgCache()
+      if (bgCache) {
+        ctx.globalAlpha = 0.96
+        ctx.drawImage(bgCache, 0, 0, W, H)
+        ctx.globalAlpha = 1
+      }
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'
+      ctx.fillRect(0, 0, W, H)
+      const shade = ctx.createLinearGradient(0, H * 0.4, 0, H)
+      shade.addColorStop(0, 'rgba(4, 10, 26, 0)')
+      shade.addColorStop(1, 'rgba(4, 10, 26, 0.6)')
+      ctx.fillStyle = shade
+      ctx.fillRect(0, H * 0.4, W, H * 0.6)
+    } else {
+      const fallback = ctx.createLinearGradient(0, 0, 0, H)
+      fallback.addColorStop(0, '#0a1730')
+      fallback.addColorStop(1, '#050b18')
+      ctx.fillStyle = fallback
+      ctx.fillRect(0, 0, W, H)
+    }
+
+    ctx.save()
+    ctx.translate(0, camOffset)
+    drawBodies()
+    computeParticleSurface()
+    drawWaterBaseFill()
+    drawParticleWater(0.5)
+    drawParticleSurfaceFx(false)
+    if (debugView) drawDebug(false, true)
+    ctx.restore()
+
+    ctx.fillStyle = 'rgba(4, 12, 26, 0.72)'
+    ctx.fillRect(6, 6, 168, 17)
+    ctx.fillStyle = '#dff4ff'
+    ctx.font = '9px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('STAGE 5 · 最终预览', 11, 15)
+  }
+
   function render() {
+    if (renderStage === 5) {
+      drawFinalStage()
+      return
+    }
     if (renderStage === 1 || renderStage === 2 || renderStage === 3 || renderStage === 4) {
       drawPhysicsStage(renderStage as 1 | 2 | 3 | 4)
       return
