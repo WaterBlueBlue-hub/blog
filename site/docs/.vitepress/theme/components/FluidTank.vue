@@ -362,6 +362,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
 
   /* ---------------- 刚体几何 ---------------- */
   function bodySegment(b: Body) {
+    // 这里返回胶囊的轴线段；b.r 会在 capsuleDistance 和刚体碰撞里作为
+    // 半径参与计算，所以真正的形状是 2D 胶囊，不是零厚度线段。
     const dx = Math.sin(b.a) * b.hl
     const dy = Math.cos(b.a) * b.hl
     return [b.x - dx, b.y - dy, b.x + dx, b.y + dy] as const
@@ -1036,7 +1038,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       // 立绘中心与胶囊体中心严格对齐；不要再加视觉偏移或速度形变，
       // 否则调试线框正确、正常画面却偏离物理体。
       ctx.translate(b.x, b.y)
-      ctx.rotate(b.a)
+      // bodySegment 的轴角是"从竖直方向量、正角让顶端向左"；
+      // Canvas 的 rotate 正角是顺时针，所以这里取反，立绘才会跟胶囊同向倾斜。
+      ctx.rotate(-b.a)
       ctx.scale(b.flip, 1)
       const img = sprites[b.spriteIndex]
       if (img && img.complete && img.naturalWidth > 0) {
@@ -1050,6 +1054,15 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       }
       ctx.restore()
     }
+  }
+
+  // 以原点为中心、沿局部 y 轴画一个真正的胶囊轮廓。
+  function traceCapsule(r: number, hl: number) {
+    ctx.beginPath()
+    ctx.arc(0, -hl, r, Math.PI, Math.PI * 2, false)
+    ctx.lineTo(r, hl)
+    ctx.arc(0, hl, r, 0, Math.PI, false)
+    ctx.closePath()
   }
 
   // 调试视图：PBF 粒子 + 人偶的胶囊碰撞体。只在按钮打开时画，
@@ -1080,21 +1093,17 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     ctx.textBaseline = 'middle'
     for (let i = 0; i < bodies.length; i++) {
       const b = bodies[i]
-      const [ax, ay, bx, by] = bodySegment(b)
+      // 画真正的胶囊轮廓：中间是半径 r 的实体，不是两根圆加一根线。
+      ctx.save()
+      ctx.translate(b.x, b.y)
+      ctx.rotate(-b.a)
+      traceCapsule(b.r, b.hl)
+      ctx.fillStyle = 'rgba(255, 209, 102, 0.16)'
+      ctx.fill()
       ctx.strokeStyle = 'rgba(255, 209, 102, 0.95)'
       ctx.lineWidth = 1.4
-      ctx.beginPath()
-      ctx.moveTo(ax, ay)
-      ctx.lineTo(bx, by)
       ctx.stroke()
-      for (const [cx, cy] of [
-        [ax, ay],
-        [bx, by],
-      ]) {
-        ctx.beginPath()
-        ctx.arc(cx, cy, b.r, 0, Math.PI * 2)
-        ctx.stroke()
-      }
+      ctx.restore()
       // 质心十字
       ctx.beginPath()
       ctx.moveTo(b.x - 3, b.y)
