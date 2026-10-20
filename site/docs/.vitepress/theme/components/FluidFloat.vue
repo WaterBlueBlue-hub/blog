@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref } from 'vue'
-import { withBase } from 'vitepress'
 import FluidTank from './FluidTank.vue'
 
 const tank = ref<{ refresh: () => void } | null>(null)
@@ -20,7 +19,6 @@ onBeforeUnmount(() => window.clearTimeout(spinTimer))
 <template>
   <aside class="fluid-float" aria-label="XPBD 流体演示">
     <div class="fluid-float__tools">
-      <img class="fluid-float__avatar" :src="withBase('/avatar.png')" alt="" />
       <button
         class="fluid-float__refresh"
         :class="{ 'is-spinning': spinning }"
@@ -40,10 +38,10 @@ onBeforeUnmount(() => window.clearTimeout(spinTimer))
 
 <style scoped>
 .fluid-float {
-  --fluid-tank-height: 220px;
   position: relative;
   width: min(340px, 100%);
   padding: 10px;
+  overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.58);
@@ -60,15 +58,6 @@ onBeforeUnmount(() => window.clearTimeout(spinTimer))
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.fluid-float__avatar {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.7),
-    0 6px 14px -8px rgba(30, 60, 120, 0.5);
 }
 
 .fluid-float__refresh {
@@ -129,12 +118,6 @@ onBeforeUnmount(() => window.clearTimeout(spinTimer))
   background: rgba(18, 20, 32, 0.62);
 }
 
-.dark .fluid-float__avatar {
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.18),
-    0 6px 14px -8px rgba(0, 0, 0, 0.8);
-}
-
 .dark .fluid-float__refresh {
   border-color: rgba(255, 255, 255, 0.18);
   background: rgba(26, 30, 46, 0.78);
@@ -143,12 +126,6 @@ onBeforeUnmount(() => window.clearTimeout(spinTimer))
 
 .dark .fluid-float__refresh:hover {
   background: rgba(42, 48, 70, 0.92);
-}
-
-@media (max-width: 1200px) {
-  .fluid-float {
-    --fluid-tank-height: 200px;
-  }
 }
 
 @media (max-width: 959px) {

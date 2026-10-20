@@ -2,7 +2,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { withBase } from 'vitepress'
 
-defineProps<{ compact?: boolean }>()
+const props = defineProps<{ compact?: boolean }>()
 const root = ref<HTMLDivElement | null>(null)
 const canvasEl = ref<HTMLCanvasElement | null>(null)
 let dispose: (() => void) | null = null
@@ -10,7 +10,7 @@ let refreshImpl: (() => void) | null = null
 
 onMounted(() => {
   if (!root.value || !canvasEl.value) return
-  const api = setup(canvasEl.value, root.value)
+  const api = setup(canvasEl.value, root.value, !!props.compact)
   dispose = api.dispose
   refreshImpl = api.refresh
 })
@@ -23,7 +23,7 @@ onBeforeUnmount(() => {
 
 defineExpose({ refresh: () => refreshImpl?.() })
 
-function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
+function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolean) {
   const ctx = canvas.getContext('2d')!
 
   /* ---------------- 可调参数 ---------------- */
@@ -49,6 +49,12 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   }
 
   const FIXED = 1 / 60
+  // 物理固定在 390×240 的逻辑分辨率里跑：卡片无论怎么缩放，都只是把这幅画面拉伸，
+  // 粒子间距、重力、人偶尺寸都不会跟着 CSS 尺寸变，缩放后物理表现保持一致。
+  const SIM_W = 390
+  const SIM_H = 240
+  // 首屏小卡片不再吃页面滚动惯性：滚动网页时不应该把水和小人一起甩起来
+  const scrollEffects = !compactMode
   let W = 0
   let H = 0
   let dpr = 1
@@ -112,6 +118,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     frac: number
     rawPrev: number
     inWater: boolean
+    entered: boolean
     squash: number
   }
   let bodies: Body[] = []
@@ -158,17 +165,30 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
 
   /* ---------------- 初始化 ---------------- */
   function layout() {
-    W = host.clientWidth
-    H = host.clientHeight
+    W = SIM_W
+    H = SIM_H
     dpr = Math.min(2, window.devicePixelRatio || 1)
     canvas.width = Math.round(W * dpr)
     canvas.height = Math.round(H * dpr)
-    canvas.style.width = `${W}px`
-    canvas.style.height = `${H}px`
+    canvas.style.width = '100%'
+    canvas.style.height = '100%'
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     waterGrad = null
     bgCache = null
     surfaceInit = false
+  }
+
+  // 只同步像素密度，不重建粒子 / 人偶：卡片缩放不打断正在跑的物理
+  function syncDpr() {
+    const next = Math.min(2, window.devicePixelRatio || 1)
+    if (next === dpr) return
+    dpr = next
+    canvas.width = Math.round(W * dpr)
+    canvas.height = Math.round(H * dpr)
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    bgCache = null
+    waterGrad = null
+    render()
   }
 
   function buildParticles() {
@@ -217,7 +237,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     return pool.slice(0, Math.min(CFG.bodyCount, pool.length))
   }
 
-  function buildBodies(spritesForRun?: number[]) {
+  function buildBodies(spritesForRun?: number[], dropFromAbove = true) {
     bodies = []
     charH = H * CFG.bodyHeightRatio
     const charW = charH * (274 / 512)
@@ -233,10 +253,12 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     for (let i = 0; i < CFG.bodyCount; i++) {
       bodies.push({
         x: side + laneW * (i + 0.5 + (Math.random() - 0.5) * 0.2),
-        // 从池子上方落下来：y 为负，画布外开始自由落体
-        y: -charH * (0.2 + Math.random() * 0.3) - i * charH * 0.35,
+        // 首屏直接站在水里；点刷新才从池子上方落下来
+        y: dropFromAbove
+          ? -charH * (0.1 + Math.random() * 0.2) - i * charH * 0.2
+          : H * CFG.waterFill - charH * 0.25 - i * 6,
         vx: (Math.random() - 0.5) * 30,
-        vy: 60 + Math.random() * 50,
+        vy: dropFromAbove ? 60 + Math.random() * 50 : 0,
         a: (Math.random() - 0.5) * 0.12,
         av: (Math.random() - 0.5) * 0.3,
         r,
@@ -249,6 +271,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
         frac: 0,
         rawPrev: 0,
         inWater: false,
+        entered: false,
         squash: 1,
       })
     }
@@ -534,9 +557,9 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       // 水的阻力 + 姿态回正（阻尼够大才不会上下弹）
       const drag = Math.min(1, b.frac * 6)
       b.vx *= 1 - Math.min(0.5, drag * 3.2 * dt)
-      b.vy *= 1 - Math.min(0.75, drag * 8.5 * dt)
+      b.vy *= 1 - Math.min(0.8, drag * 12 * dt)
       // 入水后限速：从画布上方落下来时速度很高，会把浅水一下压扁
-      if (b.frac > 0.1 && b.vy > 300) b.vy = 300
+      if (b.frac > 0.1 && b.vy > 180) b.vy = 180
       // 姿态：允许自由旋转，只保留很弱的回正和水阻（不然会一直挺着不动）
       b.av *= 1 - Math.min(0.8, 0.35 + b.frac * 1.6) * dt
       if (b.frac > 0.02) b.av += (-b.a * 2.6 - b.av * 1.5) * b.frac * dt
@@ -544,6 +567,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       b.x += b.vx * dt
       b.y += b.vy * dt
       b.a += b.av * dt
+      // 只允许轻微侧倾；拖拽/落水的力矩不能把人偶转成横躺
+      b.a = Math.max(-0.5, Math.min(0.5, b.a))
 
       // 入水那一瞬间：溅水 + 给水面一个冲击
       // 入水判定用"是否在水里"的状态切换（逐帧比值更稳，不会被渐变跨过）
@@ -558,20 +583,27 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
       if (trail.length < 80 && b === bodies[0]) trail.push(`${Math.round(b.vy)}|${fracRaw.toFixed(2)}|${Math.round(b.y)}`)
       // 落地/撞墙
       const lim = b.hl + b.r
-      if (b.x < lim) {
-        b.x = lim
+      const xMargin = Math.max(lim, charH * 0.45)
+      const yMargin = Math.max(lim, charH * 0.5)
+      if (!b.entered && b.y > 0) b.entered = true
+      if (b.x < xMargin) {
+        b.x = xMargin
         b.vx = Math.abs(b.vx) * 0.3
       }
-      if (b.x > W - lim) {
-        b.x = W - lim
+      if (b.x > W - xMargin) {
+        b.x = W - xMargin
         b.vx = -Math.abs(b.vx) * 0.3
       }
-      if (b.y > H - lim) {
-        b.y = H - lim
+      if (b.y > H - yMargin) {
+        b.y = H - yMargin
         b.vy = -Math.abs(b.vy) * 0.25
         b.av *= 0.9
       }
-      // 顶部不再夹住：刷新时人偶要从画布上方落进来
+      // 刷新时从画布上方落进来（entered=false）；进水后不允许再被甩出顶部
+      if (b.entered && b.y < yMargin) {
+        b.y = yMargin
+        b.vy = Math.max(0, b.vy)
+      }
     }
 
     /* 2. 刚体-刚体碰撞（胶囊用线段近似） */
@@ -859,8 +891,11 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
 
     /* 7. 拖拽弹簧 */
     if (grabbed && pointer.down) {
-      const tx = pointer.x + grabOx
-      const ty = pointer.y + grabOy
+      // 拖拽目标也夹在池内：不能把人偶拖出卡片后再让它飘在外面
+      const mx = Math.max(grabbed.hl + grabbed.r, charH * 0.45)
+      const my = Math.max(grabbed.hl + grabbed.r, charH * 0.5)
+      const tx = Math.min(W - mx, Math.max(mx, pointer.x + grabOx))
+      const ty = Math.min(H - my, Math.max(my, pointer.y + grabOy))
       const fx = (tx - grabbed.x) * CFG.dragStiffness
       const fy = (ty - grabbed.y) * CFG.dragStiffness
       grabbed.vx += fx * dt
@@ -1048,7 +1083,11 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   /* ---------------- 输入 ---------------- */
   function toLocal(e: PointerEvent) {
     const rect = canvas.getBoundingClientRect()
-    return [e.clientX - rect.left, e.clientY - rect.top] as const
+    // canvas 的 CSS 尺寸跟逻辑尺寸不一致，指针坐标要换算回 390×240 的模拟空间
+    return [
+      ((e.clientX - rect.left) * W) / Math.max(1, rect.width),
+      ((e.clientY - rect.top) * H) / Math.max(1, rect.height),
+    ] as const
   }
 
   function onDown(e: PointerEvent) {
@@ -1155,18 +1194,18 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     const dScroll = sy - lastScroll
     lastScroll = sy
     scrollV = scrollV * 0.7 + (dScroll / Math.max(0.004, dtReal)) * 0.3
-    if (Math.abs(dScroll) > 0.2) {
+    if (scrollEffects && Math.abs(dScroll) > 0.2) {
       // 页面往下滚 ≈ 水槽整体向下位移；水没被带走，相对水槽就是往上"滞空"，
       // 下一帧开始由重力把它拉回去。这里给的是速度冲量，不是持续加速度。
       scrollKick += dScroll * CFG.scrollLag
       scrollKick = Math.max(-520, Math.min(520, scrollKick))
     }
-    const camTarget = Math.max(-16, Math.min(16, -scrollV * 0.02))
+    const camTarget = scrollEffects ? Math.max(-16, Math.min(16, -scrollV * 0.02)) : 0
     camOffset = camOffset * 0.9 + camTarget * 0.1
 
     // 滚动时给每个小人一个随机方向的力矩：只有平动太假
     scrollSpinCd -= dtReal
-    if (Math.abs(scrollV) > 240 && scrollSpinCd <= 0) {
+    if (scrollEffects && Math.abs(scrollV) > 240 && scrollSpinCd <= 0) {
       scrollSpinCd = 0.26
       for (const b of bodies) b.av += (Math.random() - 0.5) * 5.6
     }
@@ -1187,7 +1226,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   /* ---------------- 生命周期 ---------------- */
   layout()
   buildParticles()
-  buildBodies()
+  buildBodies(undefined, false)
   sprites = SPRITE_SOURCES.map((src) => {
     const img = new Image()
     img.onload = () => {
@@ -1238,12 +1277,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
     (entries) => {
       visible = entries[0]?.isIntersecting ?? true
       if (visible) {
-        // 从屏外回来时尺寸可能变了（比如旋屏），补一次布局
-        if (host.clientWidth !== W || host.clientHeight !== H) {
-          layout()
-          buildParticles()
-          buildBodies()
-        }
+        // 物理尺寸是固定的；从屏外回来只补一次像素密度
+        syncDpr()
         last = performance.now()
       }
     },
@@ -1260,13 +1295,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   const onResize = () => {
     window.clearTimeout(resizeTimer)
     resizeTimer = window.setTimeout(() => {
-      // 尺寸没变就别重建：手机地址栏收起/展开、窗口小幅抖动都会触发 resize，
-      // 一重建粒子数就变了，水面也会跟着跳一下
-      if (host.clientWidth === W && host.clientHeight === H) return
-      layout()
-      buildParticles()
-      buildBodies()
-      loadBg()
+      // 卡片 / 窗口缩放只换画布像素密度，不重置粒子与人偶
+      syncDpr()
     }, 180)
   }
   window.addEventListener('resize', onResize)
@@ -1413,7 +1443,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
 }
 
 .fluid-tank--compact {
-  height: var(--fluid-tank-height, 100%);
+  height: auto;
+  aspect-ratio: 390 / 240;
   margin: 0;
   border-radius: 14px;
   box-shadow: 0 12px 30px -22px rgba(10, 20, 50, 0.6);
@@ -1453,7 +1484,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement) {
   }
 
   .fluid-tank--compact {
-    height: var(--fluid-tank-height, 100%);
+    height: auto;
   }
 }
 </style>
