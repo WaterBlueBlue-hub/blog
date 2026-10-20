@@ -87,6 +87,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   let cellItems = new Int32Array(capacity)
   let cellCount = new Int32Array(2)
   let surface = new Float32Array(96)
+  let drawSurface = new Float32Array(96)
   let bottom = new Float32Array(96)
   let rawBottom = new Float32Array(96)
   let binMax = new Float32Array(96)
@@ -106,7 +107,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   let waterLevel = 0 // 平滑后的平均水位，浮力只认它（不跟局部波峰联动）
   let restLevel = 0 // 启动静置后实测的静止水位：水面归一化 / 滚动判断的参考
   let waterBaseArea = 0 // 校准后的"水本身"面积（px²），不含人偶排开的部分
-  let surfaceBias = 0 // 仅渲染用：把 PBF 自由表面整体对齐到静水压水位
   const BINS = 96
 
   /* ---------------- 刚体 ---------------- */
@@ -540,11 +540,6 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     }
     const targetLevel = H - (waterBaseArea + displaced) / W
     waterLevel = surfaceInit ? waterLevel + (targetLevel - waterLevel) * 0.25 : targetLevel
-    // PBF 的自由表面会比静水压水位高几像素（密度核的离散误差）。
-    // 只把渲染线整体平移过去，波峰波谷的相对形状不动；否则人偶
-    // 按 45% 浸没算出来，看起来却像水到了胸口。
-    const sortedDraw = Array.from(surface).sort((a, b) => a - b)
-    surfaceBias = Math.max(-14, Math.min(14, waterLevel - sortedDraw[BINS >> 1]))
     surfaceInit = true
   }
 
@@ -1000,10 +995,23 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   /* ---------------- 渲染 ---------------- */
   let waterGrad: CanvasGradient | null = null
 
+  // 渲染水面 = 物理水位 + 局部水面起伏。
+  // waterLevel 是人偶浮力真正用的水位；rawSurface 提供每列相对起伏。
+  // 这样水线不会整体跑到粒子顶部（水花），也不会被平滑结果的整体偏移
+  // 带到人偶脚下；局部凹坑/波峰仍然来自这一帧的粒子。
+  function updateDrawSurface() {
+    const sorted = Array.from(rawSurface).sort((a, b) => a - b)
+    const med = sorted[BINS >> 1]
+    for (let b = 0; b < BINS; b++) {
+      const dev = Math.max(-10, Math.min(10, rawSurface[b] - med))
+      drawSurface[b] = waterLevel + dev
+    }
+  }
+
   /** 用水面高度场画一条平滑的水线 */
   function traceSurface() {
     const pts: [number, number][] = []
-    for (let i = 0; i < BINS; i++) pts.push([(i / (BINS - 1)) * W, surface[i] + surfaceBias])
+    for (let i = 0; i < BINS; i++) pts.push([(i / (BINS - 1)) * W, drawSurface[i]])
     ctx.beginPath()
     ctx.moveTo(pts[0][0], pts[0][1])
     for (let i = 1; i < pts.length - 1; i++) {
@@ -1020,11 +1028,11 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   function drawBodies() {
     for (const b of bodies) {
       ctx.save()
-      ctx.translate(b.x, b.y + b.r * 0.55)
+      // 立绘中心与胶囊体中心严格对齐；不要再加视觉偏移或速度形变，
+      // 否则调试线框正确、正常画面却偏离物理体。
+      ctx.translate(b.x, b.y)
       ctx.rotate(b.a)
-      const sy = 1 + Math.max(-0.18, Math.min(0.18, b.vy * 0.00035))
-      const sx = 1 / sy
-      ctx.scale(b.flip * sx, sy)
+      ctx.scale(b.flip, 1)
       const img = sprites[b.spriteIndex]
       if (img && img.complete && img.naturalWidth > 0) {
         const sh = charH * SPRITE_ZOOM[b.spriteIndex % SPRITE_ZOOM.length]
@@ -1101,7 +1109,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     // 水面高度场的采样点：看线的形状与粒子分布是否一致
     ctx.fillStyle = 'rgba(130, 238, 255, 0.55)'
     for (let i = 0; i < BINS; i += 2) {
-      ctx.fillRect((i / (BINS - 1)) * W - 0.6, surface[i] + surfaceBias - 0.6, 1.2, 1.2)
+      ctx.fillRect((i / (BINS - 1)) * W - 0.6, drawSurface[i] - 0.6, 1.2, 1.2)
     }
 
     ctx.textAlign = 'left'
@@ -1118,6 +1126,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   function render() {
     // 背景：融合背景图（cover 自适应），没加载好时退回深色渐变
     ctx.clearRect(0, 0, W, H)
+    updateDrawSurface()
     if (bgReady && bg) {
       // 背景提前缩放到水槽尺寸缓存起来，每帧只做一次 1:1 贴图
       if (!bgCache) buildBgCache()
@@ -1179,7 +1188,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     ctx.fillStyle = 'rgba(225, 242, 255, 0.5)'
     for (let i = 0; i < count; i += 3) {
       const bin = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
-      const d = py[i] - (surface[bin] + surfaceBias)
+      const d = py[i] - drawSurface[bin]
       if (d > -1 && d < 6) {
         ctx.fillRect(px[i], py[i], 1.6, 1.6)
       }
@@ -1189,7 +1198,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     ctx.lineCap = 'round'
     for (let i = 0; i < count; i++) {
       const bin = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
-      const above = surface[bin] + surfaceBias - py[i]
+      const above = drawSurface[bin] - py[i]
       // 正常贴在水面的粒子不会高于水面线，留一格间距的余量（8px），
       // 只把真正飞离水面的画成水线，水面上沿就不会有一层细白点。
       // （不要用"密度低"当判据：水柱是一团一起飞的，密度并不低）
@@ -1497,8 +1506,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
         if (sp > vmax) vmax = sp
         if (py[i] < H * 0.3) topCount++
         const bin = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
-        if (surface[bin] + surfaceBias - py[i] > 5) flying++
-        if (surface[bin] + surfaceBias - py[i] > 8) drawn++
+        if (drawSurface[bin] - py[i] > 5) flying++
+        if (drawSurface[bin] - py[i] > 8) drawn++
         if (i % 17 === 0) ys.push(py[i])
       }
       ys.sort((a, b) => a - b)
@@ -1522,8 +1531,10 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
         level: Math.round(waterLevel),
         p10y: Math.round(ys[Math.floor(ys.length * 0.1)] || 0),
         p50y: Math.round(ys[Math.floor(ys.length * 0.5)] || 0),
-        surfaceTop: Math.round(Math.min(...surface)),
-        surfaceBottom: Math.round(Math.max(...surface)),
+        surfaceTop: Math.round(Math.min(...drawSurface)),
+        surfaceBottom: Math.round(Math.max(...drawSurface)),
+        physicsTop: Math.round(Math.min(...surface)),
+        physicsBottom: Math.round(Math.max(...surface)),
         bodies: bodies.map((b) => ({
           x: Math.round(b.x),
           y: Math.round(b.y),
