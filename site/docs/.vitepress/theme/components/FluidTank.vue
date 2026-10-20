@@ -59,6 +59,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     bodyHeightRatio: 0.26, // 小人高度 / 水槽高度（太大会踩到底就浮不起来）
     bodyDensity: 0.25, // 人偶质量 / 同体积水质量；平衡时约 25% 浸没
     waterFill: 2 / 3, // 水面初始高度：水只占水池下方约 1/3
+    renderBreakDistance: 1.85, // 粒子间距超过该倍数即视为断开，不参与连续水面
   }
 
   const FIXED = 1 / 60
@@ -86,6 +87,10 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   let qy = new Float32Array(capacity)
   let lam = new Float32Array(capacity)
   let rho = new Float32Array(capacity)
+  let componentIds = new Int32Array(capacity)
+  let componentStack = new Int32Array(capacity)
+  let bulkMask = new Uint8Array(capacity)
+  let bulkCount = 0
 
   // 均匀网格（计数排序）
   let cols = 1
@@ -1148,10 +1153,77 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
 
   // 从粒子圆的并集上边缘提取水线。这里没有高度场：每个 x 列取所有
   // 覆盖该列的粒子圆顶部 y 的最小值，再做一遍 3 点平滑。
+  // 渲染前先找连通分量：只有与主水体相连的粒子能参与连续水面和底部填充，
+  // 脱离水体的粒子则留给水花绘制。否则一颗飞远的粒子会把整列水面拉成尖峰。
+  function updateBulkComponent() {
+    if (count <= 0) {
+      bulkCount = 0
+      return
+    }
+    buildGrid()
+    componentIds.fill(-1, 0, count)
+
+    const connectRadius = CFG.spacing * CFG.renderBreakDistance
+    const connect2 = connectRadius * connectRadius
+    let componentCount = 0
+    let bestComponent = -1
+    let bestSize = 0
+
+    for (let seed = 0; seed < count; seed++) {
+      if (componentIds[seed] >= 0) continue
+      const component = componentCount++
+      let top = 0
+      let size = 0
+      componentIds[seed] = component
+      componentStack[top++] = seed
+
+      while (top > 0) {
+        const i = componentStack[--top]
+        size++
+
+        const cx = Math.min(cols - 1, Math.max(0, (px[i] / h) | 0))
+        const cy = Math.min(rows - 1, Math.max(0, (py[i] / h) | 0))
+        for (let oy = -1; oy <= 1; oy++) {
+          const yy = cy + oy
+          if (yy < 0 || yy >= rows) continue
+          for (let ox = -1; ox <= 1; ox++) {
+            const xx = cx + ox
+            if (xx < 0 || xx >= cols) continue
+            const cell = yy * cols + xx
+            const start = cellStart[cell]
+            const end = start + cellCount[cell]
+            for (let k = start; k < end; k++) {
+              const j = cellItems[k]
+              if (componentIds[j] >= 0) continue
+              const dx = px[j] - px[i]
+              const dy = py[j] - py[i]
+              if (dx * dx + dy * dy <= connect2) {
+                componentIds[j] = component
+                componentStack[top++] = j
+              }
+            }
+          }
+        }
+      }
+
+      if (size > bestSize) {
+        bestSize = size
+        bestComponent = component
+      }
+    }
+
+    bulkMask.fill(0, 0, count)
+    for (let i = 0; i < count; i++) {
+      if (componentIds[i] === bestComponent) bulkMask[i] = 1
+    }
+    bulkCount = bestSize
+  }
+
   function computeParticleSurface() {
     const r = CFG.spacing * 0.78
     particleSurface.fill(H)
     for (let i = 0; i < count; i++) {
+      if (!bulkMask[i]) continue
       const left = Math.max(0, Math.floor(((px[i] - r) / W) * (BINS - 1)))
       const right = Math.min(BINS - 1, Math.ceil(((px[i] + r) / W) * (BINS - 1)))
       for (let b = left; b <= right; b++) {
@@ -1247,18 +1319,25 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     for (let i = 0; i < count; i++) {
       const b = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
       const above = particleSurfaceSmooth[b] - py[i]
-      if (above <= 8) continue
+      const detached = !bulkMask[i]
+      if (!detached && above <= 8) continue
       const sp = Math.hypot(vx[i], vy[i])
-      const len = Math.min(7, Math.max(1.4, sp * 0.01))
+      const len = detached ? Math.min(9, Math.max(2.2, sp * 0.012)) : Math.min(7, Math.max(1.4, sp * 0.01))
       const nx = sp > 1 ? vx[i] / sp : 0
       const ny = sp > 1 ? vy[i] / sp : 1
-      ctx.globalAlpha = Math.min(0.9, 0.25 + above / 70)
-      ctx.strokeStyle = above > 40 ? '#f2fbff' : '#cfe8ff'
-      ctx.lineWidth = above > 30 ? 1.8 : 1.4
+      ctx.globalAlpha = detached ? 0.9 : Math.min(0.9, 0.25 + above / 70)
+      ctx.strokeStyle = detached || above > 40 ? '#f2fbff' : '#cfe8ff'
+      ctx.lineWidth = detached || above > 30 ? 1.8 : 1.4
       ctx.beginPath()
       ctx.moveTo(px[i], py[i])
       ctx.lineTo(px[i] - nx * len, py[i] - ny * len)
       ctx.stroke()
+      if (detached) {
+        ctx.fillStyle = '#e8f8ff'
+        ctx.beginPath()
+        ctx.arc(px[i], py[i], 1.05, 0, Math.PI * 2)
+        ctx.fill()
+      }
     }
     ctx.globalAlpha = 1
   }
@@ -1422,6 +1501,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     ctx.save()
     ctx.translate(0, camOffset)
     drawBodies()
+    updateBulkComponent()
     computeParticleSurface()
     drawWaterBaseFill()
     drawParticleWater(0.5)
@@ -1840,6 +1920,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       ys.sort((a, b) => a - b)
       return {
         count,
+        bulkCount,
+        detachedCount: count - bulkCount,
         fps,
         spritesOk: spritesLoaded,
         size: [Math.round(W), Math.round(H)],
