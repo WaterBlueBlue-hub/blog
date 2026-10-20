@@ -106,6 +106,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
   let particleSurfaceSmooth = new Float32Array(96)
   let particleSurfaceValid = new Uint8Array(96)
   let particleSurfaceMain = new Uint8Array(96)
+  let particleSurfaceWeight = new Float32Array(96)
   let bottom = new Float32Array(96)
   let rawBottom = new Float32Array(96)
   let binMax = new Float32Array(96)
@@ -1240,10 +1241,11 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     particleSurface.fill(H)
     particleSurfaceValid.fill(0)
     particleSurfaceMain.fill(0)
+    particleSurfaceWeight.fill(0)
     for (let i = 0; i < count; i++) {
-      // 4 个以上的粒子群按水体处理；单个和少量脱离粒子留到液滴层。
-      // renderWater 是时间平滑量，因此群体增减时不会瞬间从水体变成点。
-      if (renderWater[i] < 0.5) continue
+      // renderWater 同时控制绘制半径和水线透明度。低权重粒子仍会短暂保留
+      // 很淡的水线并逐渐消失，不再跨过单一阈值时突然截断。
+      if (renderWater[i] < 0.18) continue
       const left = Math.max(0, Math.floor(((px[i] - r) / W) * (BINS - 1)))
       const right = Math.min(BINS - 1, Math.ceil(((px[i] + r) / W) * (BINS - 1)))
       for (let b = left; b <= right; b++) {
@@ -1253,6 +1255,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
         if (q < 0) continue
         const y = py[i] - Math.sqrt(q)
         particleSurfaceValid[b] = 1
+        if (renderWater[i] > particleSurfaceWeight[b]) particleSurfaceWeight[b] = renderWater[i]
         if (bulkMask[i]) particleSurfaceMain[b] = 1
         if (y < particleSurface[b]) particleSurface[b] = y
       }
@@ -1274,6 +1277,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
           const t = (k - prev) / (b - prev)
           particleSurface[k] = v0 + (v1 - v0) * t
           particleSurfaceValid[k] = 1
+          particleSurfaceWeight[k] = Math.min(particleSurfaceWeight[prev], particleSurfaceWeight[b])
           if (particleSurfaceMain[prev] && particleSurfaceMain[b]) particleSurfaceMain[k] = 1
         }
       }
@@ -1321,6 +1325,13 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
     ctx.lineJoin = 'round'
     forEachSurfaceSegment((start, end) => {
       if (end <= start) return
+      let weight = 1
+      for (let b = start; b <= end; b++) {
+        if (particleSurfaceWeight[b] < weight) weight = particleSurfaceWeight[b]
+      }
+      const alpha = Math.min(1, Math.max(0, (weight - 0.18) / 0.62))
+      if (alpha <= 0.01) return
+      ctx.globalAlpha = alpha
       traceSegment(start, end)
       ctx.strokeStyle = 'rgba(4, 20, 60, 0.38)'
       ctx.lineWidth = 3
@@ -1330,12 +1341,14 @@ function setup(canvas: HTMLCanvasElement, host: HTMLElement, compactMode: boolea
       ctx.lineWidth = 1.45
       ctx.stroke()
     })
+    ctx.globalAlpha = 1
 
     // 泡沫：贴着粒子轮廓的粒子点。
     ctx.fillStyle = 'rgba(235, 250, 255, 0.7)'
     for (let i = 0; i < count; i++) {
       const b = Math.min(BINS - 1, Math.max(0, ((px[i] / W) * BINS) | 0))
       if (!particleSurfaceValid[b]) continue
+      if (particleSurfaceWeight[b] < 0.5) continue
       const d = py[i] - particleSurfaceSmooth[b]
       if (d > -1 && d < 5) {
         const rr = 0.9 + ((i * 37) % 3) * 0.25
