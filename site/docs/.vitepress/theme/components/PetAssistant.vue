@@ -1128,14 +1128,14 @@ onBeforeUnmount(() => {
   font-weight: 650;
   letter-spacing: 3px;
   line-height: 1.3;
-  writing-mode: vertical-rl;
+  writing-mode: vertical-lr;
 }
 
 .pet__rest-tip {
   font-size: 8px;
   letter-spacing: 2px;
   opacity: 0.68;
-  writing-mode: vertical-rl;
+  writing-mode: vertical-lr;
 }
 
 .pet__video {
