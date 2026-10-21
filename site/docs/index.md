@@ -16,3 +16,5 @@ hero:
 ---
 
 <ArticleFeed />
+
+<PaperLibrary />
