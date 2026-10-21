@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { withBase } from 'vitepress'
+
 type ProjectTile = {
   id: string
   eyebrow: string
   title: string
   summary: string
-  link: string
+  link?: string
   image?: string
   colors: [string, string, string]
   pattern: 'grid' | 'wave' | 'orbit' | 'mesh'
@@ -23,46 +25,41 @@ const tiles: ProjectTile[] = [
   },
   {
     id: 'P02',
-    eyebrow: 'METHOD',
-    title: '纹理与几何耦合',
-    summary: '从灰度高度场、切向量叉乘和 Sobel 梯度构造法线。',
-    link: '/articles/graphics/acn-estimation-albedo-to-normal/',
+    eyebrow: 'PLACEHOLDER 02',
+    title: '预留项目位',
+    summary: '项目内容待添加。',
     colors: ['#715ec9', '#d4bee7', '#2a2458'],
     pattern: 'mesh',
   },
   {
     id: 'P03',
-    eyebrow: 'DIRECTION',
-    title: '方向梯度平均',
-    summary: '利用横向或纵向平移对称性，保留结构并降低随机波动。',
-    link: '/articles/graphics/acn-estimation-albedo-to-normal/',
+    eyebrow: 'PLACEHOLDER 03',
+    title: '预留项目位',
+    summary: '项目内容待添加。',
     colors: ['#287f88', '#8bd1bd', '#173e48'],
     pattern: 'wave',
   },
   {
     id: 'P04',
-    eyebrow: 'CLEANUP',
-    title: '形态学滤波去噪',
-    summary: '分析法线通道、连通分量与几何属性，清理方向性噪声。',
-    link: '/notes/graphics/morphology-components.html',
+    eyebrow: 'PLACEHOLDER 04',
+    title: '预留项目位',
+    summary: '项目内容待添加。',
     colors: ['#b36d8d', '#edb6c5', '#5c3045'],
     pattern: 'orbit',
   },
   {
     id: 'P05',
-    eyebrow: 'EVALUATION',
-    title: '材质结果测试',
-    summary: '对照四类材质在 Sobel、双边滤波与方向平均下的表现。',
-    link: '/articles/graphics/acn-estimation-albedo-to-normal/',
+    eyebrow: 'PLACEHOLDER 05',
+    title: '预留项目位',
+    summary: '项目内容待添加。',
     colors: ['#8c6d4c', '#d8bd8c', '#433226'],
     pattern: 'grid',
   },
   {
     id: 'P06',
-    eyebrow: 'LIMITS',
-    title: '失败边界',
-    summary: '检查文字、图案和缺乏结构先验时出现的误判与参数敏感问题。',
-    link: '/articles/graphics/acn-estimation-albedo-to-normal/',
+    eyebrow: 'PLACEHOLDER 06',
+    title: '预留项目位',
+    summary: '项目内容待添加。',
     colors: ['#54657e', '#aebbd0', '#263141'],
     pattern: 'mesh',
   },
@@ -80,11 +77,13 @@ const tiles: ProjectTile[] = [
     </header>
 
     <div class="project-feed__grid">
-      <a
+      <component
+        :is="tile.link ? 'a' : 'article'"
         v-for="tile in tiles"
         :key="tile.id"
         class="project-tile"
-        :href="tile.link"
+        :class="{ 'is-placeholder': !tile.link }"
+        :href="tile.link ? withBase(tile.link) : undefined"
       >
         <div
           class="project-tile__cover"
@@ -95,7 +94,7 @@ const tiles: ProjectTile[] = [
             '--cover-c': tile.colors[2],
           }"
         >
-          <img v-if="tile.image" :src="tile.image" alt="" />
+          <img v-if="tile.image" :src="withBase(tile.image)" alt="" />
           <span>{{ tile.id }}</span>
         </div>
         <div class="project-tile__body">
@@ -103,7 +102,7 @@ const tiles: ProjectTile[] = [
           <h3>{{ tile.title }}</h3>
           <p>{{ tile.summary }}</p>
         </div>
-      </a>
+      </component>
     </div>
   </section>
 </template>
@@ -178,6 +177,19 @@ const tiles: ProjectTile[] = [
   box-shadow:
     0 24px 54px -38px rgba(67, 42, 61, 0.62),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.project-tile.is-placeholder {
+  cursor: default;
+  opacity: 0.68;
+}
+
+.project-tile.is-placeholder:hover {
+  border-color: rgba(255, 255, 255, 0.68);
+  transform: none;
+  box-shadow:
+    0 18px 44px -36px rgba(71, 43, 62, 0.52),
+    inset 0 1px 0 rgba(255, 255, 255, 0.74);
 }
 
 .project-tile__cover {

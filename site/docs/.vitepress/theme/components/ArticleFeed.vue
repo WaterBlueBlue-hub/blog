@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { withBase } from 'vitepress'
 
 type Article = {
   id: number
@@ -208,7 +209,7 @@ function goToPage(next: number) {
         :key="article.id"
         class="article-card"
         :class="{ 'article-card--link': article.link }"
-        :href="article.link || undefined"
+        :href="article.link ? withBase(article.link) : undefined"
       >
         <div
           class="article-card__cover"
