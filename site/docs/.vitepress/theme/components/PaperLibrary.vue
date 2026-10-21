@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+
 type Paper = {
   id: number
   title: string
@@ -6,7 +8,6 @@ type Paper = {
   authors: string
   year: number
   venue: string
-  category: '基础' | '流体' | '渲染' | '叶片'
   summary: string
   tags: string[]
   doi: string
@@ -22,7 +23,6 @@ const papers: Paper[] = [
     authors: 'Matthias Müller, Bruno Heidelberger, Marcus Hennix, John Ratcliff',
     year: 2007,
     venue: 'Journal of Visual Communication and Image Representation',
-    category: '基础',
     summary: '通过直接投影几何约束更新粒子位置，是整套 XPBD 约束管线的理论起点。',
     tags: ['PBD', '约束投影', '位置更新'],
     doi: 'https://doi.org/10.1016/j.jvcir.2007.01.005',
@@ -36,7 +36,6 @@ const papers: Paper[] = [
     authors: 'Jan Bender, Matthias Müller, Miguel A. Otaduy, Matthias Teschner, Miles Macklin',
     year: 2014,
     venue: 'Computer Graphics Forum',
-    category: '基础',
     summary: '梳理约束投影、碰撞、流体和刚体等方法的共同框架，适合先建立一张全局地图。',
     tags: ['综述', 'PBM', '实时模拟'],
     doi: 'https://doi.org/10.1111/cgf.12346',
@@ -48,7 +47,6 @@ const papers: Paper[] = [
     authors: 'Miles Macklin, Matthias Müller, Nuttapong Chentanez',
     year: 2016,
     venue: 'Proceedings of the 9th International Conference on Motion in Games',
-    category: '基础',
     summary: '引入物理柔度重写约束乘子，使材料刚度不再直接耦合于迭代次数和时间步长。',
     tags: ['XPBD', '柔度', '拉格朗日乘子'],
     doi: 'https://doi.org/10.1145/2994258.2994272',
@@ -62,7 +60,6 @@ const papers: Paper[] = [
     authors: 'Miles Macklin, Matthias Müller',
     year: 2013,
     venue: 'ACM Transactions on Graphics',
-    category: '流体',
     summary: '把密度约束与位置投影带进粒子流体，是项目水面、浮力和软体耦合的核心参考。',
     tags: ['PBF', '密度约束', '粒子流体'],
     doi: 'https://doi.org/10.1145/2461912.2461984',
@@ -74,7 +71,6 @@ const papers: Paper[] = [
     authors: 'Miles Macklin, Matthias Müller, Nuttapong Chentanez, Tae-Yong Kim',
     year: 2014,
     venue: 'ACM Transactions on Graphics',
-    category: '流体',
     summary: '用统一的粒子视角组织流体、软体和刚体，为多物态求解与耦合提供接口层思路。',
     tags: ['统一粒子', '多物态', '耦合'],
     doi: 'https://doi.org/10.1145/2601097.2601152',
@@ -86,7 +82,6 @@ const papers: Paper[] = [
     authors: 'Wladimir J. van der Laan, Simon Green, Miguel Sainz',
     year: 2009,
     venue: 'Proceedings of the 2009 Symposium on Interactive 3D Graphics and Games',
-    category: '渲染',
     summary: '从粒子深度重建连续液面并生成法线与曲率，是 SSFR 水面呈现的直接参考。',
     tags: ['SSFR', '曲率流', '深度重建'],
     doi: 'https://doi.org/10.1145/1507149.1507164',
@@ -98,12 +93,22 @@ const papers: Paper[] = [
     authors: 'Yoshihiro Tanabe, Kunihiko Kaneko',
     year: 1994,
     venue: 'Physical Review Letters',
-    category: '叶片',
     summary: '讨论薄片下落时的升力与恢复力矩，为叶片准定常气动姿态层提供模型来源。',
     tags: ['叶片', '气动', '薄片'],
     doi: 'https://doi.org/10.1103/PhysRevLett.73.1372',
   },
 ]
+
+const PAGE_SIZE = 6
+const page = ref(1)
+const totalPages = computed(() => Math.max(1, Math.ceil(papers.length / PAGE_SIZE)))
+const visiblePapers = computed(() =>
+  papers.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE),
+)
+
+function goToPage(next: number) {
+  page.value = Math.min(totalPages.value, Math.max(1, next))
+}
 </script>
 
 <template>
@@ -121,12 +126,7 @@ const papers: Paper[] = [
     </p>
 
     <div class="paper-library__grid">
-      <article v-for="paper in papers" :key="paper.id" class="paper-card">
-        <div class="paper-card__top">
-          <span class="paper-card__number">P{{ String(paper.id).padStart(2, '0') }}</span>
-          <span class="paper-card__category">{{ paper.category }}</span>
-        </div>
-
+      <article v-for="paper in visiblePapers" :key="paper.id" class="paper-card">
         <div class="paper-card__heading">
           <h3>{{ paper.titleZh }}</h3>
           <p>{{ paper.title }}</p>
@@ -163,6 +163,21 @@ const papers: Paper[] = [
         </div>
       </article>
     </div>
+
+    <nav v-if="totalPages > 1" class="paper-library__pager" aria-label="文献分页">
+      <button type="button" :disabled="page === 1" @click="goToPage(page - 1)">上一页</button>
+      <button
+        v-for="number in totalPages"
+        :key="number"
+        type="button"
+        :class="{ 'is-active': page === number }"
+        :aria-current="page === number ? 'page' : undefined"
+        @click="goToPage(number)"
+      >
+        {{ number }}
+      </button>
+      <button type="button" :disabled="page === totalPages" @click="goToPage(page + 1)">下一页</button>
+    </nav>
   </section>
 </template>
 
@@ -218,7 +233,7 @@ const papers: Paper[] = [
 
 .paper-library__grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -249,31 +264,8 @@ const papers: Paper[] = [
     inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
-.paper-card__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.paper-card__number {
-  color: var(--vp-c-text-3);
-  font-family: var(--vp-font-family-mono);
-  font-size: 9px;
-  letter-spacing: 1px;
-}
-
-.paper-card__category {
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: var(--vp-c-brand-soft);
-  color: var(--vp-c-brand-1);
-  font-size: 9px;
-  font-weight: 600;
-}
-
 .paper-card__heading {
-  margin-top: 12px;
+  margin-top: 0;
 }
 
 .paper-card__heading h3 {
@@ -374,6 +366,38 @@ const papers: Paper[] = [
   stroke-linejoin: round;
 }
 
+.paper-library__pager {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 24px;
+}
+
+.paper-library__pager button {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--vp-c-text-2);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.paper-library__pager button:hover:not(:disabled),
+.paper-library__pager button.is-active {
+  border-color: rgba(47, 109, 246, 0.34);
+  background: var(--vp-c-brand-1);
+  color: #fff;
+}
+
+.paper-library__pager button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
 .dark .paper-library__note {
   border-color: rgba(255, 255, 255, 0.1);
   background: rgba(22, 24, 36, 0.56);
@@ -389,9 +413,14 @@ const papers: Paper[] = [
   background: rgba(255, 255, 255, 0.07);
 }
 
-@media (max-width: 800px) {
+.dark .paper-library__pager button {
+  border-color: rgba(255, 255, 255, 0.11);
+  background: rgba(30, 32, 45, 0.6);
+}
+
+@media (max-width: 1050px) {
   .paper-library__grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -402,6 +431,10 @@ const papers: Paper[] = [
 
   .paper-library__head h2 {
     font-size: 26px;
+  }
+
+  .paper-library__grid {
+    grid-template-columns: 1fr;
   }
 
   .paper-card__footer {
