@@ -121,15 +121,14 @@ function goToPage(next: number) {
           </div>
           <a
             v-if="paper.href"
-            class="paper-card__get-link"
+            class="paper-card__url"
             :href="paper.href"
             target="_blank"
             rel="noopener noreferrer"
-            :aria-label="`获取链接：${paper.title} 作者官方 PDF`"
+            :aria-label="`${paper.title} 作者官方 PDF`"
           >
-            获取链接
+            {{ paper.href }}
           </a>
-          <button v-else type="button" class="paper-card__get-link" disabled>获取链接</button>
         </div>
       </article>
     </div>
@@ -278,9 +277,9 @@ function goToPage(next: number) {
 
 .paper-card__footer {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 10px;
   margin-top: auto;
 }
 
@@ -298,24 +297,19 @@ function goToPage(next: number) {
   font-size: 9px;
 }
 
-.paper-card__get-link {
-  flex: 0 0 auto;
-  padding: 0;
-  border: 0;
-  background: transparent;
+.paper-card__url {
+  max-width: 100%;
   color: var(--vp-c-brand-1);
-  font-size: 11px;
-  font-weight: 600;
-  font-family: inherit;
-  text-decoration: none;
-  cursor: pointer;
+  font-family: var(--vp-font-family-mono);
+  font-size: 10px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 
-.paper-card__get-link:disabled {
-  cursor: not-allowed;
-}
-
-.paper-card__get-link:not(:disabled):hover {
+.paper-card__url:hover {
   color: var(--vp-c-brand-2);
 }
 
