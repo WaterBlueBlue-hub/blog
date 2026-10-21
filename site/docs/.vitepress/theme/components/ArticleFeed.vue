@@ -10,6 +10,7 @@ type Article = {
   tags: string[]
   colors: [string, string, string]
   pattern: 'grid' | 'wave' | 'orbit' | 'mesh'
+  link?: string
 }
 
 const PAGE_SIZE = 6
@@ -17,6 +18,17 @@ const categories = ['全部', '物理', '图形', '工程', '随笔'] as const
 type Category = (typeof categories)[number]
 
 const articles: Article[] = [
+  {
+    id: 13,
+    title: 'ACN-Estimation：基于纹理—几何耦合的自然材质法线估计',
+    date: '2026-10-22',
+    category: '图形',
+    excerpt: '从 Albedo 灰度场、Sobel 梯度和法线通道约束出发，记录自然材质法线的生成、去噪与 Unity 验证。',
+    tags: ['法线贴图', 'Sobel', '形态学滤波'],
+    colors: ['#356ec9', '#7ecbe8', '#152b57'],
+    pattern: 'mesh',
+    link: '/articles/graphics/acn-estimation-albedo-to-normal/',
+  },
   {
     id: 1,
     title: 'XPBD 柔度与迭代次数为什么总是打架',
@@ -190,7 +202,14 @@ function goToPage(next: number) {
     </nav>
 
     <div class="article-feed__grid">
-      <article v-for="article in visibleArticles" :key="article.id" class="article-card">
+      <component
+        :is="article.link ? 'a' : 'article'"
+        v-for="article in visibleArticles"
+        :key="article.id"
+        class="article-card"
+        :class="{ 'article-card--link': article.link }"
+        :href="article.link || undefined"
+      >
         <div
           class="article-card__cover"
           :class="`is-${article.pattern}`"
@@ -216,7 +235,7 @@ function goToPage(next: number) {
             <span v-for="tag in article.tags" :key="tag">#{{ tag }}</span>
           </div>
         </div>
-      </article>
+      </component>
     </div>
 
     <nav v-if="totalPages > 1" class="article-feed__pager" aria-label="文章分页">
@@ -354,6 +373,11 @@ function goToPage(next: number) {
     transform 0.2s ease,
     box-shadow 0.2s ease,
     border-color 0.2s ease;
+}
+
+.article-card--link {
+  color: inherit;
+  text-decoration: none;
 }
 
 .article-card:hover {

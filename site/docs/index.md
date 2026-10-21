@@ -15,6 +15,8 @@ hero:
       link: /about.html
 ---
 
+<ProjectFeed />
+
 <ArticleFeed />
 
 <PaperLibrary />
