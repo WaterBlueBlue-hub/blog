@@ -58,16 +58,63 @@ const bubbleOn = ref(false)
 const clip = ref<Clip>('idle')
 const videoOk = ref(false)
 const useVideo = ref(true)
+const sleeping = ref(false)
+const nearPet = ref(false)
+const dragging = ref(false)
+const viewportWidth = ref(1440)
+const viewportHeight = ref(900)
+const petX = ref(-9999)
+const petY = ref(0)
+const sleepSide = ref<'left' | 'right'>('right')
 const scroller = ref<HTMLDivElement | null>(null)
 const inputEl = ref<HTMLTextAreaElement | null>(null)
 const videoEl = ref<HTMLVideoElement | null>(null)
 const stageEl = ref<HTMLDivElement | null>(null)
+
+type DragState = {
+  pointerId: number
+  startX: number
+  startY: number
+  originX: number
+  originY: number
+  moved: boolean
+  captureEl: HTMLElement
+}
 
 let abort: AbortController | null = null
 let bubbleTimer = 0
 let idleTimer = 0
 let clipTimer = 0
 let historyLoaded = false
+let dragState: DragState | null = null
+let suppressClick = false
+let suppressClickTimer = 0
+let proximityFrame = 0
+let pointerX = 0
+let pointerY = 0
+let preSleepX = 0
+let preSleepY = 0
+
+const DESKTOP_STAGE_WIDTH = 206
+const DESKTOP_STAGE_HEIGHT = 172
+const MOBILE_STAGE_WIDTH = 132
+const MOBILE_STAGE_HEIGHT = 110
+const SLEEP_WIDTH = 52
+const SLEEP_HEIGHT = 158
+
+const stageWidth = () => (viewportWidth.value <= 640 ? MOBILE_STAGE_WIDTH : DESKTOP_STAGE_WIDTH)
+const stageHeight = () => (viewportWidth.value <= 640 ? MOBILE_STAGE_HEIGHT : DESKTOP_STAGE_HEIGHT)
+const currentSide = computed<'left' | 'right'>(() => {
+  if (sleeping.value) return sleepSide.value
+  return petX.value + stageWidth() / 2 < viewportWidth.value / 2 ? 'left' : 'right'
+})
+const actionsVisible = computed(() => nearPet.value && !sleeping.value && !dragging.value)
+const panelBelow = computed(() => {
+  const above = petY.value - 8
+  const below = viewportHeight.value - petY.value - stageHeight() - 8
+  return below > above && above < 560
+})
+const bubbleBelow = computed(() => petY.value < 96)
 
 const firstMessage = (): ChatMessage => ({
   role: 'assistant',
@@ -151,7 +198,7 @@ function say(text: string, ms = 4600) {
 function scheduleIdleLine() {
   window.clearTimeout(idleTimer)
   idleTimer = window.setTimeout(() => {
-    if (!open.value && !busy.value) {
+    if (!open.value && !busy.value && !sleeping.value) {
       say(IDLE_LINES[(Math.random() * IDLE_LINES.length) | 0])
       if (Math.random() < 0.4) playClip('yawn')
     }
@@ -159,7 +206,177 @@ function scheduleIdleLine() {
   }, 18000 + Math.random() * 16000)
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value))
+}
+
+function clampPetPosition() {
+  petX.value = clamp(petX.value, 8, Math.max(8, viewportWidth.value - stageWidth() - 8))
+  petY.value = clamp(petY.value, 8, Math.max(8, viewportHeight.value - stageHeight() - 8))
+}
+
+function placePetAtDefault() {
+  petX.value = Math.max(10, viewportWidth.value - stageWidth() - 18)
+  petY.value = Math.max(10, viewportHeight.value - stageHeight() - 16)
+}
+
+function refreshViewport(reset = false) {
+  viewportWidth.value = window.innerWidth
+  viewportHeight.value = window.innerHeight
+  if (reset || petX.value < 0) {
+    placePetAtDefault()
+  } else if (sleeping.value) {
+    petX.value = sleepSide.value === 'left' ? 0 : Math.max(0, viewportWidth.value - SLEEP_WIDTH)
+    petY.value = clamp(
+      petY.value,
+      64,
+      Math.max(64, viewportHeight.value - SLEEP_HEIGHT - 12),
+    )
+  } else {
+    clampPetPosition()
+  }
+}
+
+function onWindowResize() {
+  refreshViewport()
+}
+
+function updatePointerProximity() {
+  if (sleeping.value || dragging.value || !stageEl.value) {
+    nearPet.value = false
+    return
+  }
+  const rect = stageEl.value.getBoundingClientRect()
+  nearPet.value =
+    pointerX >= rect.left - 112 &&
+    pointerX <= rect.right + 112 &&
+    pointerY >= rect.top - 34 &&
+    pointerY <= rect.bottom + 72
+}
+
+function onWindowPointerMove(event: PointerEvent) {
+  if (event.pointerType === 'touch') return
+  pointerX = event.clientX
+  pointerY = event.clientY
+  if (proximityFrame) return
+  proximityFrame = requestAnimationFrame(() => {
+    proximityFrame = 0
+    updatePointerProximity()
+  })
+}
+
+function onStagePointerDown(event: PointerEvent) {
+  if (event.button !== 0 || sleeping.value) return
+  const captureEl = event.currentTarget as HTMLElement
+  dragState = {
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    originX: petX.value,
+    originY: petY.value,
+    moved: false,
+    captureEl,
+  }
+  captureEl.setPointerCapture(event.pointerId)
+  nearPet.value = true
+}
+
+function onStagePointerMove(event: PointerEvent) {
+  const state = dragState
+  if (!state || state.pointerId !== event.pointerId) return
+  const dx = event.clientX - state.startX
+  const dy = event.clientY - state.startY
+  if (!state.moved && Math.hypot(dx, dy) < 5) return
+
+  state.moved = true
+  dragging.value = true
+  bubbleOn.value = false
+  petX.value = clamp(
+    state.originX + dx,
+    8,
+    Math.max(8, viewportWidth.value - stageWidth() - 8),
+  )
+  petY.value = clamp(
+    state.originY + dy,
+    8,
+    Math.max(8, viewportHeight.value - stageHeight() - 8),
+  )
+  event.preventDefault()
+}
+
+function onStagePointerEnd(event: PointerEvent) {
+  const state = dragState
+  if (!state || state.pointerId !== event.pointerId) return
+  if (state.captureEl.hasPointerCapture(event.pointerId)) {
+    state.captureEl.releasePointerCapture(event.pointerId)
+  }
+  if (state.moved) {
+    suppressClick = true
+    window.clearTimeout(suppressClickTimer)
+    suppressClickTimer = window.setTimeout(() => {
+      suppressClick = false
+    }, 80)
+  }
+  dragging.value = false
+  dragState = null
+}
+
+function scrollPageTop() {
+  window.scrollTo({
+    top: 0,
+    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+  })
+}
+
+function returnHome() {
+  const home = withBase('/')
+  if (window.location.pathname === home) {
+    scrollPageTop()
+    return
+  }
+  window.location.assign(home)
+}
+
+function goToSleep() {
+  if (sleeping.value) return
+  preSleepX = petX.value
+  preSleepY = petY.value
+  sleepSide.value = petX.value + stageWidth() / 2 < viewportWidth.value / 2 ? 'left' : 'right'
+  closePanel()
+  bubbleOn.value = false
+  nearPet.value = false
+  sleeping.value = true
+  petX.value = sleepSide.value === 'left' ? 0 : Math.max(0, viewportWidth.value - SLEEP_WIDTH)
+  const centerY = preSleepY + stageHeight() / 2
+  petY.value = clamp(
+    centerY - SLEEP_HEIGHT / 2,
+    64,
+    Math.max(64, viewportHeight.value - SLEEP_HEIGHT - 12),
+  )
+}
+
+function wakeUp() {
+  if (!sleeping.value) return
+  sleeping.value = false
+  petX.value = clamp(
+    preSleepX,
+    8,
+    Math.max(8, viewportWidth.value - stageWidth() - 8),
+  )
+  petY.value = clamp(
+    preSleepY,
+    8,
+    Math.max(8, viewportHeight.value - stageHeight() - 8),
+  )
+  nearPet.value = true
+  nextTick(() => {
+    say('睡醒啦，刚才水面没有偷偷晃吧？', 3600)
+    playClip('wave')
+  })
+}
+
 function onPetClick() {
+  if (suppressClick || sleeping.value) return
   open.value = !open.value
   if (open.value) {
     bubbleOn.value = false
@@ -401,6 +618,7 @@ onMounted(() => {
     key.value = localStorage.getItem(KEY_STORAGE) || ''
   } catch {}
   loadHistory()
+  refreshViewport(true)
 
   const probe = document.createElement('video')
   const supports = !!probe.canPlayType('video/webm; codecs="vp9"')
@@ -410,9 +628,11 @@ onMounted(() => {
   if (!useVideo.value) videoOk.value = false
 
   window.addEventListener('keydown', onGlobalKey)
+  window.addEventListener('pointermove', onWindowPointerMove, { passive: true })
+  window.addEventListener('resize', onWindowResize)
   scheduleIdleLine()
   window.setTimeout(() => {
-    if (!open.value) say(IDLE_LINES[0], 5200)
+    if (!open.value && !sleeping.value) say(IDLE_LINES[0], 5200)
   }, 9000)
 })
 
@@ -421,123 +641,226 @@ onBeforeUnmount(() => {
   window.clearTimeout(bubbleTimer)
   window.clearTimeout(idleTimer)
   window.clearTimeout(clipTimer)
+  window.clearTimeout(suppressClickTimer)
+  cancelAnimationFrame(proximityFrame)
   window.removeEventListener('keydown', onGlobalKey)
+  window.removeEventListener('pointermove', onWindowPointerMove)
+  window.removeEventListener('resize', onWindowResize)
 })
 </script>
 
 <template>
-  <div class="pet" :class="{ 'is-open': open }" aria-live="polite">
-    <Transition name="pet-bubble">
-      <div v-if="bubbleOn && !open" class="pet__bubble">{{ bubble }}</div>
-    </Transition>
+  <div
+    class="pet"
+    :class="{
+      'is-open': open,
+      'is-left': currentSide === 'left',
+      'is-right': currentSide === 'right',
+      'is-sleeping': sleeping,
+      'is-dragging': dragging,
+      'is-near': nearPet,
+      'is-panel-below': panelBelow,
+      'is-bubble-below': bubbleBelow,
+    }"
+    aria-live="polite"
+  >
+    <div
+      ref="stageEl"
+      class="pet__stage-wrap"
+      :style="{ transform: `translate3d(${petX}px, ${petY}px, 0)` }"
+      @pointerenter="nearPet = true"
+      @focusin="nearPet = true"
+    >
+      <Transition name="pet-bubble">
+        <div v-if="bubbleOn && !open && !sleeping" class="pet__bubble">{{ bubble }}</div>
+      </Transition>
 
-    <Transition name="pet-panel">
-      <section v-if="open" class="pet__panel" role="dialog" aria-label="大肥鱼聊天">
-        <header class="pet__head">
-          <img class="pet__avatar" :src="withBase('/pet/poster.webp')" alt="" />
-          <div class="pet__ident">
-            <strong>大肥鱼</strong>
-            <span :class="{ 'is-on': configured }">
-              <i aria-hidden="true"></i>{{ configured ? 'DeepSeek 已连接' : '离线模式' }}
-            </span>
-          </div>
-          <div class="pet__head-actions">
-            <button
-              type="button"
-              class="pet__icon-btn"
-              :aria-label="configured ? '管理 API Key' : '连接 DeepSeek'"
-              title="API Key"
-              @click="showKeyBox = !showKeyBox"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="8" cy="15" r="4" />
-                <path d="m11 12 8-8M16 7l3 3M14 9l2 2" />
-              </svg>
-            </button>
-            <button type="button" class="pet__icon-btn" aria-label="关闭聊天" title="关闭" @click="closePanel">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M6 6l12 12M18 6L6 18" />
-              </svg>
-            </button>
-          </div>
-        </header>
-
-        <div v-if="showKeyBox" class="pet__key">
-          <template v-if="!configured">
-            <p>填一次 DeepSeek Key，就能自由聊天。它只保存在这台设备的浏览器里，不会进网页源码。</p>
-            <div class="pet__key-row">
-              <input
-                v-model="keyInput"
-                :type="keyVisible ? 'text' : 'password'"
-                placeholder="sk-..."
-                autocomplete="off"
-                spellcheck="false"
-                @keydown.enter.prevent="saveKey"
-              />
-              <button type="button" class="pet__mini" @click="keyVisible = !keyVisible">
-                {{ keyVisible ? '隐藏' : '显示' }}
+      <Transition name="pet-panel">
+        <section v-if="open && !sleeping" class="pet__panel" role="dialog" aria-label="大肥鱼聊天">
+          <header class="pet__head">
+            <img class="pet__avatar" :src="withBase('/pet/poster.webp')" alt="" />
+            <div class="pet__ident">
+              <strong>大肥鱼</strong>
+              <span :class="{ 'is-on': configured }">
+                <i aria-hidden="true"></i>{{ configured ? 'DeepSeek 已连接' : '离线模式' }}
+              </span>
+            </div>
+            <div class="pet__head-actions">
+              <button
+                type="button"
+                class="pet__icon-btn"
+                :aria-label="configured ? '管理 API Key' : '连接 DeepSeek'"
+                title="API Key"
+                @click="showKeyBox = !showKeyBox"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="8" cy="15" r="4" />
+                  <path d="m11 12 8-8M16 7l3 3M14 9l2 2" />
+                </svg>
               </button>
-              <button type="button" class="pet__mini is-primary" @click="saveKey">连接</button>
+              <button
+                type="button"
+                class="pet__icon-btn"
+                aria-label="关闭聊天"
+                title="关闭"
+                @click="closePanel"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
             </div>
-            <p v-if="keyError" class="pet__key-err">{{ keyError }}</p>
-            <button type="button" class="pet__skip" @click="showKeyBox = false">先不连接，用离线回答</button>
-          </template>
-          <template v-else>
-            <p>Key 已保存在本机（{{ key.slice(0, 5) }}…{{ key.slice(-4) }}）。清除后随时可以重新填。</p>
-            <div class="pet__key-row">
-              <button type="button" class="pet__mini" @click="clearKey">清除本机 Key</button>
-              <button type="button" class="pet__mini is-primary" @click="showKeyBox = false">知道了</button>
-            </div>
-          </template>
-        </div>
+          </header>
 
-        <div ref="scroller" class="pet__messages">
-          <div
-            v-for="(m, i) in messages"
-            :key="i"
-            class="pet__msg"
-            :class="[`is-${m.role}`, { 'is-error': m.error, 'is-typing': m.role === 'assistant' && !m.content }]"
+          <div v-if="showKeyBox" class="pet__key">
+            <template v-if="!configured">
+              <p>填一次 DeepSeek Key，就能自由聊天。它只保存在这台设备的浏览器里，不会进网页源码。</p>
+              <div class="pet__key-row">
+                <input
+                  v-model="keyInput"
+                  :type="keyVisible ? 'text' : 'password'"
+                  placeholder="sk-..."
+                  autocomplete="off"
+                  spellcheck="false"
+                  @keydown.enter.prevent="saveKey"
+                />
+                <button type="button" class="pet__mini" @click="keyVisible = !keyVisible">
+                  {{ keyVisible ? '隐藏' : '显示' }}
+                </button>
+                <button type="button" class="pet__mini is-primary" @click="saveKey">连接</button>
+              </div>
+              <p v-if="keyError" class="pet__key-err">{{ keyError }}</p>
+              <button type="button" class="pet__skip" @click="showKeyBox = false">
+                先不连接，用离线回答
+              </button>
+            </template>
+            <template v-else>
+              <p>Key 已保存在本机（{{ key.slice(0, 5) }}…{{ key.slice(-4) }}）。清除后随时可以重新填。</p>
+              <div class="pet__key-row">
+                <button type="button" class="pet__mini" @click="clearKey">清除本机 Key</button>
+                <button type="button" class="pet__mini is-primary" @click="showKeyBox = false">
+                  知道了
+                </button>
+              </div>
+            </template>
+          </div>
+
+          <div ref="scroller" class="pet__messages">
+            <div
+              v-for="(m, i) in messages"
+              :key="i"
+              class="pet__msg"
+              :class="[
+                `is-${m.role}`,
+                { 'is-error': m.error, 'is-typing': m.role === 'assistant' && !m.content },
+              ]"
+            >
+              <span v-if="m.content" class="pet__text">{{ m.content }}</span>
+              <span v-else class="pet__dots"><i></i><i></i><i></i></span>
+            </div>
+            <div
+              v-if="busy && messages[messages.length - 1]?.content"
+              class="pet__msg is-assistant is-typing"
+            >
+              <span class="pet__dots"><i></i><i></i><i></i></span>
+            </div>
+          </div>
+
+          <div v-if="messages.length <= 2" class="pet__chips">
+            <button v-for="q in QUICK_ASKS" :key="q" type="button" @click="useQuick(q)">
+              {{ q }}
+            </button>
+          </div>
+
+          <form class="pet__composer" @submit.prevent="send">
+            <textarea
+              ref="inputEl"
+              v-model="input"
+              rows="1"
+              :disabled="busy"
+              placeholder="问点什么，或者让它评价一下水面…"
+              aria-label="输入消息"
+              @input="onInput"
+              @keydown="onKeydown"
+            />
+            <button type="submit" :disabled="busy || !input.trim()" aria-label="发送">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 11.5 20 4l-7.5 16-1.8-6.2L4 11.5Z" />
+              </svg>
+            </button>
+          </form>
+          <footer class="pet__foot">
+            <span>Enter 发送 · Shift+Enter 换行</span>
+            <a href="https://github.com/PC2005-cloud/dsh-pet" target="_blank" rel="noreferrer">
+              形象素材 MIT
+            </a>
+          </footer>
+        </section>
+      </Transition>
+
+      <Transition name="pet-actions">
+        <div v-if="actionsVisible" class="pet__actions" aria-label="大肥鱼快捷操作">
+          <button
+            type="button"
+            class="pet__action"
+            :class="{ 'is-active': open }"
+            data-label="聊天"
+            aria-label="打开大肥鱼聊天"
+            @click="onPetClick"
           >
-            <span v-if="m.content" class="pet__text">{{ m.content }}</span>
-            <span v-else class="pet__dots"><i></i><i></i><i></i></span>
-          </div>
-          <div v-if="busy && messages[messages.length - 1]?.content" class="pet__msg is-assistant is-typing">
-            <span class="pet__dots"><i></i><i></i><i></i></span>
-          </div>
-        </div>
-
-        <div v-if="messages.length <= 2" class="pet__chips">
-          <button v-for="q in QUICK_ASKS" :key="q" type="button" @click="useQuick(q)">{{ q }}</button>
-        </div>
-
-        <form class="pet__composer" @submit.prevent="send">
-          <textarea
-            ref="inputEl"
-            v-model="input"
-            rows="1"
-            :disabled="busy"
-            placeholder="问点什么，或者让它评价一下水面…"
-            aria-label="输入消息"
-            @input="onInput"
-            @keydown="onKeydown"
-          />
-          <button type="submit" :disabled="busy || !input.trim()" aria-label="发送">
             <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 11.5 20 4l-7.5 16-1.8-6.2L4 11.5Z" />
+              <path d="M4 6.5h16v9H9l-5 4v-13Z" />
             </svg>
           </button>
-        </form>
-        <footer class="pet__foot">
-          <span>Enter 发送 · Shift+Enter 换行</span>
-          <a href="https://github.com/PC2005-cloud/dsh-pet" target="_blank" rel="noreferrer">
-            形象素材 MIT
-          </a>
-        </footer>
-      </section>
-    </Transition>
+          <button
+            type="button"
+            class="pet__action"
+            data-label="回到页面顶部"
+            aria-label="回到页面顶部"
+            @click="scrollPageTop"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 19V5M6.5 10.5 12 5l5.5 5.5" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="pet__action"
+            data-label="休眠"
+            aria-label="让大肥鱼到最近的一侧休眠"
+            @click="goToSleep"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M19 15.5A7.5 7.5 0 0 1 8.5 5 7.5 7.5 0 1 0 19 15.5Z" />
+              <path d="M16.5 5.5h3M18 4v3" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="pet__action"
+            data-label="博客首页"
+            aria-label="回到博客首页"
+            @click="returnHome"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m4 11 8-7 8 7v9h-6v-6h-4v6H4v-9Z" />
+            </svg>
+          </button>
+        </div>
+      </Transition>
 
-    <div ref="stageEl" class="pet__stage-wrap">
-      <button class="pet__stage" type="button" aria-label="打开大肥鱼聊天" @click="onPetClick">
+      <button
+        v-if="!sleeping"
+        class="pet__stage"
+        type="button"
+        aria-label="打开大肥鱼聊天，拖动可以移动位置"
+        :aria-expanded="open"
+        @click="onPetClick"
+        @pointerdown="onStagePointerDown"
+        @pointermove="onStagePointerMove"
+        @pointerup="onStagePointerEnd"
+        @pointercancel="onStagePointerEnd"
+      >
         <video
           v-if="useVideo"
           ref="videoEl"
@@ -559,11 +882,18 @@ onBeforeUnmount(() => {
           :src="withBase('/pet/poster.webp')"
           alt="大肥鱼"
         />
-        <span v-if="!open" class="pet__hint" aria-hidden="true">
-          <svg viewBox="0 0 24 24">
-            <path d="M4 6.5h16v9H9l-5 4v-13Z" />
-          </svg>
-        </span>
+      </button>
+
+      <button
+        v-else
+        type="button"
+        class="pet__rest"
+        aria-label="大肥鱼正在睡觉，点击唤醒"
+        @click="wakeUp"
+      >
+        <span class="pet__rest-zzz" aria-hidden="true">z&nbsp;z&nbsp;z</span>
+        <span class="pet__rest-text">大肥鱼正在睡觉</span>
+        <span class="pet__rest-tip">点击唤醒</span>
       </button>
     </div>
   </div>
@@ -572,26 +902,29 @@ onBeforeUnmount(() => {
 <style scoped>
 .pet {
   position: fixed;
-  right: 18px;
-  bottom: 16px;
+  inset: 0;
   z-index: 86;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
   pointer-events: none;
 }
 
 .pet__panel,
 .pet__stage-wrap,
-.pet__bubble {
+.pet__bubble,
+.pet__actions {
   pointer-events: auto;
 }
 
 .pet__stage-wrap {
-  position: relative;
+  position: absolute;
+  left: 0;
+  top: 0;
   width: 206px;
   height: 172px;
+  isolation: isolate;
+  will-change: transform;
+  transition:
+    width 0.22s ease,
+    height 0.22s ease;
 }
 
 .pet__stage {
@@ -601,9 +934,11 @@ onBeforeUnmount(() => {
   padding: 0;
   border: 0;
   background: transparent;
-  cursor: pointer;
+  cursor: grab;
   overflow: hidden;
   border-radius: 18px;
+  touch-action: none;
+  user-select: none;
   -webkit-tap-highlight-color: transparent;
   filter: drop-shadow(0 14px 20px rgba(20, 34, 70, 0.28));
   transition: transform 0.2s ease;
@@ -613,13 +948,181 @@ onBeforeUnmount(() => {
   transform: translateY(-3px) scale(1.02);
 }
 
-.pet__stage:active {
+.pet:not(.is-dragging) .pet__stage:active {
   transform: scale(0.97);
+}
+
+.pet.is-dragging .pet__stage,
+.pet.is-dragging .pet__stage:hover {
+  cursor: grabbing;
+  transform: none;
 }
 
 .pet__stage:focus-visible {
   outline: 2px solid var(--vp-c-brand-1);
   outline-offset: 4px;
+}
+
+.pet__actions {
+  position: absolute;
+  top: 50%;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  transform: translateY(-50%);
+}
+
+.pet.is-right .pet__actions {
+  right: calc(100% + 10px);
+}
+
+.pet.is-left .pet__actions {
+  left: calc(100% + 10px);
+}
+
+.pet__action {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  border-radius: 50%;
+  background: rgba(47, 109, 246, 0.9);
+  color: #fff;
+  box-shadow:
+    0 10px 20px -12px rgba(31, 74, 160, 0.82),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    transform 0.16s ease;
+}
+
+.pet__action:hover,
+.pet__action:focus-visible,
+.pet__action.is-active {
+  background: #1f5ce6;
+  transform: scale(1.08);
+}
+
+.pet__action:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.pet__action svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pet__action::after {
+  content: attr(data-label);
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 8px);
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  background: rgba(27, 36, 57, 0.9);
+  color: #fff;
+  font-size: 10px;
+  line-height: 1.4;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(4px, -50%);
+  transition:
+    opacity 0.14s ease,
+    transform 0.14s ease;
+}
+
+.pet.is-left .pet__action::after {
+  right: auto;
+  left: calc(100% + 8px);
+  transform: translate(-4px, -50%);
+}
+
+.pet__action:hover::after,
+.pet__action:focus-visible::after {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+
+.pet.is-sleeping .pet__stage-wrap {
+  width: 52px;
+  height: 158px;
+}
+
+.pet__rest {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  box-sizing: border-box;
+  padding: 11px 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: linear-gradient(180deg, #6487b5 0%, #3d5f88 100%);
+  color: rgba(255, 255, 255, 0.94);
+  box-shadow:
+    0 18px 34px -22px rgba(21, 43, 78, 0.82),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  cursor: pointer;
+}
+
+.pet.is-left .pet__rest {
+  border-left: 0;
+  border-radius: 0 17px 17px 0;
+}
+
+.pet.is-right .pet__rest {
+  border-right: 0;
+  border-radius: 17px 0 0 17px;
+}
+
+.pet__rest:hover {
+  background: linear-gradient(180deg, #7094c2 0%, #46698f 100%);
+}
+
+.pet__rest:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
+}
+
+.pet__rest-zzz {
+  font-family: var(--vp-font-family-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  opacity: 0.72;
+}
+
+.pet__rest-text {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 3px;
+  line-height: 1.3;
+  writing-mode: vertical-rl;
+}
+
+.pet__rest-tip {
+  font-size: 8px;
+  letter-spacing: 2px;
+  opacity: 0.68;
+  writing-mode: vertical-rl;
 }
 
 .pet__video {
@@ -695,8 +1198,11 @@ onBeforeUnmount(() => {
 }
 
 .pet__bubble {
+  position: absolute;
+  right: 8px;
+  bottom: calc(100% + 8px);
+  box-sizing: border-box;
   max-width: 220px;
-  margin-right: 8px;
   padding: 8px 12px;
   border-radius: 14px 14px 4px 14px;
   border: 1px solid rgba(255, 255, 255, 0.7);
@@ -709,6 +1215,17 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(12px);
 }
 
+.pet.is-left .pet__bubble {
+  right: auto;
+  left: 8px;
+  border-radius: 14px 14px 14px 4px;
+}
+
+.pet.is-bubble-below .pet__bubble {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+
 .dark .pet__bubble {
   border-color: rgba(255, 255, 255, 0.14);
   background: rgba(20, 24, 38, 0.9);
@@ -716,6 +1233,10 @@ onBeforeUnmount(() => {
 }
 
 .pet__panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 5;
   width: 356px;
   max-width: calc(100vw - 20px);
   box-sizing: border-box;
@@ -729,6 +1250,16 @@ onBeforeUnmount(() => {
   box-shadow: 0 30px 70px -30px rgba(18, 34, 78, 0.55);
   -webkit-backdrop-filter: blur(20px) saturate(1.2);
   backdrop-filter: blur(20px) saturate(1.2);
+}
+
+.pet.is-left .pet__panel {
+  right: auto;
+  left: 0;
+}
+
+.pet.is-panel-below .pet__panel {
+  top: calc(100% + 8px);
+  bottom: auto;
 }
 
 .dark .pet__panel {
@@ -1097,10 +1628,43 @@ onBeforeUnmount(() => {
   transform-origin: bottom right;
 }
 
+.pet.is-left .pet-panel-enter-active,
+.pet.is-left .pet-panel-leave-active {
+  transform-origin: bottom left;
+}
+
+.pet.is-panel-below .pet-panel-enter-active,
+.pet.is-panel-below .pet-panel-leave-active {
+  transform-origin: top right;
+}
+
+.pet.is-left.is-panel-below .pet-panel-enter-active,
+.pet.is-left.is-panel-below .pet-panel-leave-active {
+  transform-origin: top left;
+}
+
 .pet-panel-enter-from,
 .pet-panel-leave-to {
   opacity: 0;
   transform: translateY(10px) scale(0.96);
+}
+
+.pet.is-panel-below .pet-panel-enter-from,
+.pet.is-panel-below .pet-panel-leave-to {
+  transform: translateY(-10px) scale(0.96);
+}
+
+.pet-actions-enter-active,
+.pet-actions-leave-active {
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
+}
+
+.pet-actions-enter-from,
+.pet-actions-leave-to {
+  opacity: 0;
+  transform: translateY(-50%) scale(0.86);
 }
 
 .pet-bubble-enter-active,
@@ -1118,11 +1682,6 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 640px) {
-  .pet {
-    right: 10px;
-    bottom: 10px;
-  }
-
   .pet__stage-wrap {
     width: 132px;
     height: 110px;
@@ -1134,10 +1693,14 @@ onBeforeUnmount(() => {
     height: 115px;
   }
 
-  .pet__panel {
+  .pet .pet__panel,
+  .pet.is-left .pet__panel,
+  .pet.is-right .pet__panel,
+  .pet.is-panel-below .pet__panel {
     position: fixed;
     left: 10px;
     right: 10px;
+    top: auto;
     bottom: 128px;
     width: auto;
     max-width: none;

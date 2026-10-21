@@ -238,7 +238,8 @@ function goToPage(next: number) {
 
 <style scoped>
 .article-feed {
-  margin: 34px 0 10px;
+  /* 首屏花带已经在文章上方留出视觉边界，这里只保留一点呼吸空间。 */
+  margin: -14px 0 10px;
 }
 
 .article-feed__head {
