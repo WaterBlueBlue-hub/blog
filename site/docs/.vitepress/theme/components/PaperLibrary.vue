@@ -26,16 +26,6 @@ const papers: Paper[] = [
     href: 'https://matthias-research.github.io/pages/publications/posBasedDyn.pdf',
   },
   {
-    id: 2,
-    title: 'A Survey on Position-Based Simulation Methods in Computer Graphics',
-    titleZh: '计算机图形学中的基于位置模拟方法综述',
-    authors: 'Jan Bender, Matthias Müller, Miguel A. Otaduy, Matthias Teschner, Miles Macklin',
-    year: 2014,
-    venue: 'Computer Graphics Forum',
-    summary: '梳理约束投影、碰撞、流体和刚体等方法的共同框架，适合先建立一张全局地图。',
-    tags: ['综述', 'PBM', '实时模拟'],
-  },
-  {
     id: 3,
     title: 'XPBD: Position-Based Simulation of Compliant Constrained Dynamics',
     titleZh: 'XPBD：柔顺约束动力学的基于位置模拟',
