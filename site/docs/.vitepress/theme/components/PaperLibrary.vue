@@ -45,6 +45,7 @@ const papers: Paper[] = [
     venue: 'ACM Transactions on Graphics',
     summary: '把密度约束与位置投影带进粒子流体，是项目水面、浮力和软体耦合的核心参考。',
     tags: ['PBF', '密度约束', '粒子流体'],
+    href: 'https://mmacklin.com/pbf_sig_preprint.pdf',
   },
   {
     id: 5,
@@ -101,7 +102,7 @@ function goToPage(next: number) {
     </header>
 
     <p class="paper-library__note">
-      当前为文献栏测试版：PBD 与 XPBD 已接入作者官方 PDF，其余文献的获取链接暂未开放。
+      当前为文献栏测试版：PBD、XPBD 与 PBF 已接入作者官方 PDF，其余文献的获取链接暂未开放。
     </p>
 
     <div class="paper-library__grid">
