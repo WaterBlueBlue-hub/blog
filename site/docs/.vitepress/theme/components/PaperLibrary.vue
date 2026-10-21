@@ -10,6 +10,8 @@ type Paper = {
   summary: string
   tags: string[]
   doi: string
+  fullText?: string
+  fullTextLabel?: string
 }
 
 const papers: Paper[] = [
@@ -24,6 +26,8 @@ const papers: Paper[] = [
     summary: '通过直接投影几何约束更新粒子位置，是整套 XPBD 约束管线的理论起点。',
     tags: ['PBD', '约束投影', '位置更新'],
     doi: 'https://doi.org/10.1016/j.jvcir.2007.01.005',
+    fullText: 'https://diglib.eg.org/bitstreams/ef8ffe0b-38e4-49a5-97fa-a4f18d74c2b4/download',
+    fullTextLabel: 'Eurographics 开放版',
   },
   {
     id: 2,
@@ -48,6 +52,8 @@ const papers: Paper[] = [
     summary: '引入物理柔度重写约束乘子，使材料刚度不再直接耦合于迭代次数和时间步长。',
     tags: ['XPBD', '柔度', '拉格朗日乘子'],
     doi: 'https://doi.org/10.1145/2994258.2994272',
+    fullText: 'https://dl.acm.org/doi/epdf/10.1145/2994258.2994272',
+    fullTextLabel: 'ACM 全文',
   },
   {
     id: 4,
@@ -111,7 +117,7 @@ const papers: Paper[] = [
     </header>
 
     <p class="paper-library__note">
-      仅提供 DOI 与权利方官方入口；不镜像受版权保护的 PDF。下载、转载与再分发请以来源页的许可为准。
+      链接到 DOI、开放获取页面或权利方官方全文；不镜像论文。是否可直接阅读由来源站的许可与访问权限决定。
     </p>
 
     <div class="paper-library__grid">
@@ -134,12 +140,26 @@ const papers: Paper[] = [
           <div class="paper-card__tags" aria-label="论文标签">
             <span v-for="tag in paper.tags" :key="tag">#{{ tag }}</span>
           </div>
-          <a :href="paper.doi" target="_blank" rel="noopener noreferrer">
-            DOI / 官方入口
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M7 17 17 7M9 7h8v8" />
-            </svg>
-          </a>
+          <div class="paper-card__links">
+            <a
+              v-if="paper.fullText"
+              class="is-fulltext"
+              :href="paper.fullText"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {{ paper.fullTextLabel }}
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 17 17 7M9 7h8v8" />
+              </svg>
+            </a>
+            <a :href="paper.doi" target="_blank" rel="noopener noreferrer">
+              {{ paper.fullText ? 'DOI / 元数据' : 'DOI / 官方页' }}
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 17 17 7M9 7h8v8" />
+              </svg>
+            </a>
+          </div>
         </div>
       </article>
     </div>
@@ -316,22 +336,35 @@ const papers: Paper[] = [
   font-size: 9px;
 }
 
-.paper-card__footer a {
+.paper-card__links {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px 10px;
+}
+
+.paper-card__links a {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
   gap: 4px;
-  color: var(--vp-c-brand-1);
+  color: var(--vp-c-text-3);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   text-decoration: none;
 }
 
-.paper-card__footer a:hover {
+.paper-card__links a.is-fulltext {
+  color: var(--vp-c-brand-1);
+  font-weight: 600;
+}
+
+.paper-card__links a:hover {
   color: var(--vp-c-brand-2);
 }
 
-.paper-card__footer svg {
+.paper-card__links svg {
   width: 13px;
   height: 13px;
   fill: none;
