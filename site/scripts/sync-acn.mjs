@@ -117,7 +117,7 @@ function rewriteLinks(markdown) {
 
 function page(markdown, fallbackTitle) {
   const title = titleOf(markdown, fallbackTitle).replace(/"/g, '\\"')
-  return `---\ntitle: "${title}"\noutline: [2, 3]\n---\n\n${rewriteLinks(markdown).trim()}\n`
+  return `---\ntitle: "${title}"\noutline: [2, 3]\npageClass: acn-reading\naside: left\n---\n\n${rewriteLinks(markdown).trim()}\n`
 }
 
 const article = fs.readFileSync(ARTICLE_SOURCE, 'utf8')
