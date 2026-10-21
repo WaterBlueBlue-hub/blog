@@ -383,6 +383,21 @@
   margin-left: auto;
 }
 
+.acn-reading .vp-doc div[class*='language-'] {
+  width: min(100%, 900px) !important;
+  max-width: 900px !important;
+  margin: 20px auto !important;
+}
+
+.acn-reading .vp-doc div.language-text {
+  max-width: 700px !important;
+}
+
+.acn-reading .vp-doc div.language-text pre,
+.acn-reading .vp-doc div.language-text code {
+  text-align: center;
+}
+
 
 /* 首页自定义分区标题 */
 .home-section-title {
