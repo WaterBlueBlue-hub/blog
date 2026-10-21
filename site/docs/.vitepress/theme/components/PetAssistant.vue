@@ -104,6 +104,7 @@ const SLEEP_HEIGHT = 158
 const PET_EDGE_GAP = 8
 const PET_DRAG_INSET = 2
 
+const contentViewportWidth = () => document.documentElement.clientWidth || window.innerWidth
 const stageWidth = () => (viewportWidth.value <= 640 ? MOBILE_STAGE_WIDTH : DESKTOP_STAGE_WIDTH)
 const stageHeight = () => (viewportWidth.value <= 640 ? MOBILE_STAGE_HEIGHT : DESKTOP_STAGE_HEIGHT)
 const currentSide = computed<'left' | 'right'>(() => {
@@ -231,7 +232,8 @@ function placePetAtDefault() {
 }
 
 function refreshViewport(reset = false) {
-  viewportWidth.value = window.innerWidth
+  // innerWidth 包含经典滚动条，贴右边的桌宠会因此被盖住。
+  viewportWidth.value = contentViewportWidth()
   viewportHeight.value = window.innerHeight
   if (reset || petX.value < 0) {
     placePetAtDefault()
@@ -349,6 +351,7 @@ function returnHome() {
 
 function goToSleep() {
   if (sleeping.value) return
+  viewportWidth.value = contentViewportWidth()
   preSleepX = petX.value
   preSleepY = petY.value
   sleepSide.value = petX.value + stageWidth() / 2 < viewportWidth.value / 2 ? 'left' : 'right'
