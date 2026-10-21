@@ -10,6 +10,7 @@ type Paper = {
   venue: string
   summary: string
   tags: string[]
+  href?: string
 }
 
 const papers: Paper[] = [
@@ -22,6 +23,7 @@ const papers: Paper[] = [
     venue: 'Journal of Visual Communication and Image Representation',
     summary: '通过直接投影几何约束更新粒子位置，是整套 XPBD 约束管线的理论起点。',
     tags: ['PBD', '约束投影', '位置更新'],
+    href: 'https://matthias-research.github.io/pages/publications/posBasedDyn.pdf',
   },
   {
     id: 2,
@@ -108,7 +110,7 @@ function goToPage(next: number) {
     </header>
 
     <p class="paper-library__note">
-      当前为文献栏测试版，仅展示版式与基础信息；获取链接功能暂未开放。
+      当前为文献栏测试版：PBD 已接入作者官方 PDF，其余文献的获取链接暂未开放。
     </p>
 
     <div class="paper-library__grid">
@@ -126,7 +128,17 @@ function goToPage(next: number) {
           <div class="paper-card__tags" aria-label="论文标签">
             <span v-for="tag in paper.tags" :key="tag">#{{ tag }}</span>
           </div>
-          <button type="button" class="paper-card__get-link" disabled>获取链接</button>
+          <a
+            v-if="paper.href"
+            class="paper-card__get-link"
+            :href="paper.href"
+            target="_blank"
+            rel="noopener noreferrer"
+            :aria-label="`获取链接：${paper.title} 作者官方 PDF`"
+          >
+            获取链接
+          </a>
+          <button v-else type="button" class="paper-card__get-link" disabled>获取链接</button>
         </div>
       </article>
     </div>
@@ -304,7 +316,16 @@ function goToPage(next: number) {
   font-size: 11px;
   font-weight: 600;
   font-family: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.paper-card__get-link:disabled {
   cursor: not-allowed;
+}
+
+.paper-card__get-link:not(:disabled):hover {
+  color: var(--vp-c-brand-2);
 }
 
 .paper-library__pager {
