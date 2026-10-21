@@ -95,12 +95,14 @@ let pointerY = 0
 let preSleepX = 0
 let preSleepY = 0
 
-const DESKTOP_STAGE_WIDTH = 206
+const DESKTOP_STAGE_WIDTH = 130
 const DESKTOP_STAGE_HEIGHT = 172
-const MOBILE_STAGE_WIDTH = 132
-const MOBILE_STAGE_HEIGHT = 110
+const MOBILE_STAGE_WIDTH = 86
+const MOBILE_STAGE_HEIGHT = 112
 const SLEEP_WIDTH = 52
 const SLEEP_HEIGHT = 158
+const PET_EDGE_GAP = 8
+const PET_DRAG_INSET = 2
 
 const stageWidth = () => (viewportWidth.value <= 640 ? MOBILE_STAGE_WIDTH : DESKTOP_STAGE_WIDTH)
 const stageHeight = () => (viewportWidth.value <= 640 ? MOBILE_STAGE_HEIGHT : DESKTOP_STAGE_HEIGHT)
@@ -211,13 +213,21 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function clampPetPosition() {
-  petX.value = clamp(petX.value, 8, Math.max(8, viewportWidth.value - stageWidth() - 8))
-  petY.value = clamp(petY.value, 8, Math.max(8, viewportHeight.value - stageHeight() - 8))
+  petX.value = clamp(
+    petX.value,
+    PET_DRAG_INSET,
+    Math.max(PET_DRAG_INSET, viewportWidth.value - stageWidth() - PET_DRAG_INSET),
+  )
+  petY.value = clamp(
+    petY.value,
+    PET_DRAG_INSET,
+    Math.max(PET_DRAG_INSET, viewportHeight.value - stageHeight() - PET_DRAG_INSET),
+  )
 }
 
 function placePetAtDefault() {
-  petX.value = Math.max(10, viewportWidth.value - stageWidth() - 18)
-  petY.value = Math.max(10, viewportHeight.value - stageHeight() - 16)
+  petX.value = Math.max(PET_EDGE_GAP, viewportWidth.value - stageWidth() - PET_EDGE_GAP)
+  petY.value = Math.max(PET_EDGE_GAP, viewportHeight.value - stageHeight() - PET_EDGE_GAP)
 }
 
 function refreshViewport(reset = false) {
@@ -293,13 +303,13 @@ function onStagePointerMove(event: PointerEvent) {
   bubbleOn.value = false
   petX.value = clamp(
     state.originX + dx,
-    8,
-    Math.max(8, viewportWidth.value - stageWidth() - 8),
+    PET_DRAG_INSET,
+    Math.max(PET_DRAG_INSET, viewportWidth.value - stageWidth() - PET_DRAG_INSET),
   )
   petY.value = clamp(
     state.originY + dy,
-    8,
-    Math.max(8, viewportHeight.value - stageHeight() - 8),
+    PET_DRAG_INSET,
+    Math.max(PET_DRAG_INSET, viewportHeight.value - stageHeight() - PET_DRAG_INSET),
   )
   event.preventDefault()
 }
@@ -360,13 +370,13 @@ function wakeUp() {
   sleeping.value = false
   petX.value = clamp(
     preSleepX,
-    8,
-    Math.max(8, viewportWidth.value - stageWidth() - 8),
+    PET_DRAG_INSET,
+    Math.max(PET_DRAG_INSET, viewportWidth.value - stageWidth() - PET_DRAG_INSET),
   )
   petY.value = clamp(
     preSleepY,
-    8,
-    Math.max(8, viewportHeight.value - stageHeight() - 8),
+    PET_DRAG_INSET,
+    Math.max(PET_DRAG_INSET, viewportHeight.value - stageHeight() - PET_DRAG_INSET),
   )
   nearPet.value = true
   nextTick(() => {
@@ -918,7 +928,7 @@ onBeforeUnmount(() => {
   position: absolute;
   left: 0;
   top: 0;
-  width: 206px;
+  width: 130px;
   height: 172px;
   isolation: isolate;
   will-change: transform;
@@ -1127,10 +1137,11 @@ onBeforeUnmount(() => {
 
 .pet__video {
   position: absolute;
-  left: -50px;
+  left: -93px;
   top: 0;
   width: 320px;
   height: 180px;
+  max-width: none;
   opacity: 0;
   transition: opacity 0.35s ease;
   pointer-events: none;
@@ -1142,9 +1153,11 @@ onBeforeUnmount(() => {
 
 .pet__poster {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  left: -45px;
+  top: 0;
+  width: 206px;
+  height: 172px;
+  max-width: none;
   object-fit: contain;
   pointer-events: none;
 }
@@ -1683,14 +1696,20 @@ onBeforeUnmount(() => {
 
 @media (max-width: 640px) {
   .pet__stage-wrap {
-    width: 132px;
-    height: 110px;
+    width: 86px;
+    height: 112px;
   }
 
   .pet__video {
-    left: -32px;
+    left: -58px;
     width: 205px;
     height: 115px;
+  }
+
+  .pet__poster {
+    left: -27px;
+    width: 132px;
+    height: 110px;
   }
 
   .pet .pet__panel,
