@@ -222,13 +222,11 @@ function goToPage(next: number) {
   backdrop-filter: blur(14px) saturate(1.08);
   transition:
     border-color 0.2s ease,
-    transform 0.2s ease,
     box-shadow 0.2s ease;
 }
 
 .paper-card:hover {
   border-color: rgba(255, 255, 255, 0.94);
-  transform: translateY(-3px);
   box-shadow:
     0 24px 54px -38px rgba(67, 42, 61, 0.62),
     inset 0 1px 0 rgba(255, 255, 255, 0.82);
