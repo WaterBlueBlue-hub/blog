@@ -12,7 +12,7 @@ type Article = {
   pattern: 'grid' | 'wave' | 'orbit' | 'mesh'
 }
 
-const PAGE_SIZE = 9
+const PAGE_SIZE = 6
 const categories = ['全部', '物理', '图形', '工程', '随笔'] as const
 type Category = (typeof categories)[number]
 
@@ -333,7 +333,7 @@ function goToPage(next: number) {
 
 .article-feed__grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
 }
 
