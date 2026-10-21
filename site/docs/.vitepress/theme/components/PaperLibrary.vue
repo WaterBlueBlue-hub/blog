@@ -34,6 +34,7 @@ const papers: Paper[] = [
     venue: 'Proceedings of the 9th International Conference on Motion in Games',
     summary: '引入物理柔度重写约束乘子，使材料刚度不再直接耦合于迭代次数和时间步长。',
     tags: ['XPBD', '柔度', '拉格朗日乘子'],
+    href: 'https://matthias-research.github.io/pages/publications/XPBD.pdf',
   },
   {
     id: 4,
@@ -100,7 +101,7 @@ function goToPage(next: number) {
     </header>
 
     <p class="paper-library__note">
-      当前为文献栏测试版：PBD 已接入作者官方 PDF，其余文献的获取链接暂未开放。
+      当前为文献栏测试版：PBD 与 XPBD 已接入作者官方 PDF，其余文献的获取链接暂未开放。
     </p>
 
     <div class="paper-library__grid">
