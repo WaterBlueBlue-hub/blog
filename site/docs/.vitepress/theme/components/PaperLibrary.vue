@@ -88,6 +88,18 @@ const papers: Paper[] = [
     linkNotice: '非公开全文 · 官方摘要页',
   },
   {
+    id: 9,
+    title: 'Screen Space Meshes',
+    titleZh: 'SSM：屏幕空间网格',
+    authors: 'Matthias Müller, Simon Schirm, Stephan Duthaler',
+    year: 2007,
+    venue: 'ACM SIGGRAPH / Eurographics Symposium on Computer Animation (SCA)',
+    summary: '在屏幕空间生成点云边界的深度图与内外轮廓，基于 Marching Squares 构造二维三角网格，再映射回三维空间完成遮挡、反射、折射与着色。',
+    tags: ['SSM', '屏幕空间网格', '点云表面'],
+    href: 'https://matthias-research.github.io/pages/publications/screenSpaceMeshes.pdf',
+    linkNotice: '作者官方 PDF',
+  },
+  {
     id: 7,
     title: 'Behavior of a Falling Paper',
     titleZh: '下落纸张的行为',
