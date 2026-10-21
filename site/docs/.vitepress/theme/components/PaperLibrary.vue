@@ -64,6 +64,18 @@ const papers: Paper[] = [
     linkNotice: '作者官方预印本',
   },
   {
+    id: 8,
+    title: 'Particle-Based Fluid Simulation for Interactive Applications',
+    titleZh: '面向交互式应用的基于粒子的流体模拟',
+    authors: 'Matthias Müller, David Charypar, Markus Gross',
+    year: 2003,
+    venue: 'ACM SIGGRAPH / Eurographics Symposium on Computer Animation (SCA)',
+    summary: '基于平滑粒子流体动力学模拟带自由表面的流体，直接从 Navier–Stokes 方程构造力密度场并加入表面张力项，同时使用点绘制与等值面重建显示液面。',
+    tags: ['SPH', '粒子流体', '自由表面'],
+    href: 'https://matthias-research.github.io/pages/publications/sca03.pdf',
+    linkNotice: '作者官方 PDF',
+  },
+  {
     id: 7,
     title: 'Behavior of a Falling Paper',
     titleZh: '下落纸张的行为',
