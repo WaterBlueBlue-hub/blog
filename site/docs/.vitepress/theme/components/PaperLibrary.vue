@@ -10,9 +10,6 @@ type Paper = {
   venue: string
   summary: string
   tags: string[]
-  doi: string
-  fullText?: string
-  fullTextLabel?: string
 }
 
 const papers: Paper[] = [
@@ -25,9 +22,6 @@ const papers: Paper[] = [
     venue: 'Journal of Visual Communication and Image Representation',
     summary: '通过直接投影几何约束更新粒子位置，是整套 XPBD 约束管线的理论起点。',
     tags: ['PBD', '约束投影', '位置更新'],
-    doi: 'https://doi.org/10.1016/j.jvcir.2007.01.005',
-    fullText: 'https://diglib.eg.org/bitstreams/ef8ffe0b-38e4-49a5-97fa-a4f18d74c2b4/download',
-    fullTextLabel: 'Eurographics 开放版',
   },
   {
     id: 2,
@@ -38,7 +32,6 @@ const papers: Paper[] = [
     venue: 'Computer Graphics Forum',
     summary: '梳理约束投影、碰撞、流体和刚体等方法的共同框架，适合先建立一张全局地图。',
     tags: ['综述', 'PBM', '实时模拟'],
-    doi: 'https://doi.org/10.1111/cgf.12346',
   },
   {
     id: 3,
@@ -49,9 +42,6 @@ const papers: Paper[] = [
     venue: 'Proceedings of the 9th International Conference on Motion in Games',
     summary: '引入物理柔度重写约束乘子，使材料刚度不再直接耦合于迭代次数和时间步长。',
     tags: ['XPBD', '柔度', '拉格朗日乘子'],
-    doi: 'https://doi.org/10.1145/2994258.2994272',
-    fullText: 'https://dl.acm.org/doi/epdf/10.1145/2994258.2994272',
-    fullTextLabel: 'ACM 全文',
   },
   {
     id: 4,
@@ -62,7 +52,6 @@ const papers: Paper[] = [
     venue: 'ACM Transactions on Graphics',
     summary: '把密度约束与位置投影带进粒子流体，是项目水面、浮力和软体耦合的核心参考。',
     tags: ['PBF', '密度约束', '粒子流体'],
-    doi: 'https://doi.org/10.1145/2461912.2461984',
   },
   {
     id: 5,
@@ -73,7 +62,6 @@ const papers: Paper[] = [
     venue: 'ACM Transactions on Graphics',
     summary: '用统一的粒子视角组织流体、软体和刚体，为多物态求解与耦合提供接口层思路。',
     tags: ['统一粒子', '多物态', '耦合'],
-    doi: 'https://doi.org/10.1145/2601097.2601152',
   },
   {
     id: 6,
@@ -84,7 +72,6 @@ const papers: Paper[] = [
     venue: 'Proceedings of the 2009 Symposium on Interactive 3D Graphics and Games',
     summary: '从粒子深度重建连续液面并生成法线与曲率，是 SSFR 水面呈现的直接参考。',
     tags: ['SSFR', '曲率流', '深度重建'],
-    doi: 'https://doi.org/10.1145/1507149.1507164',
   },
   {
     id: 7,
@@ -95,7 +82,6 @@ const papers: Paper[] = [
     venue: 'Physical Review Letters',
     summary: '讨论薄片下落时的升力与恢复力矩，为叶片准定常气动姿态层提供模型来源。',
     tags: ['叶片', '气动', '薄片'],
-    doi: 'https://doi.org/10.1103/PhysRevLett.73.1372',
   },
 ]
 
@@ -122,7 +108,7 @@ function goToPage(next: number) {
     </header>
 
     <p class="paper-library__note">
-      链接到 DOI、开放获取页面或权利方官方全文；不镜像论文。是否可直接阅读由来源站的许可与访问权限决定。
+      当前为文献栏测试版，仅展示版式与基础信息；获取链接功能暂未开放。
     </p>
 
     <div class="paper-library__grid">
@@ -140,26 +126,7 @@ function goToPage(next: number) {
           <div class="paper-card__tags" aria-label="论文标签">
             <span v-for="tag in paper.tags" :key="tag">#{{ tag }}</span>
           </div>
-          <div class="paper-card__links">
-            <a
-              v-if="paper.fullText"
-              class="is-fulltext"
-              :href="paper.fullText"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {{ paper.fullTextLabel }}
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M7 17 17 7M9 7h8v8" />
-              </svg>
-            </a>
-            <a :href="paper.doi" target="_blank" rel="noopener noreferrer">
-              {{ paper.fullText ? 'DOI / 元数据' : 'DOI / 官方页' }}
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M7 17 17 7M9 7h8v8" />
-              </svg>
-            </a>
-          </div>
+          <button type="button" class="paper-card__get-link" disabled>获取链接</button>
         </div>
       </article>
     </div>
@@ -328,42 +295,16 @@ function goToPage(next: number) {
   font-size: 9px;
 }
 
-.paper-card__links {
-  display: flex;
+.paper-card__get-link {
   flex: 0 0 auto;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 6px 10px;
-}
-
-.paper-card__links a {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 4px;
-  color: var(--vp-c-text-3);
-  font-size: 11px;
-  font-weight: 500;
-  text-decoration: none;
-}
-
-.paper-card__links a.is-fulltext {
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--vp-c-brand-1);
+  font-size: 11px;
   font-weight: 600;
-}
-
-.paper-card__links a:hover {
-  color: var(--vp-c-brand-2);
-}
-
-.paper-card__links svg {
-  width: 13px;
-  height: 13px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  font-family: inherit;
+  cursor: not-allowed;
 }
 
 .paper-library__pager {
