@@ -321,7 +321,7 @@
   }
 
   .acn-reading .VPDoc.has-aside .content-container {
-    max-width: 1376px;
+    max-width: 1200px;
   }
 
   .acn-reading .VPDoc .aside {
@@ -333,6 +333,30 @@
   .acn-reading .VPDoc .aside-curtain {
     width: 200px;
   }
+}
+
+.acn-reading .vp-doc img,
+.acn-reading .vp-doc video {
+  display: block;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.acn-reading .vp-doc video {
+  max-width: 100%;
+  height: auto;
+}
+
+.acn-reading .vp-doc mjx-container[jax][display="true"] {
+  margin-right: auto;
+  margin-left: auto;
+  text-align: center;
+}
+
+.acn-reading .vp-doc mjx-container[jax][display="true"] > svg {
+  display: block;
+  margin-right: auto;
+  margin-left: auto;
 }
 
 
