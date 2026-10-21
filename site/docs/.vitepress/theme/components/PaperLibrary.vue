@@ -11,6 +11,7 @@ type Paper = {
   summary: string
   tags: string[]
   href?: string
+  linkNotice?: string
 }
 
 const papers: Paper[] = [
@@ -24,6 +25,7 @@ const papers: Paper[] = [
     summary: '通过直接投影几何约束更新粒子位置，在位置层面处理动力学与碰撞，避免传统力积分中的过冲问题，并用于实时布料等可变形物体模拟。',
     tags: ['PBD', '约束投影', '位置更新'],
     href: 'https://matthias-research.github.io/pages/publications/posBasedDyn.pdf',
+    linkNotice: '作者官方 PDF',
   },
   {
     id: 3,
@@ -35,6 +37,7 @@ const papers: Paper[] = [
     summary: '将约束乘子与物理柔度关联，使材料刚度不再随迭代次数和时间步长变化，并以隐式方式处理弹性与耗散势能。',
     tags: ['XPBD', '柔度', '拉格朗日乘子'],
     href: 'https://matthias-research.github.io/pages/publications/XPBD.pdf',
+    linkNotice: '作者官方 PDF',
   },
   {
     id: 4,
@@ -46,6 +49,7 @@ const papers: Paper[] = [
     summary: '把不可压缩密度约束引入位置动力学框架，通过迭代投影修正粒子位置，并结合人工压力与涡量约束改善流体表现。',
     tags: ['PBF', '密度约束', '粒子流体'],
     href: 'https://mmacklin.com/pbf_sig_preprint.pdf',
+    linkNotice: '作者官方预印本',
   },
   {
     id: 5,
@@ -57,6 +61,7 @@ const papers: Paper[] = [
     summary: '以统一粒子模型描述流体、可变形体与刚体，并在同一求解框架中处理多种物理现象及其相互作用。',
     tags: ['统一粒子', '多物态', '耦合'],
     href: 'https://mmacklin.com/uppfrta_preprint.pdf',
+    linkNotice: '作者官方预印本',
   },
   {
     id: 6,
@@ -77,6 +82,8 @@ const papers: Paper[] = [
     venue: 'Physical Review Letters',
     summary: '研究薄纸片在空气中的下落运动，分析其摆动与翻滚模式，并讨论升力、阻力与力矩对姿态变化的影响。',
     tags: ['叶片', '气动', '薄片'],
+    href: 'https://doi.org/10.1103/PhysRevLett.73.1372',
+    linkNotice: '非公开全文 · 官方摘要页',
   },
 ]
 
@@ -103,7 +110,7 @@ function goToPage(next: number) {
     </header>
 
     <p class="paper-library__note">
-      当前为文献栏测试版：PBD、XPBD、PBF 与 FleX 已接入作者官方 PDF，其余文献的获取链接暂未开放。
+      当前为文献栏测试版：作者官方 PDF 与出版社摘要页会分别标注来源类型。
     </p>
 
     <div class="paper-library__grid">
@@ -121,16 +128,20 @@ function goToPage(next: number) {
           <div class="paper-card__tags" aria-label="论文标签">
             <span v-for="tag in paper.tags" :key="tag">#{{ tag }}</span>
           </div>
-          <a
-            v-if="paper.href"
-            class="paper-card__url"
-            :href="paper.href"
-            target="_blank"
-            rel="noopener noreferrer"
-            :aria-label="`${paper.title} 作者官方 PDF`"
-          >
-            {{ paper.href }}
-          </a>
+          <div v-if="paper.href" class="paper-card__source">
+            <span v-if="paper.linkNotice" class="paper-card__link-notice">
+              {{ paper.linkNotice }}
+            </span>
+            <a
+              class="paper-card__url"
+              :href="paper.href"
+              target="_blank"
+              rel="noopener noreferrer"
+              :aria-label="`${paper.title}：${paper.linkNotice}`"
+            >
+              {{ paper.href }}
+            </a>
+          </div>
         </div>
       </article>
     </div>
@@ -286,6 +297,19 @@ function goToPage(next: number) {
   background: rgba(116, 105, 120, 0.075);
   color: var(--vp-c-text-3);
   font-size: 9px;
+}
+
+.paper-card__source {
+  display: flex;
+  max-width: 100%;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.paper-card__link-notice {
+  color: var(--vp-c-text-3);
+  font-size: 9px;
+  line-height: 1.45;
 }
 
 .paper-card__url {
