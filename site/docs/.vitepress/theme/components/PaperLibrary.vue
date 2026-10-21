@@ -28,7 +28,7 @@ const papers: Paper[] = [
   {
     id: 3,
     title: 'XPBD: Position-Based Simulation of Compliant Constrained Dynamics',
-    titleZh: 'XPBD：柔顺约束动力学的基于位置模拟',
+    titleZh: 'XPBD：基于位置的扩展动力学',
     authors: 'Miles Macklin, Matthias Müller, Nuttapong Chentanez',
     year: 2016,
     venue: 'Proceedings of the 9th International Conference on Motion in Games',
