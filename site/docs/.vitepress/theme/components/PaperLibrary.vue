@@ -193,12 +193,10 @@ function goToPage(next: number) {
   padding: 11px 14px;
   border: 1px solid rgba(255, 255, 255, 0.58);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.44);
+  background: rgba(255, 255, 255, 0.52);
   color: var(--vp-c-text-2);
   font-size: 12px;
   line-height: 1.75;
-  -webkit-backdrop-filter: blur(12px) saturate(1.08);
-  backdrop-filter: blur(12px) saturate(1.08);
 }
 
 .paper-library__grid {
@@ -214,22 +212,15 @@ function goToPage(next: number) {
   padding: 18px 19px 17px;
   border: 1px solid rgba(255, 255, 255, 0.68);
   border-radius: 17px;
-  background: rgba(255, 255, 255, 0.68);
+  background: rgba(255, 255, 255, 0.74);
   box-shadow:
     0 18px 44px -36px rgba(71, 43, 62, 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.74);
-  -webkit-backdrop-filter: blur(14px) saturate(1.08);
-  backdrop-filter: blur(14px) saturate(1.08);
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: border-color 0.2s ease;
 }
 
 .paper-card:hover {
   border-color: rgba(255, 255, 255, 0.94);
-  box-shadow:
-    0 24px 54px -38px rgba(67, 42, 61, 0.62),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .paper-card__heading {
@@ -346,12 +337,12 @@ function goToPage(next: number) {
 
 .dark .paper-library__note {
   border-color: rgba(255, 255, 255, 0.1);
-  background: rgba(22, 24, 36, 0.56);
+  background: rgba(22, 24, 36, 0.64);
 }
 
 .dark .paper-card {
   border-color: rgba(255, 255, 255, 0.1);
-  background: rgba(23, 25, 37, 0.72);
+  background: rgba(23, 25, 37, 0.8);
   box-shadow: 0 18px 44px -36px rgba(0, 0, 0, 0.75);
 }
 
