@@ -50,12 +50,13 @@ const papers: Paper[] = [
   {
     id: 5,
     title: 'Unified Particle Physics for Real-Time Applications',
-    titleZh: '面向实时应用的统一粒子物理',
+    titleZh: 'FleX：面向实时应用的统一粒子物理',
     authors: 'Miles Macklin, Matthias Müller, Nuttapong Chentanez, Tae-Yong Kim',
     year: 2014,
     venue: 'ACM Transactions on Graphics',
     summary: '以统一粒子模型描述流体、可变形体与刚体，并在同一求解框架中处理多种物理现象及其相互作用。',
     tags: ['统一粒子', '多物态', '耦合'],
+    href: 'https://mmacklin.com/uppfrta_preprint.pdf',
   },
   {
     id: 6,
@@ -102,7 +103,7 @@ function goToPage(next: number) {
     </header>
 
     <p class="paper-library__note">
-      当前为文献栏测试版：PBD、XPBD 与 PBF 已接入作者官方 PDF，其余文献的获取链接暂未开放。
+      当前为文献栏测试版：PBD、XPBD、PBF 与 FleX 已接入作者官方 PDF，其余文献的获取链接暂未开放。
     </p>
 
     <div class="paper-library__grid">
