@@ -64,16 +64,6 @@ const papers: Paper[] = [
     linkNotice: '作者官方预印本',
   },
   {
-    id: 6,
-    title: 'Screen Space Fluid Rendering with Curvature Flow',
-    titleZh: '基于曲率流的屏幕空间流体渲染',
-    authors: 'Wladimir J. van der Laan, Simon Green, Miguel Sainz',
-    year: 2009,
-    venue: 'Proceedings of the 2009 Symposium on Interactive 3D Graphics and Games',
-    summary: '通过平滑粒子深度并重建液面，再利用曲率流生成法线，实现粒子流体的屏幕空间表面渲染。',
-    tags: ['SSFR', '曲率流', '深度重建'],
-  },
-  {
     id: 7,
     title: 'Behavior of a Falling Paper',
     titleZh: '下落纸张的行为',
