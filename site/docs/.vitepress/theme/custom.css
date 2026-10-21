@@ -342,8 +342,32 @@
   margin-left: auto;
 }
 
+.acn-reading .vp-doc table {
+  display: table !important;
+  width: min(100%, 960px) !important;
+  max-width: 960px !important;
+  margin-right: auto !important;
+  margin-left: auto !important;
+  table-layout: fixed;
+}
+
+.acn-reading .vp-doc td img {
+  width: 100% !important;
+  max-width: 320px !important;
+  height: auto !important;
+  margin-right: auto !important;
+  margin-left: auto !important;
+}
+
+.acn-reading .vp-doc > p > img,
+.acn-reading .vp-doc > p > picture,
+.acn-reading .vp-doc > p > video {
+  max-width: min(100%, 900px);
+  height: auto;
+}
+
 .acn-reading .vp-doc video {
-  max-width: 100%;
+  max-width: min(100%, 900px);
   height: auto;
 }
 
