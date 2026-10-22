@@ -25,7 +25,7 @@ const articles: Article[] = [
     title: 'ACN-Estimation：基于纹理—几何耦合的自然材质法线估计',
     date: '2026-10-22',
     category: '图形',
-    excerpt: '从 Albedo 灰度场、Sobel 梯度和法线通道约束出发。',
+    excerpt: '以 Albedo 灰度场为输入，经 Sobel 梯度提取与去噪处理，构建自然材质的法线估计管线。',
     tags: ['法线贴图', 'Sobel', '形态学滤波'],
     colors: ['#356ec9', '#7ecbe8', '#152b57'],
     pattern: 'mesh',
