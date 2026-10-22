@@ -11,6 +11,7 @@ type Article = {
   tags: string[]
   colors: [string, string, string]
   pattern: 'grid' | 'wave' | 'orbit' | 'mesh'
+  image?: string
   link?: string
 }
 
@@ -24,10 +25,11 @@ const articles: Article[] = [
     title: 'ACN-Estimation：基于纹理—几何耦合的自然材质法线估计',
     date: '2026-10-22',
     category: '图形',
-    excerpt: '从 Albedo 灰度场、Sobel 梯度和法线通道约束出发，记录自然材质法线的生成、去噪与 Unity 验证。',
+    excerpt: '从 Albedo 灰度场、Sobel 梯度和法线通道约束出发。',
     tags: ['法线贴图', 'Sobel', '形态学滤波'],
     colors: ['#356ec9', '#7ecbe8', '#152b57'],
     pattern: 'mesh',
+    image: '/acn-estimation/images/article-cover.webp',
     link: '/articles/graphics/acn-estimation-albedo-to-normal/',
   },
   {
@@ -213,13 +215,14 @@ function goToPage(next: number) {
       >
         <div
           class="article-card__cover"
-          :class="`is-${article.pattern}`"
+          :class="[`is-${article.pattern}`, { 'has-image': article.image }]"
           :style="{
             '--cover-a': article.colors[0],
             '--cover-b': article.colors[1],
             '--cover-c': article.colors[2],
           }"
         >
+          <img v-if="article.image" :src="withBase(article.image)" alt="" />
           <span class="article-card__code">A{{ String(article.id).padStart(2, '0') }}</span>
           <span class="article-card__mark" aria-hidden="true"></span>
         </div>
@@ -418,6 +421,31 @@ function goToPage(next: number) {
   border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 50%;
   transform: rotate(-18deg);
+}
+
+.article-card__cover img {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.article-card__cover.has-image::before,
+.article-card__cover.has-image::after {
+  display: none;
+}
+
+.article-card__cover.has-image .article-card__code {
+  color: rgba(28, 42, 63, 0.72);
+}
+
+.article-card__cover.has-image .article-card__mark {
+  border-color: rgba(28, 42, 63, 0.32);
+  box-shadow:
+    0 0 0 8px rgba(28, 42, 63, 0.06),
+    0 0 0 16px rgba(28, 42, 63, 0.035);
 }
 
 .article-card__cover.is-grid::before {

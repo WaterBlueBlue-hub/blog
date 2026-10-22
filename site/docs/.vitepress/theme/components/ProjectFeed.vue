@@ -17,7 +17,7 @@ const tiles: ProjectTile[] = [
     id: 'P01',
     eyebrow: 'FEATURED PROJECT',
     title: 'ACN-Estimation',
-    summary: '从自然纹理 Albedo 估计切线空间法线，并以 Unity 渲染验证结果。',
+    summary: '从自然纹理 Albedo 估计切线空间法线。',
     link: '/projects/acn-estimation/',
     image: '/acn-estimation/images/cover.webp',
     colors: ['#426fd1', '#97d6eb', '#172b55'],
