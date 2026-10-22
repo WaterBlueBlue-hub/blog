@@ -51,6 +51,12 @@ onBeforeUnmount(() => {
     />
 
     <img
+      class="game-grove__sans"
+      :src="withBase('/game-grove/sans-static.png')"
+      alt=""
+    />
+
+    <img
       class="game-grove__queen-slime"
       :src="withBase('/game-grove/terraria-queen-slime.png')"
       alt=""
@@ -141,6 +147,20 @@ onBeforeUnmount(() => {
   transform: rotate(12deg);
   user-select: none;
   animation: queen-slime-flight 4.4s ease-in-out infinite;
+}
+
+.game-grove__sans {
+  position: absolute;
+  z-index: 2;
+  bottom: 10px;
+  left: 31%;
+  display: block;
+  width: 46px;
+  height: 60px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 5px 4px rgba(67, 48, 70, 0.18));
+  pointer-events: none;
+  user-select: none;
 }
 
 .game-grove__scene {
