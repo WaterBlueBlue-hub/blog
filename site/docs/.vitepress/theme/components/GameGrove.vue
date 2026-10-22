@@ -165,7 +165,7 @@ onBeforeUnmount(() => {
   position: absolute;
   z-index: 0;
   top: 25px;
-  left: 110px;
+  left: -105px;
   display: block;
   width: 132px;
   height: auto;
@@ -180,7 +180,7 @@ onBeforeUnmount(() => {
   position: absolute;
   z-index: 2;
   bottom: 10px;
-  left: -7px;
+  left: -215px;
   display: block;
   width: 150px;
   height: auto;
