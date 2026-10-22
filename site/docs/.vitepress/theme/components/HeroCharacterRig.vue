@@ -118,6 +118,7 @@ async function setupRig(options: {
   const debugCtx = options.debugCanvas.getContext('2d')
   const skirtAlpha = readAlpha(skirtImage)
   const skirtActive = new Uint8Array(skirtMesh.count)
+  const skirtVisible = new Uint8Array(skirtMesh.count)
   const skirtAttach = new Float32Array(skirtMesh.count)
   const skirtInvMass = new Float32Array(skirtMesh.count)
   const skirtPrev = new Float32Array(skirtMesh.positions.length)
@@ -127,9 +128,9 @@ async function setupRig(options: {
     const ix = i * 2
     const x = skirtMesh.rest[ix]
     const y = skirtMesh.rest[ix + 1]
-    const active = alphaNear(skirtAlpha, W, H, x, y, 12) > 10
-    skirtActive[i] = active ? 1 : 0
-    skirtInvMass[i] = active ? 1 : 0
+    skirtVisible[i] = alphaNear(skirtAlpha, W, H, x, y, 24) > 4 ? 1 : 0
+    skirtActive[i] = 1
+    skirtInvMass[i] = 1
     skirtPrev[ix] = skirtMesh.positions[ix]
     skirtPrev[ix + 1] = skirtMesh.positions[ix + 1]
   }
@@ -285,7 +286,9 @@ async function setupRig(options: {
       const weaponCore = 1 - smoothstep(78, 200, weaponDistance)
       const weaponVertical = smoothstep(360, 410, y)
       const weaponHorizontal = 1 - smoothstep(675, 770, x)
-      const weaponWeight = weaponCore * weaponVertical * weaponHorizontal
+      const weaponRight = lerp(700, 520, smoothstep(430, 980, y))
+      const weaponField = smoothstep(360, 430, y) * (1 - smoothstep(weaponRight - 70, weaponRight + 20, x))
+      const weaponWeight = Math.max(weaponCore * weaponVertical * weaponHorizontal, weaponField)
       const limbWeight = Math.max(armWeight, weaponWeight)
       if (limbWeight > 0.001) {
         const armPoint = rotatePoint({ x: px, y: py }, shoulder, armAngle)
@@ -427,7 +430,7 @@ async function setupRig(options: {
     const impulseX = clamp(pointer.vx * 0.00125, -8, 8)
     const impulseY = clamp(pointer.vy * 0.0011, -6, 6)
     for (let i = 0; i < skirtMesh.count; i++) {
-      if (!skirtActive[i]) continue
+      if (!skirtVisible[i]) continue
       const ix = i * 2
       const dx = skirtMesh.positions[ix] - pointer.x
       const dy = skirtMesh.positions[ix + 1] - pointer.y
@@ -487,7 +490,7 @@ async function setupRig(options: {
     ctx.stroke()
 
     for (let i = 0; i < skirtMesh.count; i++) {
-      if (!skirtActive[i]) continue
+      if (!skirtVisible[i]) continue
       const ix = i * 2
       ctx.fillStyle = 'rgba(93, 199, 255, 0.8)'
       ctx.beginPath()
@@ -543,7 +546,7 @@ async function setupRig(options: {
     let best = -1
     let bestDistance = Number.POSITIVE_INFINITY
     for (let i = 0; i < skirtMesh.count; i++) {
-      if (!skirtActive[i]) continue
+      if (!skirtVisible[i]) continue
       const ix = i * 2
       const distance = Math.hypot(
         skirtMesh.positions[ix] - point.x,
