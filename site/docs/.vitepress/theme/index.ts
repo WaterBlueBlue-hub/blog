@@ -11,6 +11,7 @@ import ContactButtons from './components/ContactButtons.vue'
 import PetAssistant from './components/PetAssistant.vue'
 import ProjectFeed from './components/ProjectFeed.vue'
 import ArticleFeed from './components/ArticleFeed.vue'
+import NoteFeed from './components/NoteFeed.vue'
 import PaperLibrary from './components/PaperLibrary.vue'
 
 export default {
@@ -39,6 +40,7 @@ export default {
     ctx.app.component('PetAssistant', PetAssistant)
     ctx.app.component('ProjectFeed', ProjectFeed)
     ctx.app.component('ArticleFeed', ArticleFeed)
+    ctx.app.component('NoteFeed', NoteFeed)
     ctx.app.component('PaperLibrary', PaperLibrary)
   },
 }

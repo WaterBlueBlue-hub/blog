@@ -30,6 +30,7 @@ const SECTIONS = [
       ['基础理论/连续介质力学.md', 'continuum-mechanics'],
       ['基础理论/场论.md', 'field-theory'],
       ['基础理论/滤波.md', 'filtering'],
+      ['基础理论/LaTeX.md', 'latex-math'],
     ],
   },
   {
