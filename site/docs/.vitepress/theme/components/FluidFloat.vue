@@ -134,14 +134,13 @@ onMounted(initializeHeroSceneSettings)
   width: var(--hero-character-width);
   max-width: none;
   height: auto;
+  opacity: 1;
   pointer-events: none;
   user-select: none;
-  filter: drop-shadow(0 12px 12px rgba(23, 42, 76, 0.2));
 }
 
 .fluid-float__character--skirt {
   z-index: 1;
-  filter: drop-shadow(0 16px 12px rgba(23, 42, 76, 0.16));
 }
 
 .fluid-float__stage::after {
