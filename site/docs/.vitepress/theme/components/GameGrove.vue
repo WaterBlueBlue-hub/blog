@@ -45,10 +45,9 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="root" class="game-grove" aria-hidden="true">
-    <img
+    <div
       class="game-grove__ground"
-      :src="withBase('/game-grove/pixel-ground.png')"
-      alt=""
+      :style="{ backgroundImage: `url(${withBase('/game-grove/pixel-ground.png')})` }"
     />
 
     <div class="game-grove__scene game-grove__scene--stardew">
@@ -111,9 +110,11 @@ onBeforeUnmount(() => {
   z-index: 0;
   top: 95px;
   left: 0;
-  display: block;
   width: 100%;
-  height: auto;
+  height: 23px;
+  background-position: left top;
+  background-repeat: repeat-x;
+  background-size: auto 100%;
   image-rendering: pixelated;
   opacity: 0.96;
   pointer-events: none;
