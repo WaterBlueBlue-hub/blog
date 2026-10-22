@@ -58,6 +58,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
   let W = 0
   let H = 0
   let flowerBandHeight = 0
+  let flowerHeadScale = 1
   let treeHeight = 0
   let treeRootX = 0
   let dpr = 1
@@ -184,18 +185,20 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
     const heroRect = hero.getBoundingClientRect()
     const containerRect = container.getBoundingClientRect()
     const mainRect = main.getBoundingClientRect()
-    const flowerHeight = clamp(window.innerWidth * 0.05, 46, 72)
+    const flowerLayoutHeight = clamp(window.innerWidth * 0.05, 46, 72)
+    const flowerStemHeight = flowerLayoutHeight * (2 / 3)
     treeHeight = clamp(containerRect.width * 0.16, 128, 190)
-    const height = flowerHeight + treeHeight
+    const height = flowerLayoutHeight + treeHeight
 
     host.style.left = `${containerRect.left - mainRect.left}px`
-    host.style.top = `${heroRect.bottom - mainRect.top - flowerHeight * 1.5 + 4 - treeHeight}px`
+    host.style.top = `${heroRect.bottom - mainRect.top - flowerLayoutHeight * 1.5 + 4 - treeHeight}px`
     host.style.width = `${containerRect.width}px`
     host.style.height = `${height}px`
 
     W = Math.max(1, Math.round(containerRect.width))
     H = Math.max(1, Math.round(height))
-    flowerBandHeight = flowerHeight
+    flowerBandHeight = flowerStemHeight
+    flowerHeadScale = flowerLayoutHeight / 72
     treeRootX = W * 0.45
     pixelUnit = clamp(Math.round(W / 520), 2, 4)
     dpr = Math.min(1.5, window.devicePixelRatio || 1)
@@ -253,7 +256,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
         petalA: palette.petalA,
         petalB: palette.petalB,
         centerColor: palette.center,
-        flowerSize: rand(2.6, 4.1) * (depth ? 1 : 0.82) * (flowerBandHeight / 72),
+        flowerSize: rand(2.6, 4.1) * (depth ? 1 : 0.82) * flowerHeadScale,
         depth,
         angles,
         velocities,
