@@ -11,9 +11,9 @@ export type HeroSceneSettings = {
 export const HERO_SCENE_DEFAULTS: HeroSceneSettings = {
   tankWidth: 344,
   tankHeight: 216,
-  characterWidth: 265,
-  characterX: 16,
-  characterY: 0,
+  characterWidth: 249,
+  characterX: -42,
+  characterY: -93,
 }
 
 const STORAGE_KEY = 'waterblue-hero-scene-v2'
