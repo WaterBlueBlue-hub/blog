@@ -106,7 +106,7 @@ async function setupRig(options: {
   options.debugCanvas.width = W
   options.debugCanvas.height = H
 
-  const bodyMesh = createMesh(18, 24, 0, 0, W, H)
+  const bodyMesh = createMesh(24, 30, 0, 0, W, H)
   const skirtMesh = createMesh(22, 17, SKIRT_BOX.x, SKIRT_BOX.y, SKIRT_BOX.w, SKIRT_BOX.h)
   const bodyRenderer = createRenderer(options.bodyCanvas, bodyImage, bodyMesh)
   const skirtRenderer = createRenderer(options.skirtCanvas, skirtImage, skirtMesh)
@@ -121,6 +121,7 @@ async function setupRig(options: {
   const skirtPinned = new Uint8Array(skirtMesh.count)
   const skirtInvMass = new Float32Array(skirtMesh.count)
   const skirtPrev = new Float32Array(skirtMesh.positions.length)
+  const skirtSwayOffset = new Float32Array(skirtMesh.positions.length)
 
   for (let i = 0; i < skirtMesh.count; i++) {
     const ix = i * 2
@@ -134,15 +135,22 @@ async function setupRig(options: {
   }
 
   const skirtAnchor = { x: 958, y: 286 }
+  let anchorIndex = -1
+  let anchorDistance = Number.POSITIVE_INFINITY
   for (let i = 0; i < skirtMesh.count; i++) {
     if (!skirtActive[i]) continue
     const ix = i * 2
     const dx = skirtMesh.rest[ix] - skirtAnchor.x
     const dy = skirtMesh.rest[ix + 1] - skirtAnchor.y
-    if (Math.hypot(dx, dy) < 148) {
-      skirtPinned[i] = 1
-      skirtInvMass[i] = 0
+    const distance = Math.hypot(dx, dy)
+    if (distance < anchorDistance) {
+      anchorIndex = i
+      anchorDistance = distance
     }
+  }
+  if (anchorIndex >= 0) {
+    skirtPinned[anchorIndex] = 1
+    skirtInvMass[anchorIndex] = 0
   }
 
   const constraints = buildConstraints(skirtMesh, skirtActive)
@@ -230,7 +238,7 @@ async function setupRig(options: {
     const spineAngle = Math.sin(t * 0.74) * 0.022 + Math.sin(t * 0.37 + 0.9) * 0.006
     const chestAngle = Math.sin(t * 0.74 + 0.55) * 0.016
     const headAngle = Math.sin(t * 0.74 + 1.05) * 0.013
-    const armAngle = Math.sin(t * 0.63 + 0.55) * 0.012 + Math.sin(t * 1.11 + 0.2) * 0.004
+    const armAngle = Math.sin(t * 0.63 + 0.55) * 0.075 + Math.sin(t * 1.11 + 0.2) * 0.02
     const root = { x: 700 + rootDx, y: 420 + rootDy }
     const spineBase = { x: 760 + rootDx, y: 300 + rootDy }
     const chestBase = { x: 800 + rootDx, y: 238 + rootDy }
@@ -294,7 +302,7 @@ async function setupRig(options: {
     const t = time
     const rootDx = Math.sin(t * 0.74) * 1.7
     const rootDy = Math.sin(t * 1.48 + 0.4) * 1.15
-    const anchorAngle = Math.sin(t * 0.74) * 0.012
+    const anchorAngle = Math.sin(t * 0.58) * 0.018 + Math.sin(t * 0.27 + 0.9) * 0.005
     const windX =
       Math.sin(t * 0.58) * 12.5 +
       Math.sin(t * 0.27 + 0.9) * 4.2 +
@@ -310,6 +318,8 @@ async function setupRig(options: {
         skirtMesh.positions[ix + 1] = skirtMesh.rest[ix + 1] + rootDy
         continue
       }
+      skirtMesh.positions[ix] -= skirtSwayOffset[ix]
+      skirtSwayOffset[ix] = 0
       if (skirtPinned[i]) {
         const target = rotatePoint(
           {
@@ -355,6 +365,17 @@ async function setupRig(options: {
         skirtMesh.rest[ix + 1] - 120,
         skirtMesh.rest[ix + 1] + 150,
       )
+    }
+
+    const swayX = Math.sin(t * 0.82) * 18 + Math.sin(t * 0.43 + 1.15) * 7
+    for (let i = 0; i < skirtMesh.count; i++) {
+      if (!skirtActive[i] || skirtPinned[i]) continue
+      const ix = i * 2
+      const rowFactor = clamp((skirtMesh.rest[ix + 1] - SKIRT_BOX.y) / SKIRT_BOX.h, 0, 1)
+      const swayWeight = smoothstep(0.04, 0.76, rowFactor)
+      const offset = swayX * swayWeight
+      skirtMesh.positions[ix] += offset
+      skirtSwayOffset[ix] = offset
     }
   }
 
