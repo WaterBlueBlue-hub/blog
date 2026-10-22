@@ -61,6 +61,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
   let treeHeight = 0
   let treeRootX = 0
   let dpr = 1
+  let pixelUnit = 2
   let blades: Blade[] = []
   let branches: Branch[] = []
   let canopyLeaves: CanopyLeaf[] = []
@@ -87,6 +88,54 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
 
   const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
   const rand = (min: number, max: number) => min + Math.random() * (max - min)
+  const pixelLine = (
+    target: CanvasRenderingContext2D,
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    color: string,
+    alpha: number,
+    thickness = 1,
+  ) => {
+    let gx = Math.round(x1 / pixelUnit)
+    let gy = Math.round(y1 / pixelUnit)
+    const endX = Math.round(x2 / pixelUnit)
+    const endY = Math.round(y2 / pixelUnit)
+    const dx = Math.abs(endX - gx)
+    const dy = Math.abs(endY - gy)
+    const stepX = gx < endX ? 1 : -1
+    const stepY = gy < endY ? 1 : -1
+    let error = dx - dy
+    const startOffset = -Math.floor((thickness - 1) / 2)
+    const previousAlpha = target.globalAlpha
+    target.globalAlpha = alpha
+    target.fillStyle = color
+
+    while (true) {
+      for (let ox = 0; ox < thickness; ox++) {
+        for (let oy = 0; oy < thickness; oy++) {
+          target.fillRect(
+            (gx + startOffset + ox) * pixelUnit,
+            (gy + startOffset + oy) * pixelUnit,
+            pixelUnit,
+            pixelUnit,
+          )
+        }
+      }
+      if (gx === endX && gy === endY) break
+      const twiceError = error * 2
+      if (twiceError > -dy) {
+        error -= dy
+        gx += stepX
+      }
+      if (twiceError < dx) {
+        error += dx
+        gy += stepY
+      }
+    }
+    target.globalAlpha = previousAlpha
+  }
   const palettes = [
     {
       stem: 'rgba(104, 122, 116, 0.62)',
@@ -148,6 +197,7 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
     H = Math.max(1, Math.round(height))
     flowerBandHeight = flowerHeight
     treeRootX = W * 0.45
+    pixelUnit = clamp(Math.round(W / 520), 2, 4)
     dpr = Math.min(1.5, window.devicePixelRatio || 1)
     canvas.width = Math.round(W * dpr)
     canvas.height = Math.round(H * dpr)
@@ -321,47 +371,51 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
     color: string,
     alpha: number,
   ) {
-    target.save()
-    target.translate(x, y)
-    target.rotate(rotation)
+    const sprite = [
+      '...1...',
+      '..111..',
+      '.11111.',
+      '1111111',
+      '..111..',
+      '.1.1.1.',
+      '...1...',
+    ]
+    const cell = Math.max(1, Math.round(size / 5))
+    const cos = Math.cos(rotation)
+    const sin = Math.sin(rotation)
+    const previousAlpha = target.globalAlpha
     target.globalAlpha = alpha
     target.fillStyle = color
-    target.beginPath()
-    target.moveTo(0, -size)
-    target.lineTo(size * 0.24, -size * 0.34)
-    target.lineTo(size * 0.74, -size * 0.56)
-    target.lineTo(size * 0.43, -size * 0.06)
-    target.lineTo(size * 0.88, size * 0.1)
-    target.lineTo(size * 0.27, size * 0.27)
-    target.lineTo(size * 0.34, size * 0.78)
-    target.lineTo(0, size * 0.42)
-    target.lineTo(-size * 0.34, size * 0.78)
-    target.lineTo(-size * 0.27, size * 0.27)
-    target.lineTo(-size * 0.88, size * 0.1)
-    target.lineTo(-size * 0.43, -size * 0.06)
-    target.lineTo(-size * 0.74, -size * 0.56)
-    target.lineTo(-size * 0.24, -size * 0.34)
-    target.closePath()
-    target.fill()
-    target.restore()
+
+    for (let row = 0; row < sprite.length; row++) {
+      for (let col = 0; col < sprite[row].length; col++) {
+        if (sprite[row][col] !== '1') continue
+        const localX = (col - 3) * cell
+        const localY = (row - 3) * cell
+        const drawX = Math.round((x + localX * cos - localY * sin) / cell) * cell
+        const drawY = Math.round((y + localX * sin + localY * cos) / cell) * cell
+        target.fillRect(drawX, drawY, cell, cell)
+      }
+    }
+    target.globalAlpha = previousAlpha
   }
 
   function drawTree(target: CanvasRenderingContext2D) {
-    target.save()
-    target.lineCap = 'round'
-    target.lineJoin = 'round'
     for (const branch of branches) {
-      target.beginPath()
-      target.moveTo(branch.x1, branch.y1)
-      target.lineTo(branch.x2, branch.y2)
-      target.strokeStyle = 'rgba(119, 83, 83, 0.4)'
-      target.lineWidth = branch.width
-      target.stroke()
+      pixelLine(
+        target,
+        branch.x1,
+        branch.y1,
+        branch.x2,
+        branch.y2,
+        '#775353',
+        0.4,
+        Math.max(1, Math.round(branch.width / pixelUnit)),
+      )
     }
     for (const leaf of canopyLeaves) {
       drawMapleLeaf(target, leaf.x, leaf.y, leaf.size, leaf.rotation, leaf.color, leaf.alpha)
     }
-    target.restore()
   }
 
   function cacheTree() {
@@ -427,48 +481,48 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
   function drawBlade(blade: Blade) {
     const points = blade.points
     if (points.length < 2) return
-    ctx.globalAlpha = blade.depth ? 0.9 : 0.62
-    ctx.beginPath()
-    ctx.moveTo(blade.rootX, H + 1)
-    for (const p of points) ctx.lineTo(p.x, p.y)
-    ctx.strokeStyle = blade.stemColor
-    ctx.lineWidth = blade.width
-    ctx.lineCap = 'round'
-    ctx.stroke()
+    const alpha = blade.depth ? 0.9 : 0.62
+    let previous = { x: blade.rootX, y: H + 1 }
+    for (const point of points) {
+      pixelLine(ctx, previous.x, previous.y, point.x, point.y, blade.stemColor, 1)
+      previous = point
+    }
 
-    // 两片很小的叶托，给花茎增加一点植物轮廓，但不再使用高饱和绿色。
+    // 用两枚像素叶托替代平滑椭圆，让花茎也保持统一的像素语言。
     const leafPoint = points[Math.max(0, Math.floor(points.length * 0.56))]
     if (leafPoint) {
+      const leafX = Math.round(leafPoint.x / pixelUnit)
+      const leafY = Math.round(leafPoint.y / pixelUnit)
+      const previousAlpha = ctx.globalAlpha
+      ctx.globalAlpha = alpha * 0.82
       ctx.fillStyle = blade.stemColor
-      ctx.beginPath()
-      ctx.ellipse(leafPoint.x - 2.2, leafPoint.y + 1.2, 2.8, 1.15, -0.55, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.beginPath()
-      ctx.ellipse(leafPoint.x + 2.1, leafPoint.y - 0.8, 2.4, 1, 0.62, 0, Math.PI * 2)
-      ctx.fill()
+      ctx.fillRect((leafX - 2) * pixelUnit, leafY * pixelUnit, pixelUnit, pixelUnit)
+      ctx.fillRect((leafX + 1) * pixelUnit, (leafY - 1) * pixelUnit, pixelUnit, pixelUnit)
+      ctx.globalAlpha = previousAlpha
     }
 
     const tip = points[points.length - 1]
-    ctx.save()
-    ctx.translate(tip.x, tip.y)
-    ctx.rotate(blade.angles[blade.angles.length - 1] * 0.42)
-    const size = blade.flowerSize
+    const centerX = Math.round(tip.x / pixelUnit)
+    const centerY = Math.round(tip.y / pixelUnit)
+    const petalRadius = clamp(
+      Math.round(blade.flowerSize / (pixelUnit * 1.45)),
+      1,
+      3,
+    )
+    const flowerRotation = blade.angles[blade.angles.length - 1] * 0.42
+    const previousAlpha = ctx.globalAlpha
+    ctx.globalAlpha = alpha
+
     for (let petal = 0; petal < 5; petal++) {
-      const angle = (Math.PI * 2 * petal) / 5
-      ctx.save()
-      ctx.rotate(angle)
-      ctx.beginPath()
-      ctx.ellipse(size * 0.62, 0, size * 0.72, size * 0.43, 0, 0, Math.PI * 2)
+      const angle = flowerRotation + (Math.PI * 2 * petal) / 5
+      const petalX = centerX + Math.round(Math.cos(angle) * petalRadius)
+      const petalY = centerY + Math.round(Math.sin(angle) * petalRadius)
       ctx.fillStyle = petal % 2 === 0 ? blade.petalA : blade.petalB
-      ctx.fill()
-      ctx.restore()
+      ctx.fillRect(petalX * pixelUnit, petalY * pixelUnit, pixelUnit, pixelUnit)
     }
-    ctx.beginPath()
-    ctx.arc(0, 0, Math.max(0.8, size * 0.3), 0, Math.PI * 2)
     ctx.fillStyle = blade.centerColor
-    ctx.fill()
-    ctx.restore()
-    ctx.globalAlpha = 1
+    ctx.fillRect(centerX * pixelUnit, centerY * pixelUnit, pixelUnit, pixelUnit)
+    ctx.globalAlpha = previousAlpha
   }
 
   function draw() {
@@ -610,6 +664,8 @@ function setup(canvas: HTMLCanvasElement, host: HTMLDivElement) {
   display: block;
   width: 100%;
   height: 100%;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
 }
 
 @media (max-width: 959px) {
