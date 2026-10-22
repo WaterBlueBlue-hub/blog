@@ -50,6 +50,12 @@ onBeforeUnmount(() => {
       :style="{ backgroundImage: `url(${withBase('/game-grove/pixel-ground.png')})` }"
     />
 
+    <img
+      class="game-grove__queen-slime"
+      :src="withBase('/game-grove/terraria-queen-slime.png')"
+      alt=""
+    />
+
     <div class="game-grove__scene game-grove__scene--stardew">
       <span class="game-grove__junimo game-grove__junimo--blue">
         <img :src="withBase('/game-grove/stardew-junimo-blue.png')" alt="" />
@@ -119,6 +125,22 @@ onBeforeUnmount(() => {
   opacity: 0.96;
   pointer-events: none;
   user-select: none;
+}
+
+.game-grove__queen-slime {
+  position: absolute;
+  z-index: 3;
+  top: -92px;
+  left: 28%;
+  display: block;
+  width: 112px;
+  height: auto;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 7px 7px rgba(76, 55, 92, 0.2));
+  pointer-events: none;
+  transform: rotate(12deg);
+  user-select: none;
+  animation: queen-slime-flight 4.4s ease-in-out infinite;
 }
 
 .game-grove__scene {
@@ -286,6 +308,16 @@ onBeforeUnmount(() => {
   }
 }
 
+@keyframes queen-slime-flight {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(10deg);
+  }
+  50% {
+    transform: translate3d(7px, -10px, 0) rotate(13deg);
+  }
+}
+
 @media (max-width: 1180px) {
   .game-grove {
     display: none;
@@ -296,7 +328,8 @@ onBeforeUnmount(() => {
   .game-grove__scene,
   .game-grove__junimo,
   .game-grove__star,
-  .game-grove__steve {
+  .game-grove__steve,
+  .game-grove__queen-slime {
     animation: none;
   }
 }
