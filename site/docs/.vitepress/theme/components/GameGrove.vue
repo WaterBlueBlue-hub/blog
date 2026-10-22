@@ -54,7 +54,6 @@ onBeforeUnmount(() => {
         :src="withBase('/game-grove/terraria-guide.png')"
         alt=""
       />
-      <span class="game-grove__label game-grove__label--terraria">泰拉瑞亚</span>
     </div>
 
     <div class="game-grove__scene game-grove__scene--stardew">
@@ -77,7 +76,6 @@ onBeforeUnmount(() => {
         :src="withBase('/game-grove/stardew-junimo-hut.png')"
         alt=""
       />
-      <span class="game-grove__label game-grove__label--stardew">星露谷物语</span>
     </div>
 
     <div class="game-grove__scene game-grove__scene--minecraft">
@@ -96,7 +94,11 @@ onBeforeUnmount(() => {
         :src="withBase('/game-grove/minecraft-stone.png')"
         alt=""
       />
-      <span class="game-grove__label game-grove__label--minecraft">我的世界</span>
+      <img
+        class="game-grove__sprite game-grove__steve"
+        :src="withBase('/game-grove/minecraft-steve.png')"
+        alt=""
+      />
     </div>
   </div>
 </template>
@@ -112,7 +114,7 @@ onBeforeUnmount(() => {
 .game-grove__scene {
   position: absolute;
   bottom: 0;
-  width: 150px;
+  width: 166px;
   height: 96px;
   animation: grove-drift 5.2s ease-in-out infinite;
 }
@@ -140,7 +142,7 @@ onBeforeUnmount(() => {
 }
 
 .game-grove__scene--minecraft {
-  left: 66%;
+  left: 65%;
   animation-delay: -0.6s;
 }
 
@@ -154,40 +156,8 @@ onBeforeUnmount(() => {
   user-select: none;
 }
 
-.game-grove__label {
-  position: absolute;
-  z-index: 3;
-  bottom: 0;
-  left: 50%;
-  padding: 3px 8px 4px;
-  border: 1px solid rgba(255, 255, 255, 0.64);
-  border-radius: 5px;
-  background: rgba(42, 44, 57, 0.7);
-  color: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 5px 13px -8px rgba(31, 31, 44, 0.7);
-  font-family: var(--vp-font-family-mono);
-  font-size: 8px;
-  font-weight: 600;
-  letter-spacing: 0.7px;
-  line-height: 1;
-  white-space: nowrap;
-  transform: translateX(-50%);
-}
-
-.game-grove__label--terraria {
-  border-color: rgba(224, 190, 142, 0.62);
-}
-
-.game-grove__label--stardew {
-  border-color: rgba(170, 217, 137, 0.66);
-}
-
-.game-grove__label--minecraft {
-  border-color: rgba(235, 175, 201, 0.66);
-}
-
 .game-grove__guide {
-  bottom: 18px;
+  bottom: 11px;
   left: 82px;
   width: 36px;
   height: 64px;
@@ -247,7 +217,7 @@ onBeforeUnmount(() => {
 }
 
 .game-grove__junimo-hut {
-  bottom: 17px;
+  bottom: 10px;
   left: 36px;
   width: 68px;
   height: 68px;
@@ -303,23 +273,31 @@ onBeforeUnmount(() => {
 }
 
 .game-grove__block--leaves {
-  top: 10px;
-  left: 14px;
+  top: 0;
+  left: 10px;
   width: 48px;
   height: 48px;
 }
 
 .game-grove__block--table {
-  bottom: 28px;
-  left: 42px;
+  bottom: 20px;
+  left: 38px;
   z-index: 2;
 }
 
 .game-grove__block--stone {
-  right: 21px;
-  bottom: 18px;
-  width: 44px;
-  height: 44px;
+  right: 10px;
+  bottom: 10px;
+  width: 39px;
+  height: 39px;
+}
+
+.game-grove__steve {
+  bottom: 10px;
+  left: 86px;
+  width: 35px;
+  height: 79px;
+  animation: grove-idle 3.8s ease-in-out infinite;
 }
 
 @keyframes grove-drift {
@@ -352,6 +330,16 @@ onBeforeUnmount(() => {
   }
 }
 
+@keyframes grove-idle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
 @media (max-width: 1180px) {
   .game-grove {
     display: none;
@@ -361,7 +349,8 @@ onBeforeUnmount(() => {
 @media (prefers-reduced-motion: reduce) {
   .game-grove__scene,
   .game-grove__junimo,
-  .game-grove__star {
+  .game-grove__star,
+  .game-grove__steve {
     animation: none;
   }
 }
