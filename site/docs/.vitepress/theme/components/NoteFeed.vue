@@ -94,7 +94,10 @@ function handleCardClick(note: Note, event: MouseEvent) {
         :href="note.link && !cardEditorState.active ? withBase(note.link) : undefined"
         @click="handleCardClick(note, $event)"
       >
-        <div class="note-card__cover">
+        <div
+          class="note-card__cover"
+          :class="{ 'has-custom-cover': Boolean(getCardOverride('note', note.id)?.image) }"
+        >
           <img v-if="imageFor(note)" :src="imageFor(note)" alt="" loading="lazy" />
           <span class="note-card__code">N{{ String(note.id).padStart(2, '0') }}</span>
           <span v-if="cardEditorState.active" class="note-card__edit">点击编辑</span>
@@ -274,6 +277,19 @@ function handleCardClick(note: Note, event: MouseEvent) {
   width: 78%;
   max-width: 210px;
   border-radius: 50%;
+}
+
+.note-card__cover.has-custom-cover img {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  border-radius: 0;
+  object-fit: cover;
+  transform: none;
+}
+
+.note-card--link:hover .note-card__cover.has-custom-cover img {
+  transform: scale(1.025);
 }
 
 .note-card__code {

@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { withBase } from 'vitepress'
 import {
   OPEN_CARD_EDITOR_EVENT,
   cardEditorState,
   exportCardOverrides,
-  fileToCoverDataUrl,
   initializeCardEditor,
   resetAllCardOverrides,
   resetCardOverride,
@@ -17,6 +16,14 @@ import {
 const editingCard = ref<EditableCardPayload | null>(null)
 const draftImage = ref('')
 const uploadError = ref('')
+const cropStage = ref<HTMLElement | null>(null)
+const cropImageElement = ref<HTMLImageElement | null>(null)
+const cropSourceUrl = ref('')
+const cropZoom = ref(1)
+const cropOffset = reactive({ x: 0, y: 0 })
+const cropNatural = reactive({ width: 1, height: 1 })
+const cropSize = reactive({ width: 1, height: 1 })
+const isCropping = ref(false)
 const form = reactive({
   title: '',
   date: '',
@@ -24,11 +31,23 @@ const form = reactive({
   excerpt: '',
   tags: '',
 })
+let cropObjectUrl = ''
+let dragOrigin: { pointerX: number; pointerY: number; offsetX: number; offsetY: number } | null = null
 
 const imagePreview = computed(() => {
   if (!draftImage.value) return ''
   if (/^(data:|https?:)/.test(draftImage.value)) return draftImage.value
   return withBase(draftImage.value)
+})
+
+const cropImageStyle = computed(() => {
+  const scale = Math.max(cropSize.width / cropNatural.width, cropSize.height / cropNatural.height) *
+    cropZoom.value
+  return {
+    width: `${cropNatural.width * scale}px`,
+    height: `${cropNatural.height * scale}px`,
+    transform: `translate(calc(-50% + ${cropOffset.x}px), calc(-50% + ${cropOffset.y}px))`,
+  }
 })
 
 function openEditor(event: Event) {
@@ -48,6 +67,7 @@ function openEditor(event: Event) {
 }
 
 function closeEditor() {
+  cancelCrop()
   editingCard.value = null
   uploadError.value = ''
 }
@@ -75,17 +95,149 @@ function restoreDefault() {
   closeEditor()
 }
 
+function revokeCropObjectUrl() {
+  if (cropObjectUrl) {
+    URL.revokeObjectURL(cropObjectUrl)
+    cropObjectUrl = ''
+  }
+}
+
+function cancelCrop() {
+  isCropping.value = false
+  cropSourceUrl.value = ''
+  cropZoom.value = 1
+  cropOffset.x = 0
+  cropOffset.y = 0
+  revokeCropObjectUrl()
+}
+
+async function loadCropSource(source: string) {
+  uploadError.value = ''
+  const probe = new Image()
+  probe.crossOrigin = /^https?:/.test(source) ? 'anonymous' : ''
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      probe.addEventListener('load', () => resolve())
+      probe.addEventListener('error', () => reject(new Error('封面图片无法读取')))
+      probe.src = source
+    })
+
+    cropNatural.width = probe.naturalWidth
+    cropNatural.height = probe.naturalHeight
+    cropZoom.value = 1
+    cropOffset.x = 0
+    cropOffset.y = 0
+    cropSourceUrl.value = source
+    isCropping.value = true
+    await nextTick()
+    measureCropStage()
+  } catch (error) {
+    cancelCrop()
+    uploadError.value = error instanceof Error ? error.message : '封面处理失败'
+  }
+}
+
 async function updateCover(event: Event) {
   const input = event.currentTarget as HTMLInputElement
   const file = input.files?.[0]
   input.value = ''
   if (!file) return
 
-  uploadError.value = ''
+  if (!file.type.startsWith('image/')) {
+    uploadError.value = '请选择图片文件'
+    return
+  }
+
+  revokeCropObjectUrl()
+  cropObjectUrl = URL.createObjectURL(file)
+  await loadCropSource(cropObjectUrl)
+}
+
+function cropCurrentCover() {
+  if (imagePreview.value) {
+    loadCropSource(imagePreview.value)
+  }
+}
+
+function measureCropStage() {
+  if (!cropStage.value) return
+  const rect = cropStage.value.getBoundingClientRect()
+  cropSize.width = Math.max(1, rect.width)
+  cropSize.height = Math.max(1, rect.height)
+  clampCropOffset()
+}
+
+function clampCropOffset() {
+  const scale = Math.max(cropSize.width / cropNatural.width, cropSize.height / cropNatural.height) *
+    cropZoom.value
+  const maxX = Math.max(0, (cropNatural.width * scale - cropSize.width) / 2)
+  const maxY = Math.max(0, (cropNatural.height * scale - cropSize.height) / 2)
+  cropOffset.x = Math.max(-maxX, Math.min(maxX, cropOffset.x))
+  cropOffset.y = Math.max(-maxY, Math.min(maxY, cropOffset.y))
+}
+
+function startCropDrag(event: PointerEvent) {
+  if (!cropStage.value) return
+  cropStage.value.setPointerCapture(event.pointerId)
+  dragOrigin = {
+    pointerX: event.clientX,
+    pointerY: event.clientY,
+    offsetX: cropOffset.x,
+    offsetY: cropOffset.y,
+  }
+}
+
+function moveCropDrag(event: PointerEvent) {
+  if (!dragOrigin) return
+  cropOffset.x = dragOrigin.offsetX + event.clientX - dragOrigin.pointerX
+  cropOffset.y = dragOrigin.offsetY + event.clientY - dragOrigin.pointerY
+  clampCropOffset()
+}
+
+function endCropDrag() {
+  dragOrigin = null
+}
+
+function applyCrop() {
+  if (!cropImageElement.value) return
+
+  const scale = Math.max(cropSize.width / cropNatural.width, cropSize.height / cropNatural.height) *
+    cropZoom.value
+  const displayWidth = cropNatural.width * scale
+  const displayHeight = cropNatural.height * scale
+  const imageLeft = (cropSize.width - displayWidth) / 2 + cropOffset.x
+  const imageTop = (cropSize.height - displayHeight) / 2 + cropOffset.y
+  const sourceX = Math.max(0, -imageLeft / scale)
+  const sourceY = Math.max(0, -imageTop / scale)
+  const sourceWidth = Math.min(cropNatural.width - sourceX, cropSize.width / scale)
+  const sourceHeight = Math.min(cropNatural.height - sourceY, cropSize.height / scale)
+
+  const canvas = document.createElement('canvas')
+  canvas.width = 960
+  canvas.height = 540
+  const context = canvas.getContext('2d')
+  if (!context) {
+    uploadError.value = '浏览器无法处理封面图片'
+    return
+  }
+
   try {
-    draftImage.value = await fileToCoverDataUrl(file)
-  } catch (error) {
-    uploadError.value = error instanceof Error ? error.message : '封面处理失败'
+    context.drawImage(
+      cropImageElement.value,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    )
+    draftImage.value = canvas.toDataURL('image/webp', 0.86)
+    cancelCrop()
+  } catch {
+    uploadError.value = '这张图片受跨域限制，无法裁剪，请先下载后再上传'
   }
 }
 
@@ -116,6 +268,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener(OPEN_CARD_EDITOR_EVENT, openEditor)
+  revokeCropObjectUrl()
 })
 </script>
 
@@ -188,10 +341,48 @@ onBeforeUnmount(() => {
             选择图片
             <input type="file" accept="image/*" @change="updateCover" />
           </label>
+          <button v-if="imagePreview" type="button" @click="cropCurrentCover">裁剪当前封面</button>
           <button v-if="draftImage" type="button" @click="draftImage = ''">清除封面</button>
           <small v-if="uploadError">{{ uploadError }}</small>
         </div>
       </div>
+
+      <section v-if="isCropping" class="card-editor__cropper">
+        <div class="card-editor__cropper-head">
+          <div>
+            <span>COVER CROP</span>
+            <strong>拖动图片调整画面位置</strong>
+          </div>
+          <button type="button" @click="cancelCrop">取消裁剪</button>
+        </div>
+
+        <div
+          ref="cropStage"
+          class="card-editor__crop-stage"
+          @pointerdown="startCropDrag"
+          @pointermove="moveCropDrag"
+          @pointerup="endCropDrag"
+          @pointercancel="endCropDrag"
+        >
+          <img
+            ref="cropImageElement"
+            :src="cropSourceUrl"
+            :style="cropImageStyle"
+            alt=""
+            draggable="false"
+            @load="measureCropStage"
+          />
+          <span class="card-editor__crop-grid" aria-hidden="true"></span>
+          <span class="card-editor__crop-frame" aria-hidden="true"></span>
+        </div>
+
+        <label class="card-editor__zoom">
+          <span>缩放</span>
+          <input v-model.number="cropZoom" type="range" min="1" max="3" step="0.01" @input="clampCropOffset" />
+        </label>
+
+        <button type="button" class="card-editor__crop-apply" @click="applyCrop">应用裁剪</button>
+      </section>
 
       <footer class="card-editor__actions">
         <button type="button" class="is-muted" @click="restoreDefault">恢复默认</button>
@@ -423,6 +614,138 @@ onBeforeUnmount(() => {
   font-size: 10px;
 }
 
+.card-editor__cropper {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(47, 109, 246, 0.2);
+  border-radius: 12px;
+  background: rgba(47, 109, 246, 0.045);
+}
+
+.card-editor__cropper-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.card-editor__cropper-head span {
+  display: block;
+  margin-bottom: 3px;
+  color: #7d7686;
+  font-family: var(--vp-font-family-mono);
+  font-size: 9px;
+  letter-spacing: 0.8px;
+}
+
+.card-editor__cropper-head strong {
+  color: #4e4857;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.card-editor__cropper-head button,
+.card-editor__crop-apply {
+  border: 1px solid rgba(70, 62, 80, 0.14);
+  border-radius: 8px;
+  padding: 6px 9px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #514b59;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.card-editor__crop-stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 9px;
+  background: #17171e;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.card-editor__crop-stage:active {
+  cursor: grabbing;
+}
+
+.card-editor__crop-stage > img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  max-width: none;
+  max-height: none;
+  object-fit: fill;
+  pointer-events: none;
+  transform-origin: center;
+  user-select: none;
+}
+
+.card-editor__crop-grid,
+.card-editor__crop-frame {
+  position: absolute;
+  pointer-events: none;
+}
+
+.card-editor__crop-grid {
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      transparent calc(33.333% - 0.5px),
+      rgba(255, 255, 255, 0.36) calc(33.333% - 0.5px),
+      rgba(255, 255, 255, 0.36) calc(33.333% + 0.5px),
+      transparent calc(33.333% + 0.5px),
+      transparent calc(66.666% - 0.5px),
+      rgba(255, 255, 255, 0.36) calc(66.666% - 0.5px),
+      rgba(255, 255, 255, 0.36) calc(66.666% + 0.5px),
+      transparent calc(66.666% + 0.5px)
+    ),
+    linear-gradient(
+      transparent calc(33.333% - 0.5px),
+      rgba(255, 255, 255, 0.36) calc(33.333% - 0.5px),
+      rgba(255, 255, 255, 0.36) calc(33.333% + 0.5px),
+      transparent calc(33.333% + 0.5px),
+      transparent calc(66.666% - 0.5px),
+      rgba(255, 255, 255, 0.36) calc(66.666% - 0.5px),
+      rgba(255, 255, 255, 0.36) calc(66.666% + 0.5px),
+      transparent calc(66.666% + 0.5px)
+    );
+}
+
+.card-editor__crop-frame {
+  inset: 0;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(24, 24, 31, 0.24);
+}
+
+.card-editor__zoom {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-editor__zoom > span {
+  margin: 0;
+}
+
+.card-editor__zoom input {
+  height: 18px;
+  padding: 0;
+  accent-color: #2f6df6;
+}
+
+.card-editor__crop-apply {
+  justify-self: end;
+  border-color: #2f6df6;
+  background: #2f6df6;
+  color: #fff;
+}
+
 .card-editor__actions {
   display: flex;
   align-items: center;
@@ -457,6 +780,21 @@ onBeforeUnmount(() => {
   border-color: rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.06);
   color: #f1eef5;
+}
+
+.dark .card-editor__cropper {
+  border-color: rgba(112, 164, 255, 0.26);
+  background: rgba(75, 124, 219, 0.08);
+}
+
+.dark .card-editor__cropper-head strong {
+  color: #d7d2df;
+}
+
+.dark .card-editor__cropper-head button {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.07);
+  color: #e5e0eb;
 }
 
 @media (max-width: 760px) {
