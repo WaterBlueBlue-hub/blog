@@ -63,6 +63,12 @@ onBeforeUnmount(() => {
     />
 
     <img
+      class="game-grove__cell-person"
+      :src="withBase('/game-grove/cell-person.webp')"
+      alt=""
+    />
+
+    <img
       class="game-grove__sans"
       :src="withBase('/game-grove/sans-static.png')"
       alt=""
@@ -183,6 +189,19 @@ onBeforeUnmount(() => {
   left: -225px;
   display: block;
   width: 150px;
+  height: auto;
+  filter: drop-shadow(0 5px 4px rgba(67, 48, 70, 0.18));
+  pointer-events: none;
+  user-select: none;
+}
+
+.game-grove__cell-person {
+  position: absolute;
+  z-index: 2;
+  bottom: 10px;
+  left: 7px;
+  display: block;
+  width: 48px;
   height: auto;
   filter: drop-shadow(0 5px 4px rgba(67, 48, 70, 0.18));
   pointer-events: none;
