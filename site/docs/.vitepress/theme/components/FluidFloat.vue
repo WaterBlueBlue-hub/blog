@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { withBase } from 'vitepress'
 import FluidTank from './FluidTank.vue'
+import HeroCharacterRig from './HeroCharacterRig.vue'
 import {
   heroSceneSettings,
   initializeHeroSceneSettings,
@@ -10,6 +10,10 @@ import {
 const tank = ref<{
   refresh: () => void
   setDebug: (on: boolean) => void
+} | null>(null)
+const characterRig = ref<{
+  setDebug: (on: boolean) => void
+  kick: () => void
 } | null>(null)
 const spinning = ref(false)
 const debugOn = ref(false)
@@ -25,6 +29,7 @@ const sceneStyle = computed(() => ({
 
 function refresh() {
   tank.value?.refresh()
+  characterRig.value?.kick()
   spinning.value = true
   window.clearTimeout(spinTimer)
   spinTimer = window.setTimeout(() => (spinning.value = false), 520)
@@ -33,6 +38,7 @@ function refresh() {
 function toggleDebug() {
   debugOn.value = !debugOn.value
   tank.value?.setDebug(debugOn.value)
+  characterRig.value?.setDebug(debugOn.value)
 }
 
 onBeforeUnmount(() => {
@@ -44,12 +50,6 @@ onMounted(initializeHeroSceneSettings)
 
 <template>
   <aside class="fluid-float" :style="sceneStyle" aria-label="XPBD 流体演示">
-    <img
-      class="fluid-float__character fluid-float__character--skirt"
-      :src="withBase('/hero-character/character-skirt.webp')"
-      alt=""
-      aria-hidden="true"
-    />
     <div class="fluid-float__stage">
       <div class="fluid-float__tools">
         <button
@@ -70,8 +70,8 @@ onMounted(initializeHeroSceneSettings)
           :class="{ 'is-active': debugOn }"
           type="button"
           :aria-pressed="debugOn"
-          aria-label="显示流体粒子与胶囊碰撞体线框"
-          title="粒子 / 胶囊线框"
+          aria-label="显示流体粒子、胶囊碰撞体、角色骨骼与裙摆约束线框"
+          title="粒子 / 胶囊 / 骨骼 / 裙摆线框"
           @click="toggleDebug"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -82,12 +82,7 @@ onMounted(initializeHeroSceneSettings)
       </div>
       <FluidTank ref="tank" compact />
     </div>
-    <img
-      class="fluid-float__character fluid-float__character--body"
-      :src="withBase('/hero-character/character-body.webp')"
-      alt=""
-      aria-hidden="true"
-    />
+    <HeroCharacterRig ref="characterRig" :debug="debugOn" />
   </aside>
 </template>
 
@@ -124,23 +119,6 @@ onMounted(initializeHeroSceneSettings)
     inset 0 1px 0 rgba(255, 255, 255, 0.58);
   -webkit-backdrop-filter: blur(12px) saturate(1.08);
   backdrop-filter: blur(12px) saturate(1.08);
-}
-
-.fluid-float__character {
-  position: absolute;
-  z-index: 4;
-  top: var(--hero-character-y);
-  left: var(--hero-character-x);
-  width: var(--hero-character-width);
-  max-width: none;
-  height: auto;
-  opacity: 1;
-  pointer-events: none;
-  user-select: none;
-}
-
-.fluid-float__character--skirt {
-  z-index: 1;
 }
 
 .fluid-float__stage::after {
@@ -285,7 +263,8 @@ onMounted(initializeHeroSceneSettings)
     width: 100%;
   }
 
-  .fluid-float__character {
+  .fluid-float :deep(.hero-rig__layer),
+  .fluid-float :deep(.hero-rig__debug) {
     display: none;
   }
 }
