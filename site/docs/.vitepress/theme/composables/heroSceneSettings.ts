@@ -12,16 +12,18 @@ export const HERO_SCENE_DEFAULTS: HeroSceneSettings = {
   tankWidth: 344,
   tankHeight: 216,
   characterWidth: 265,
-  characterX: -120,
+  characterX: 16,
   characterY: 0,
 }
 
-const STORAGE_KEY = 'waterblue-hero-scene-v1'
+const STORAGE_KEY = 'waterblue-hero-scene-v2'
+const LEGACY_STORAGE_KEY = 'waterblue-hero-scene-v1'
+const LEGACY_X_OFFSET = 136
 const LIMITS: Record<keyof HeroSceneSettings, [number, number]> = {
   tankWidth: [240, 480],
   tankHeight: [150, 340],
   characterWidth: [160, 380],
-  characterX: [-320, 40],
+  characterX: [-220, 240],
   characterY: [-100, 140],
 }
 
@@ -40,10 +42,16 @@ function readSettings() {
   if (typeof window === 'undefined') return
 
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}')
+    const current = window.localStorage.getItem(STORAGE_KEY)
+    const legacy = window.localStorage.getItem(LEGACY_STORAGE_KEY)
+    const parsed = JSON.parse(current ?? legacy ?? '{}')
+    if (!current && legacy) {
+      parsed.characterX = Number(parsed.characterX ?? HERO_SCENE_DEFAULTS.characterX) + LEGACY_X_OFFSET
+    }
     for (const key of Object.keys(HERO_SCENE_DEFAULTS) as (keyof HeroSceneSettings)[]) {
       Object.assign(heroSceneSettings, { [key]: clampSetting(key, parsed?.[key]) })
     }
+    if (!current && legacy) saveHeroSceneSettings()
   } catch {
     Object.assign(heroSceneSettings, HERO_SCENE_DEFAULTS)
   }

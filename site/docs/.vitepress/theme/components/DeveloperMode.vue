@@ -366,8 +366,8 @@ onBeforeUnmount(() => {
       <input
         v-model.number="heroSceneSettings.characterX"
         type="range"
-        min="-320"
-        max="40"
+        min="-220"
+        max="240"
         step="1"
         @input="saveHeroSceneSettings"
       />
@@ -386,7 +386,7 @@ onBeforeUnmount(() => {
     </label>
 
     <footer class="hero-settings__actions">
-      <small>调整会实时预览并自动保存</small>
+      <small>容器实时预览并自动保存；内部画面保持原尺寸</small>
       <button type="button" @click="resetHeroSceneSettings">恢复默认</button>
     </footer>
   </section>

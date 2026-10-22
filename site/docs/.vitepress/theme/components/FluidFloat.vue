@@ -95,7 +95,7 @@ onMounted(initializeHeroSceneSettings)
 .fluid-float {
   position: relative;
   isolation: isolate;
-  width: min(var(--hero-tank-width), 100%);
+  width: min(480px, 100%);
   margin-right: 0;
   margin-left: auto;
   align-self: flex-start;
@@ -109,8 +109,9 @@ onMounted(initializeHeroSceneSettings)
   z-index: 2;
   box-sizing: border-box;
   min-width: 0;
-  width: 100%;
+  width: var(--hero-tank-width);
   height: var(--hero-tank-height);
+  margin-left: auto;
   padding: 8px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.5);
@@ -167,8 +168,12 @@ onMounted(initializeHeroSceneSettings)
 }
 
 .fluid-float__stage :deep(.fluid-tank--compact) {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 328px;
+  height: 200px;
+  max-width: none;
   aspect-ratio: auto;
 }
 
