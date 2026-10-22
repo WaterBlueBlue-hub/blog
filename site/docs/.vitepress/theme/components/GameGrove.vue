@@ -179,8 +179,8 @@ onBeforeUnmount(() => {
 .game-grove__es-character {
   position: absolute;
   z-index: 2;
-  bottom: 10px;
-  left: -215px;
+  bottom: 72px;
+  left: -225px;
   display: block;
   width: 150px;
   height: auto;
