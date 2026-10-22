@@ -10,6 +10,8 @@ type BoneState = {
   spine: Point
   chest: Point
   head: Point
+  shoulder: Point
+  hand: Point
 }
 
 type Mesh = {
@@ -148,6 +150,9 @@ async function setupRig(options: {
   const pointer = {
     x: 0,
     y: 0,
+    vx: 0,
+    vy: 0,
+    lastAt: 0,
     active: false,
     down: false,
     id: -1,
@@ -167,6 +172,8 @@ async function setupRig(options: {
     spine: { x: 760, y: 300 },
     chest: { x: 800, y: 238 },
     head: { x: 860, y: 150 },
+    shoulder: { x: 735, y: 282 },
+    hand: { x: 665, y: 385 },
   }
 
   const observer = new IntersectionObserver(
@@ -223,15 +230,24 @@ async function setupRig(options: {
     const spineAngle = Math.sin(t * 0.74) * 0.022 + Math.sin(t * 0.37 + 0.9) * 0.006
     const chestAngle = Math.sin(t * 0.74 + 0.55) * 0.016
     const headAngle = Math.sin(t * 0.74 + 1.05) * 0.013
+    const armAngle = Math.sin(t * 0.63 + 0.55) * 0.012 + Math.sin(t * 1.11 + 0.2) * 0.004
     const root = { x: 700 + rootDx, y: 420 + rootDy }
     const spineBase = { x: 760 + rootDx, y: 300 + rootDy }
     const chestBase = { x: 800 + rootDx, y: 238 + rootDy }
     const headBase = { x: 860 + rootDx, y: 150 + rootDy }
+    const shoulderBase = { x: 735 + rootDx, y: 282 + rootDy }
+    const handBase = { x: 665 + rootDx, y: 385 + rootDy }
     const spine = rotatePoint(spineBase, root, spineAngle)
     const chest = rotatePoint(rotatePoint(chestBase, root, spineAngle), spine, chestAngle)
     const head = rotatePoint(rotatePoint(rotatePoint(headBase, root, spineAngle), spine, chestAngle), chest, headAngle)
     head.y += Math.sin(t * 1.48 + 0.4) * 1.1
-    bones = { root, spine, chest, head }
+    const shoulder = rotatePoint(
+      rotatePoint(shoulderBase, root, spineAngle),
+      spine,
+      chestAngle * 0.7,
+    )
+    const hand = rotatePoint(handBase, shoulder, armAngle)
+    bones = { root, spine, chest, head, shoulder, hand }
 
     const positions = bodyMesh.positions
     const rest = bodyMesh.rest
@@ -258,6 +274,17 @@ async function setupRig(options: {
       py = lerp(py, chestPoint.y, wChest)
       px = lerp(px, headPoint.x, wHead)
       py = lerp(py, headPoint.y, wHead)
+
+      const armDistance = distanceToSegment(x, y, 735, 282, 665, 385)
+      const armCore = 1 - smoothstep(38, 112, armDistance)
+      const armVertical = smoothstep(250, 286, y) * (1 - smoothstep(430, 500, y))
+      const armHorizontal = 1 - smoothstep(735, 820, x)
+      const armWeight = armCore * armVertical * armHorizontal * 0.9
+      if (armWeight > 0.001) {
+        const armPoint = rotatePoint({ x: px, y: py }, shoulder, armAngle)
+        px = lerp(px, armPoint.x, armWeight)
+        py = lerp(py, armPoint.y, armWeight)
+      }
       positions[ix] = px
       positions[ix + 1] = py
     }
@@ -267,10 +294,14 @@ async function setupRig(options: {
     const t = time
     const rootDx = Math.sin(t * 0.74) * 1.7
     const rootDy = Math.sin(t * 1.48 + 0.4) * 1.15
-    const anchorAngle = Math.sin(t * 0.74) * 0.009
-    const windX = 7.5 + Math.sin(t * 0.63) * 4.2 + Math.sin(t * 1.37 + 1.2) * 1.8 + kickImpulse
+    const anchorAngle = Math.sin(t * 0.74) * 0.012
+    const windX =
+      Math.sin(t * 0.58) * 12.5 +
+      Math.sin(t * 0.27 + 0.9) * 4.2 +
+      Math.sin(t * 1.37 + 1.2) * 1.5 +
+      kickImpulse
     const windY = Math.sin(t * 0.91 + 0.6) * 3.2
-    kickImpulse *= 0.72
+    kickImpulse *= 0.82
 
     for (let i = 0; i < skirtMesh.count; i++) {
       const ix = i * 2
@@ -297,15 +328,19 @@ async function setupRig(options: {
 
       const vx = (skirtMesh.positions[ix] - skirtPrev[ix]) * 0.975
       const vy = (skirtMesh.positions[ix + 1] - skirtPrev[ix + 1]) * 0.975
+      const rowFactor = clamp((skirtMesh.rest[ix + 1] - SKIRT_BOX.y) / SKIRT_BOX.h, 0, 1)
       skirtPrev[ix] = skirtMesh.positions[ix]
       skirtPrev[ix + 1] = skirtMesh.positions[ix + 1]
-      skirtMesh.positions[ix] += vx + (windX + Math.sin(t * 1.9 + i) * 1.4) * dt * dt
+      skirtMesh.positions[ix] +=
+        vx + (windX * (0.42 + rowFactor * 0.78) + Math.sin(t * 1.9 + i) * 1.4) * dt * dt
       skirtMesh.positions[ix + 1] += vy + (18 + windY) * dt * dt
     }
 
     for (const constraint of constraints) constraint.lambda = 0
     for (let iteration = 0; iteration < 5; iteration++) solveConstraints(dt)
     applyPointerInteraction()
+    pointer.vx *= 0.82
+    pointer.vy *= 0.84
 
     for (let i = 0; i < skirtMesh.count; i++) {
       const ix = i * 2
@@ -359,18 +394,21 @@ async function setupRig(options: {
       return
     }
 
-    const radius = pointer.down ? 125 : 92
-    const strength = pointer.down ? 0.18 : 0.075
+    const speed = Math.hypot(pointer.vx, pointer.vy)
+    if (speed < 8) return
+    const radius = 108 + Math.min(34, speed * 0.012)
+    const impulseX = clamp(pointer.vx * 0.00125, -8, 8)
+    const impulseY = clamp(pointer.vy * 0.0011, -6, 6)
     for (let i = 0; i < skirtMesh.count; i++) {
       if (!skirtActive[i] || skirtPinned[i]) continue
       const ix = i * 2
       const dx = skirtMesh.positions[ix] - pointer.x
       const dy = skirtMesh.positions[ix + 1] - pointer.y
       const distance = Math.hypot(dx, dy)
-      if (distance >= radius || distance < 1e-4) continue
-      const push = (1 - distance / radius) * strength
-      skirtMesh.positions[ix] += (dx / distance) * push * radius
-      skirtMesh.positions[ix + 1] += (dy / distance) * push * radius
+      if (distance >= radius) continue
+      const influence = (1 - distance / radius) ** 2
+      skirtMesh.positions[ix] += impulseX * influence
+      skirtMesh.positions[ix + 1] += impulseY * influence
     }
   }
 
@@ -388,11 +426,14 @@ async function setupRig(options: {
     ctx.lineTo(bones.spine.x, bones.spine.y)
     ctx.lineTo(bones.chest.x, bones.chest.y)
     ctx.lineTo(bones.head.x, bones.head.y)
+    ctx.moveTo(bones.chest.x, bones.chest.y)
+    ctx.lineTo(bones.shoulder.x, bones.shoulder.y)
+    ctx.lineTo(bones.hand.x, bones.hand.y)
     ctx.stroke()
     ctx.strokeStyle = 'rgba(255, 178, 73, 0.96)'
     ctx.lineWidth = 7
     ctx.stroke()
-    for (const joint of [bones.root, bones.spine, bones.chest, bones.head]) {
+    for (const joint of [bones.root, bones.spine, bones.chest, bones.head, bones.shoulder, bones.hand]) {
       ctx.fillStyle = 'rgba(255, 239, 188, 0.95)'
       ctx.beginPath()
       ctx.arc(joint.x, joint.y, 13, 0, Math.PI * 2)
@@ -429,6 +470,18 @@ async function setupRig(options: {
       ctx.beginPath()
       ctx.arc(pointer.x, pointer.y, pointer.down ? 125 : 92, 0, Math.PI * 2)
       ctx.stroke()
+      if (!pointer.down) {
+        const speed = Math.hypot(pointer.vx, pointer.vy)
+        if (speed > 8) {
+          const scale = Math.min(42, speed * 0.024) / speed
+          ctx.strokeStyle = 'rgba(255, 239, 188, 0.95)'
+          ctx.lineWidth = 7
+          ctx.beginPath()
+          ctx.moveTo(pointer.x, pointer.y)
+          ctx.lineTo(pointer.x + pointer.vx * scale, pointer.y + pointer.vy * scale)
+          ctx.stroke()
+        }
+      }
     }
   }
 
@@ -442,8 +495,15 @@ async function setupRig(options: {
 
   function updatePointer(event: PointerEvent) {
     const point = eventPoint(event)
+    const now = performance.now()
+    const elapsed = pointer.lastAt ? clamp((now - pointer.lastAt) / 1000, 1 / 120, 0.05) : 1 / 60
+    const velocityX = (point.x - pointer.x) / elapsed
+    const velocityY = (point.y - pointer.y) / elapsed
+    pointer.vx = lerp(pointer.vx, velocityX, 0.42)
+    pointer.vy = lerp(pointer.vy, velocityY, 0.42)
     pointer.x = point.x
     pointer.y = point.y
+    pointer.lastAt = now
     pointer.active = alphaAt(skirtAlpha, W, H, point.x, point.y) > 8
     options.skirtCanvas.style.cursor = pointer.down ? 'grabbing' : pointer.active ? 'grab' : 'default'
   }
@@ -496,6 +556,8 @@ async function setupRig(options: {
   function onPointerLeave(event: PointerEvent) {
     if (!pointer.down) {
       pointer.active = false
+      pointer.vx = 0
+      pointer.vy = 0
       options.skirtCanvas.style.cursor = 'default'
     }
     onPointerUp(event)
@@ -792,6 +854,22 @@ function rotatePoint(point: Point, pivot: Point, angle: number): Point {
     x: pivot.x + dx * cos - dy * sin,
     y: pivot.y + dx * sin + dy * cos,
   }
+}
+
+function distanceToSegment(
+  x: number,
+  y: number,
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+) {
+  const dx = bx - ax
+  const dy = by - ay
+  const lengthSquared = dx * dx + dy * dy
+  if (lengthSquared === 0) return Math.hypot(x - ax, y - ay)
+  const t = clamp(((x - ax) * dx + (y - ay) * dy) / lengthSquared, 0, 1)
+  return Math.hypot(x - (ax + dx * t), y - (ay + dy * t))
 }
 
 function smoothstep(edge0: number, edge1: number, value: number) {
