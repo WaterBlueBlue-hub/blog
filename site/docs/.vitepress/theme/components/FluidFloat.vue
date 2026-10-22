@@ -1,44 +1,27 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { withBase } from 'vitepress'
 import FluidTank from './FluidTank.vue'
-
-type TankStats = {
-  fps: number
-  particles: number
-  iterations: number
-  densityError: number
-  waterAmount: number
-  colliders: number
-}
+import {
+  heroSceneSettings,
+  initializeHeroSceneSettings,
+} from '../composables/heroSceneSettings'
 
 const tank = ref<{
   refresh: () => void
   setDebug: (on: boolean) => void
-  stats: () => TankStats
 } | null>(null)
 const spinning = ref(false)
 const debugOn = ref(false)
-const stats = ref<TankStats>({
-  fps: 0,
-  particles: 0,
-  iterations: 0,
-  densityError: 0,
-  waterAmount: 0,
-  colliders: 0,
-})
 let spinTimer: number | undefined
-let statsTimer: number | undefined
 
-const densityLabel = computed(() => {
-  const value = stats.value.densityError
-  return `${value >= 0 ? '+' : ''}${value.toFixed(3)}`
-})
-const waterLabel = computed(() => `${stats.value.waterAmount.toFixed(1)}%`)
-
-function refreshStats() {
-  const next = tank.value?.stats()
-  if (next) stats.value = next
-}
+const sceneStyle = computed(() => ({
+  '--hero-tank-width': `${heroSceneSettings.tankWidth}px`,
+  '--hero-tank-height': `${heroSceneSettings.tankHeight}px`,
+  '--hero-character-width': `${heroSceneSettings.characterWidth}px`,
+  '--hero-character-x': `${heroSceneSettings.characterX}px`,
+  '--hero-character-y': `${heroSceneSettings.characterY}px`,
+}))
 
 function refresh() {
   tank.value?.refresh()
@@ -52,19 +35,21 @@ function toggleDebug() {
   tank.value?.setDebug(debugOn.value)
 }
 
-onMounted(() => {
-  refreshStats()
-  statsTimer = window.setInterval(refreshStats, 500)
-})
-
 onBeforeUnmount(() => {
   window.clearTimeout(spinTimer)
-  window.clearInterval(statsTimer)
 })
+
+onMounted(initializeHeroSceneSettings)
 </script>
 
 <template>
-  <aside class="fluid-float" aria-label="XPBD 流体演示">
+  <aside class="fluid-float" :style="sceneStyle" aria-label="XPBD 流体演示">
+    <img
+      class="fluid-float__character fluid-float__character--skirt"
+      :src="withBase('/hero-character/character-skirt.webp')"
+      alt=""
+      aria-hidden="true"
+    />
     <div class="fluid-float__stage">
       <div class="fluid-float__tools">
         <button
@@ -97,61 +82,35 @@ onBeforeUnmount(() => {
       </div>
       <FluidTank ref="tank" compact />
     </div>
-
-    <section class="fluid-hud" aria-label="实时流体技术数据">
-      <header class="fluid-hud__head">
-        <i aria-hidden="true"></i>
-        <span>LIVE HUD</span>
-      </header>
-      <div class="fluid-hud__rows">
-        <div class="fluid-hud__row">
-          <small>FPS</small>
-          <b>{{ stats.fps || '--' }}</b>
-        </div>
-        <div class="fluid-hud__row">
-          <small>粒子</small>
-          <b>{{ stats.particles }}</b>
-        </div>
-        <div class="fluid-hud__row">
-          <small>迭代</small>
-          <b>{{ stats.iterations }}</b>
-        </div>
-        <div class="fluid-hud__row">
-          <small>密度误差</small>
-          <b>{{ densityLabel }}</b>
-        </div>
-        <div class="fluid-hud__row">
-          <small>水量</small>
-          <b>{{ waterLabel }}</b>
-        </div>
-        <div class="fluid-hud__row">
-          <small>碰撞体</small>
-          <b>{{ stats.colliders }}</b>
-        </div>
-      </div>
-    </section>
+    <img
+      class="fluid-float__character fluid-float__character--body"
+      :src="withBase('/hero-character/character-body.webp')"
+      alt=""
+      aria-hidden="true"
+    />
   </aside>
 </template>
 
 <style scoped>
 .fluid-float {
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 340px) 112px;
-  gap: 10px;
-  width: min(462px, 100%);
+  isolation: isolate;
+  width: min(var(--hero-tank-width), 100%);
   margin-right: 0;
   margin-left: auto;
-  align-items: stretch;
   align-self: flex-start;
   margin-top: 32px;
-  left: 32px;
+  left: auto;
+  right: -32px;
 }
 
 .fluid-float__stage {
   position: relative;
+  z-index: 2;
+  box-sizing: border-box;
   min-width: 0;
   width: 100%;
+  height: var(--hero-tank-height);
   padding: 8px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.5);
@@ -164,6 +123,24 @@ onBeforeUnmount(() => {
     inset 0 1px 0 rgba(255, 255, 255, 0.58);
   -webkit-backdrop-filter: blur(12px) saturate(1.08);
   backdrop-filter: blur(12px) saturate(1.08);
+}
+
+.fluid-float__character {
+  position: absolute;
+  z-index: 4;
+  top: var(--hero-character-y);
+  left: var(--hero-character-x);
+  width: var(--hero-character-width);
+  max-width: none;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 12px 12px rgba(23, 42, 76, 0.2));
+}
+
+.fluid-float__character--skirt {
+  z-index: 1;
+  filter: drop-shadow(0 16px 12px rgba(23, 42, 76, 0.16));
 }
 
 .fluid-float__stage::after {
@@ -189,6 +166,12 @@ onBeforeUnmount(() => {
     inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
+.fluid-float__stage :deep(.fluid-tank--compact) {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}
+
 .fluid-float__stage :deep(.fluid-tank__canvas) {
   opacity: 0.8;
   filter: saturate(0.88) contrast(0.95) brightness(0.97);
@@ -196,7 +179,7 @@ onBeforeUnmount(() => {
 
 .fluid-float__tools {
   position: absolute;
-  z-index: 3;
+  z-index: 5;
   top: 17px;
   right: 17px;
   display: flex;
@@ -271,114 +254,11 @@ onBeforeUnmount(() => {
   }
 }
 
-.fluid-hud {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 10px 9px 9px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 18px;
-  background:
-    linear-gradient(155deg, rgba(255, 248, 251, 0.8), rgba(249, 229, 239, 0.65)),
-    radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.58), transparent 52%);
-  color: #795f70;
-  line-height: 1;
-  box-shadow:
-    0 20px 50px -34px rgba(95, 59, 79, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.86);
-  font-family: var(--vp-font-family-mono);
-  -webkit-backdrop-filter: blur(18px) saturate(1.15);
-  backdrop-filter: blur(18px) saturate(1.15);
-}
-
-.fluid-hud__head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 2px 8px;
-  color: #816779;
-  font-size: 8px;
-  line-height: 1;
-  letter-spacing: 1px;
-  border-bottom: 1px solid rgba(119, 78, 101, 0.14);
-}
-
-.fluid-hud__head i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #4ed99f;
-  box-shadow: 0 0 7px rgba(78, 217, 159, 0.66);
-}
-
-.fluid-hud__rows {
-  display: grid;
-  flex: 1;
-  grid-template-rows: repeat(6, minmax(0, 1fr));
-  min-height: 0;
-}
-
-.fluid-hud__row {
-  display: flex;
-  min-height: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 5px;
-  border-bottom: 1px solid rgba(107, 73, 92, 0.11);
-}
-
-.fluid-hud__row:last-child {
-  border-bottom: 0;
-}
-
-.fluid-hud__row small {
-  overflow: hidden;
-  color: #8b7180;
-  font-family: var(--vp-font-family-base);
-  font-size: 9px;
-  line-height: 1.1;
-  white-space: nowrap;
-}
-
-.fluid-hud__row b {
-  overflow: hidden;
-  color: #493946;
-  font-size: 12px;
-  line-height: 1.1;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.2px;
-  text-align: right;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .dark .fluid-float__stage {
   border-color: rgba(255, 255, 255, 0.13);
   background:
     linear-gradient(145deg, rgba(34, 32, 45, 0.68), rgba(25, 25, 39, 0.46)),
     rgba(20, 22, 34, 0.34);
-}
-
-.dark .fluid-hud {
-  border-color: rgba(255, 225, 238, 0.14);
-  background:
-    linear-gradient(155deg, rgba(56, 39, 52, 0.76), rgba(35, 29, 42, 0.72)),
-    radial-gradient(circle at 100% 0%, rgba(255, 188, 218, 0.12), transparent 54%);
-  color: #e4cfdb;
-  box-shadow:
-    0 22px 54px -36px rgba(0, 0, 0, 0.72),
-    inset 0 1px 0 rgba(255, 255, 255, 0.09);
-}
-
-.dark .fluid-hud__head,
-.dark .fluid-hud__row small {
-  color: #bda4b3;
-}
-
-.dark .fluid-hud__row b {
-  color: #fff3f8;
 }
 
 .dark .fluid-float__tool {
@@ -398,21 +278,11 @@ onBeforeUnmount(() => {
 
 @media (min-width: 960px) and (max-width: 1180px) {
   .fluid-float {
-    grid-template-columns: minmax(0, 1fr) 92px;
-    gap: 8px;
     width: 100%;
   }
 
-  .fluid-hud {
-    padding-inline: 7px;
-  }
-
-  .fluid-hud__row small {
-    font-size: 8px;
-  }
-
-  .fluid-hud__row b {
-    font-size: 10px;
+  .fluid-float__character {
+    display: none;
   }
 }
 

@@ -12,8 +12,15 @@ import {
   updateCardOverride,
   type EditableCardPayload,
 } from '../composables/cardEditor'
+import {
+  heroSceneSettings,
+  initializeHeroSceneSettings,
+  resetHeroSceneSettings,
+  saveHeroSceneSettings,
+} from '../composables/heroSceneSettings'
 
 const editingCard = ref<EditableCardPayload | null>(null)
+const heroSettingsOpen = ref(false)
 const draftImage = ref('')
 const uploadError = ref('')
 const cropStage = ref<HTMLElement | null>(null)
@@ -258,11 +265,15 @@ function clearAllOverrides() {
 
 function toggleEditor() {
   setCardEditorActive(!cardEditorState.active)
-  if (!cardEditorState.active) closeEditor()
+  if (!cardEditorState.active) {
+    closeEditor()
+    heroSettingsOpen.value = false
+  }
 }
 
 onMounted(() => {
   initializeCardEditor()
+  initializeHeroSceneSettings()
   window.addEventListener(OPEN_CARD_EDITOR_EVENT, openEditor)
 })
 
@@ -276,6 +287,13 @@ onBeforeUnmount(() => {
   <div class="developer-mode">
     <div v-if="cardEditorState.active" class="developer-mode__hint">
       <span>开发模式：点击任意文章或笔记卡片编辑</span>
+      <button
+        type="button"
+        :class="{ 'is-active': heroSettingsOpen }"
+        @click="heroSettingsOpen = !heroSettingsOpen"
+      >
+        水池设置
+      </button>
       <button type="button" @click="downloadOverrides">导出 JSON</button>
       <button type="button" @click="clearAllOverrides">清除全部</button>
     </div>
@@ -291,6 +309,87 @@ onBeforeUnmount(() => {
       DEV
     </button>
   </div>
+
+  <section
+    v-if="cardEditorState.active && heroSettingsOpen"
+    class="hero-settings"
+    aria-label="首页水池自定义设置"
+  >
+    <header class="hero-settings__head">
+      <div>
+        <span>HERO SCENE</span>
+        <h2>首页水池</h2>
+      </div>
+      <button type="button" aria-label="关闭水池设置" @click="heroSettingsOpen = false">
+        ×
+      </button>
+    </header>
+
+    <label class="hero-settings__control">
+      <span>水池宽度 <output>{{ heroSceneSettings.tankWidth }} px</output></span>
+      <input
+        v-model.number="heroSceneSettings.tankWidth"
+        type="range"
+        min="240"
+        max="480"
+        step="1"
+        @input="saveHeroSceneSettings"
+      />
+    </label>
+
+    <label class="hero-settings__control">
+      <span>水池高度 <output>{{ heroSceneSettings.tankHeight }} px</output></span>
+      <input
+        v-model.number="heroSceneSettings.tankHeight"
+        type="range"
+        min="150"
+        max="340"
+        step="1"
+        @input="saveHeroSceneSettings"
+      />
+    </label>
+
+    <label class="hero-settings__control">
+      <span>角色大小 <output>{{ heroSceneSettings.characterWidth }} px</output></span>
+      <input
+        v-model.number="heroSceneSettings.characterWidth"
+        type="range"
+        min="160"
+        max="380"
+        step="1"
+        @input="saveHeroSceneSettings"
+      />
+    </label>
+
+    <label class="hero-settings__control">
+      <span>角色水平位置 <output>{{ heroSceneSettings.characterX }} px</output></span>
+      <input
+        v-model.number="heroSceneSettings.characterX"
+        type="range"
+        min="-320"
+        max="40"
+        step="1"
+        @input="saveHeroSceneSettings"
+      />
+    </label>
+
+    <label class="hero-settings__control">
+      <span>角色垂直位置 <output>{{ heroSceneSettings.characterY }} px</output></span>
+      <input
+        v-model.number="heroSceneSettings.characterY"
+        type="range"
+        min="-100"
+        max="140"
+        step="1"
+        @input="saveHeroSceneSettings"
+      />
+    </label>
+
+    <footer class="hero-settings__actions">
+      <small>调整会实时预览并自动保存</small>
+      <button type="button" @click="resetHeroSceneSettings">恢复默认</button>
+    </footer>
+  </section>
 
   <div v-if="editingCard" class="card-editor" role="dialog" aria-modal="true" @click.self="closeEditor">
     <form class="card-editor__panel" @submit.prevent="saveEditor">
@@ -458,6 +557,137 @@ onBeforeUnmount(() => {
   font: inherit;
   font-size: 10px;
   cursor: pointer;
+}
+
+.developer-mode__hint button.is-active {
+  border-color: rgba(101, 174, 255, 0.72);
+  background: rgba(47, 109, 246, 0.76);
+  color: #fff;
+}
+
+.hero-settings {
+  position: fixed;
+  z-index: 79;
+  bottom: 76px;
+  left: 20px;
+  display: grid;
+  width: min(310px, calc(100vw - 40px));
+  gap: 13px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 16px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(242, 244, 250, 0.86)),
+    rgba(255, 255, 255, 0.9);
+  color: #302e38;
+  box-shadow: 0 24px 52px -28px rgba(27, 28, 44, 0.7);
+  -webkit-backdrop-filter: blur(18px) saturate(1.12);
+  backdrop-filter: blur(18px) saturate(1.12);
+}
+
+.hero-settings__head,
+.hero-settings__actions,
+.hero-settings__control > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hero-settings__head span {
+  display: block;
+  margin-bottom: 2px;
+  color: #807b89;
+  font-family: var(--vp-font-family-mono);
+  font-size: 9px;
+  letter-spacing: 0.9px;
+}
+
+.hero-settings__head h2 {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  color: #26232d;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.hero-settings__head button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(67, 62, 77, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.65);
+  color: #5e5865;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.hero-settings__control {
+  display: grid;
+  gap: 6px;
+}
+
+.hero-settings__control > span {
+  color: #5f5967;
+  font-size: 11px;
+}
+
+.hero-settings__control output {
+  color: #2f6df6;
+  font-family: var(--vp-font-family-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-settings__control input {
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  accent-color: #2f6df6;
+  cursor: pointer;
+}
+
+.hero-settings__actions {
+  padding-top: 2px;
+}
+
+.hero-settings__actions small {
+  color: #8a8490;
+  font-size: 9px;
+}
+
+.hero-settings__actions button {
+  border: 1px solid rgba(47, 109, 246, 0.24);
+  border-radius: 8px;
+  padding: 6px 9px;
+  background: rgba(47, 109, 246, 0.08);
+  color: #2f61c9;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.dark .hero-settings {
+  border-color: rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(145deg, rgba(35, 37, 50, 0.96), rgba(24, 26, 38, 0.92)),
+    rgba(24, 26, 38, 0.94);
+  color: #ece9f1;
+  box-shadow: 0 24px 54px -28px rgba(0, 0, 0, 0.86);
+}
+
+.dark .hero-settings__head h2 {
+  color: #f2eff6;
+}
+
+.dark .hero-settings__control > span {
+  color: #c5bfcc;
+}
+
+.dark .hero-settings__actions small {
+  color: #928c9c;
 }
 
 .card-editor {
@@ -810,6 +1040,12 @@ onBeforeUnmount(() => {
 
   .developer-mode__hint span {
     width: 100%;
+  }
+
+  .hero-settings {
+    bottom: 68px;
+    left: 12px;
+    width: min(310px, calc(100vw - 24px));
   }
 
   .card-editor__panel {
