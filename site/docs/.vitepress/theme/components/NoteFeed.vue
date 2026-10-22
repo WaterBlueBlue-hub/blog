@@ -279,7 +279,9 @@ function handleCardClick(note: Note, event: MouseEvent) {
   border-radius: 50%;
 }
 
-.note-card__cover.has-custom-cover img {
+.note-card .note-card__cover.has-custom-cover img {
+  top: 0;
+  left: 0;
   width: 100%;
   max-width: none;
   height: 100%;
