@@ -51,20 +51,6 @@ onBeforeUnmount(() => {
       alt=""
     />
 
-    <div class="game-grove__scene game-grove__scene--terraria">
-      <span class="terraria-bench">
-        <i class="terraria-bench__top" />
-        <i class="terraria-bench__leg terraria-bench__leg--left" />
-        <i class="terraria-bench__leg terraria-bench__leg--right" />
-        <i class="terraria-bench__torch" />
-      </span>
-      <img
-        class="game-grove__sprite game-grove__guide"
-        :src="withBase('/game-grove/terraria-guide.png')"
-        alt=""
-      />
-    </div>
-
     <div class="game-grove__scene game-grove__scene--stardew">
       <span class="game-grove__junimo game-grove__junimo--blue">
         <img :src="withBase('/game-grove/stardew-junimo-blue.png')" alt="" />
@@ -155,11 +141,6 @@ onBeforeUnmount(() => {
   filter: blur(4px);
 }
 
-.game-grove__scene--terraria {
-  left: 27%;
-  animation-delay: -1.4s;
-}
-
 .game-grove__scene--stardew {
   left: 46%;
   animation-delay: -3.2s;
@@ -178,66 +159,6 @@ onBeforeUnmount(() => {
   image-rendering: pixelated;
   filter: drop-shadow(0 5px 4px rgba(67, 48, 70, 0.18));
   user-select: none;
-}
-
-.game-grove__guide {
-  bottom: 10px;
-  left: 82px;
-  width: 36px;
-  height: 64px;
-}
-
-.terraria-bench {
-  position: absolute;
-  bottom: 10px;
-  left: 27px;
-  width: 62px;
-  height: 58px;
-}
-
-.terraria-bench__top {
-  position: absolute;
-  top: 17px;
-  left: 0;
-  width: 58px;
-  height: 13px;
-  border: 2px solid #4d3021;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 48%),
-    repeating-linear-gradient(90deg, #a66d3c 0 12px, #82522e 12px 15px);
-  box-shadow:
-    inset 0 -4px #674029,
-    3px 4px 0 rgba(62, 40, 31, 0.24);
-}
-
-.terraria-bench__leg {
-  position: absolute;
-  top: 32px;
-  width: 8px;
-  height: 25px;
-  background: #724328;
-  box-shadow: inset -3px 0 #4f2e20;
-}
-
-.terraria-bench__leg--left {
-  left: 5px;
-}
-
-.terraria-bench__leg--right {
-  right: 6px;
-}
-
-.terraria-bench__torch {
-  position: absolute;
-  top: -13px;
-  right: 4px;
-  width: 5px;
-  height: 25px;
-  background: #6c4529;
-  box-shadow:
-    -3px -8px 0 1px #ffd35c,
-    -6px -12px 0 0 rgba(255, 181, 78, 0.76),
-    3px -8px 0 0 rgba(255, 239, 148, 0.66);
 }
 
 .game-grove__junimo-hut {
