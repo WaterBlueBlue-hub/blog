@@ -9,6 +9,7 @@ import GameGrove from './components/GameGrove.vue'
 import SakuraPetals from './components/SakuraPetals.vue'
 import ContactButtons from './components/ContactButtons.vue'
 import PetAssistant from './components/PetAssistant.vue'
+import DeveloperMode from './components/DeveloperMode.vue'
 import ProjectFeed from './components/ProjectFeed.vue'
 import ArticleFeed from './components/ArticleFeed.vue'
 import NoteFeed from './components/NoteFeed.vue'
@@ -32,7 +33,7 @@ export default {
       'home-hero-info-after': () => [h(HeroGrass), h(GameGrove)],
       'home-hero-actions-after': () => h(ContactButtons),
       'home-hero-image': () => h(FluidFloat),
-      'layout-bottom': () => h(PetAssistant),
+      'layout-bottom': () => [h(PetAssistant), h(DeveloperMode)],
     }),
   enhanceApp(ctx: any) {
     ctx.app.component('FluidTank', FluidTank)

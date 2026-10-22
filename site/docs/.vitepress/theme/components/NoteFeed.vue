@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { withBase } from 'vitepress'
+import {
+  cardEditorState,
+  getCardOverride,
+  openCardEditor,
+} from '../composables/cardEditor'
 
 type Note = {
   id: number
@@ -34,6 +39,35 @@ const notes: Note[] = [
     placeholder: true,
   })),
 ]
+
+function valueFor(note: Note, field: 'title' | 'date' | 'topic' | 'excerpt' | 'image') {
+  return getCardOverride('note', note.id)?.[field] ?? note[field] ?? ''
+}
+
+function tagsFor(note: Note) {
+  return getCardOverride('note', note.id)?.tags ?? note.tags
+}
+
+function imageFor(note: Note) {
+  const image = valueFor(note, 'image')
+  if (!image) return ''
+  return /^(data:|https?:)/.test(image) ? image : withBase(image)
+}
+
+function handleCardClick(note: Note, event: MouseEvent) {
+  if (!cardEditorState.active) return
+  event.preventDefault()
+  openCardEditor({
+    kind: 'note',
+    id: note.id,
+    title: valueFor(note, 'title'),
+    date: valueFor(note, 'date'),
+    topic: valueFor(note, 'topic'),
+    excerpt: valueFor(note, 'excerpt'),
+    tags: tagsFor(note),
+    image: valueFor(note, 'image') || undefined,
+  })
+}
 </script>
 
 <template>
@@ -46,39 +80,48 @@ const notes: Note[] = [
       <span class="note-feed__total"><b>1</b> / 6</span>
     </header>
 
-    <div class="note-feed__grid">
+    <div :key="cardEditorState.revision" class="note-feed__grid">
       <component
-        :is="note.link ? 'a' : 'article'"
+        :is="note.link && !cardEditorState.active ? 'a' : 'article'"
         v-for="note in notes"
         :key="note.id"
         class="note-card"
         :class="{
-          'note-card--link': note.link,
+          'note-card--link': note.link && !cardEditorState.active,
           'note-card--placeholder': note.placeholder,
+          'note-card--editing': cardEditorState.active,
         }"
-        :href="note.link ? withBase(note.link) : undefined"
+        :href="note.link && !cardEditorState.active ? withBase(note.link) : undefined"
+        @click="handleCardClick(note, $event)"
       >
         <div class="note-card__cover">
-          <img v-if="note.image" :src="withBase(note.image)" alt="" loading="lazy" />
+          <img v-if="imageFor(note)" :src="imageFor(note)" alt="" loading="lazy" />
           <span class="note-card__code">N{{ String(note.id).padStart(2, '0') }}</span>
+          <span v-if="cardEditorState.active" class="note-card__edit">点击编辑</span>
           <span v-if="note.placeholder" class="note-card__serial" aria-hidden="true">
             {{ String(note.id).padStart(2, '0') }}
           </span>
         </div>
 
         <div class="note-card__body">
-          <h3>{{ note.title }}</h3>
+          <h3>{{ valueFor(note, 'title') }}</h3>
           <div class="note-card__meta">
-            <span>{{ note.date }}</span>
+            <span>{{ valueFor(note, 'date') }}</span>
             <i aria-hidden="true"></i>
-            <span>{{ note.topic }}</span>
+            <span>{{ valueFor(note, 'topic') }}</span>
           </div>
-          <p>{{ note.excerpt }}</p>
+          <p>{{ valueFor(note, 'excerpt') }}</p>
           <div class="note-card__footer">
             <div class="note-card__tags" aria-label="笔记标签">
-              <span v-for="tag in note.tags" :key="tag">#{{ tag }}</span>
+              <span v-for="tag in tagsFor(note)" :key="tag">#{{ tag }}</span>
             </div>
-            <span v-if="note.link" class="note-card__arrow" aria-hidden="true">↗</span>
+            <span
+              v-if="note.link && !cardEditorState.active"
+              class="note-card__arrow"
+              aria-hidden="true"
+            >
+              ↗
+            </span>
           </div>
         </div>
       </component>
@@ -163,6 +206,17 @@ const notes: Note[] = [
   transform: translateY(-3px);
 }
 
+.note-card--editing {
+  cursor: pointer;
+}
+
+.note-card--editing:hover {
+  border-color: rgba(47, 109, 246, 0.46);
+  box-shadow:
+    0 0 0 3px rgba(47, 109, 246, 0.08),
+    0 24px 54px -38px rgba(67, 42, 61, 0.62);
+}
+
 .note-card__cover {
   position: relative;
   aspect-ratio: 16 / 9;
@@ -216,6 +270,12 @@ const notes: Note[] = [
   transform: translate(-50%, -52%) scale(1.035);
 }
 
+.note-card:first-child .note-card__cover img {
+  width: 78%;
+  max-width: 210px;
+  border-radius: 50%;
+}
+
 .note-card__code {
   position: absolute;
   z-index: 2;
@@ -225,6 +285,20 @@ const notes: Note[] = [
   font-family: var(--vp-font-family-mono);
   font-size: 8px;
   letter-spacing: 1px;
+}
+
+.note-card__edit {
+  position: absolute;
+  z-index: 3;
+  right: 9px;
+  top: 9px;
+  border-radius: 999px;
+  padding: 3px 7px;
+  background: rgba(34, 35, 47, 0.72);
+  color: rgba(255, 255, 255, 0.86);
+  font-family: var(--vp-font-family-mono);
+  font-size: 8px;
+  letter-spacing: 0.4px;
 }
 
 .note-card__serial {

@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { withBase } from 'vitepress'
+import {
+  cardEditorState,
+  getCardOverride,
+  openCardEditor,
+} from '../composables/cardEditor'
 
 type Article = {
   id: number
@@ -170,6 +175,42 @@ const visibleArticles = computed(() =>
   filtered.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE),
 )
 
+function valueFor(
+  article: Article,
+  field: 'title' | 'date' | 'excerpt' | 'image',
+) {
+  return getCardOverride('article', article.id)?.[field] ?? article[field] ?? ''
+}
+
+function topicFor(article: Article) {
+  return getCardOverride('article', article.id)?.topic ?? article.category
+}
+
+function tagsFor(article: Article) {
+  return getCardOverride('article', article.id)?.tags ?? article.tags
+}
+
+function imageFor(article: Article) {
+  const image = valueFor(article, 'image')
+  if (!image) return ''
+  return /^(data:|https?:)/.test(image) ? image : withBase(image)
+}
+
+function handleCardClick(article: Article, event: MouseEvent) {
+  if (!cardEditorState.active) return
+  event.preventDefault()
+  openCardEditor({
+    kind: 'article',
+    id: article.id,
+    title: valueFor(article, 'title'),
+    date: valueFor(article, 'date'),
+    topic: topicFor(article),
+    excerpt: valueFor(article, 'excerpt'),
+    tags: tagsFor(article),
+    image: valueFor(article, 'image') || undefined,
+  })
+}
+
 function selectCategory(category: Category) {
   activeCategory.value = category
   page.value = 1
@@ -204,39 +245,44 @@ function goToPage(next: number) {
       </button>
     </nav>
 
-    <div class="article-feed__grid">
+    <div :key="cardEditorState.revision" class="article-feed__grid">
       <component
-        :is="article.link ? 'a' : 'article'"
+        :is="article.link && !cardEditorState.active ? 'a' : 'article'"
         v-for="article in visibleArticles"
         :key="article.id"
         class="article-card"
-        :class="{ 'article-card--link': article.link }"
-        :href="article.link ? withBase(article.link) : undefined"
+        :class="{
+          'article-card--link': article.link && !cardEditorState.active,
+          'article-card--editing': cardEditorState.active,
+        }"
+        :href="article.link && !cardEditorState.active ? withBase(article.link) : undefined"
+        @click="handleCardClick(article, $event)"
       >
         <div
           class="article-card__cover"
-          :class="[`is-${article.pattern}`, { 'has-image': article.image }]"
+          :class="[`is-${article.pattern}`, { 'has-image': imageFor(article) }]"
           :style="{
             '--cover-a': article.colors[0],
             '--cover-b': article.colors[1],
             '--cover-c': article.colors[2],
           }"
         >
-          <img v-if="article.image" :src="withBase(article.image)" alt="" />
+          <img v-if="imageFor(article)" :src="imageFor(article)" alt="" />
           <span class="article-card__code">A{{ String(article.id).padStart(2, '0') }}</span>
+          <span v-if="cardEditorState.active" class="article-card__edit">点击编辑</span>
           <span class="article-card__mark" aria-hidden="true"></span>
         </div>
 
         <div class="article-card__body">
-          <h3>{{ article.title }}</h3>
+          <h3>{{ valueFor(article, 'title') }}</h3>
           <div class="article-card__meta">
-            <span>{{ article.date }}</span>
+            <span>{{ valueFor(article, 'date') }}</span>
             <i aria-hidden="true"></i>
-            <span>{{ article.category }}</span>
+            <span>{{ topicFor(article) }}</span>
           </div>
-          <p>{{ article.excerpt }}</p>
+          <p>{{ valueFor(article, 'excerpt') }}</p>
           <div class="article-card__tags" aria-label="文章标签">
-            <span v-for="tag in article.tags" :key="tag">#{{ tag }}</span>
+            <span v-for="tag in tagsFor(article)" :key="tag">#{{ tag }}</span>
           </div>
         </div>
       </component>
@@ -392,6 +438,17 @@ function goToPage(next: number) {
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
+.article-card--editing {
+  cursor: pointer;
+}
+
+.article-card--editing:hover {
+  border-color: rgba(47, 109, 246, 0.46);
+  box-shadow:
+    0 0 0 3px rgba(47, 109, 246, 0.08),
+    0 24px 54px -38px rgba(67, 42, 61, 0.62);
+}
+
 .article-card__cover {
   position: relative;
   aspect-ratio: 16 / 9;
@@ -490,6 +547,20 @@ function goToPage(next: number) {
   font-family: var(--vp-font-family-mono);
   font-size: 8px;
   letter-spacing: 1px;
+}
+
+.article-card__edit {
+  position: absolute;
+  z-index: 3;
+  top: 9px;
+  right: 9px;
+  border-radius: 999px;
+  padding: 3px 7px;
+  background: rgba(34, 35, 47, 0.72);
+  color: rgba(255, 255, 255, 0.86);
+  font-family: var(--vp-font-family-mono);
+  font-size: 8px;
+  letter-spacing: 0.4px;
 }
 
 .article-card__mark {
