@@ -245,6 +245,9 @@ async function setupRig(options: {
       chestAngle * 0.7,
     )
     const hand = rotatePoint(handBase, shoulder, armAngle)
+    const handShiftX = hand.x - handBase.x
+    const handShiftY = hand.y - handBase.y
+    const weaponAngle = armAngle * 0.28
     bones = { root, spine, chest, head, shoulder, hand }
 
     const positions = bodyMesh.positions
@@ -278,10 +281,22 @@ async function setupRig(options: {
       const armVertical = smoothstep(250, 286, y) * (1 - smoothstep(430, 500, y))
       const armHorizontal = 1 - smoothstep(735, 820, x)
       const armWeight = armCore * armVertical * armHorizontal * 0.9
-      if (armWeight > 0.001) {
+      const weaponDistance = distanceToSegment(x, y, 645, 398, 330, 990)
+      const weaponCore = 1 - smoothstep(78, 200, weaponDistance)
+      const weaponVertical = smoothstep(360, 410, y)
+      const weaponHorizontal = 1 - smoothstep(675, 770, x)
+      const weaponWeight = weaponCore * weaponVertical * weaponHorizontal
+      const limbWeight = Math.max(armWeight, weaponWeight)
+      if (limbWeight > 0.001) {
         const armPoint = rotatePoint({ x: px, y: py }, shoulder, armAngle)
-        px = lerp(px, armPoint.x, armWeight)
-        py = lerp(py, armPoint.y, armWeight)
+        const weaponPoint = rotatePoint(
+          { x: px + handShiftX, y: py + handShiftY },
+          hand,
+          weaponAngle,
+        )
+        const target = weaponWeight > armWeight ? weaponPoint : armPoint
+        px = lerp(px, target.x, limbWeight)
+        py = lerp(py, target.y, limbWeight)
       }
       positions[ix] = px
       positions[ix + 1] = py
@@ -431,15 +446,19 @@ async function setupRig(options: {
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
 
-    ctx.strokeStyle = 'rgba(30, 24, 35, 0.72)'
-    ctx.lineWidth = 12
+    ctx.strokeStyle = 'rgba(49, 112, 173, 0.86)'
+    ctx.lineWidth = 9
     ctx.beginPath()
     ctx.moveTo(bones.root.x, bones.root.y)
     ctx.lineTo(bones.spine.x, bones.spine.y)
     ctx.lineTo(bones.chest.x, bones.chest.y)
     ctx.lineTo(bones.head.x, bones.head.y)
-    ctx.moveTo(bones.chest.x, bones.chest.y)
-    ctx.lineTo(bones.shoulder.x, bones.shoulder.y)
+    ctx.stroke()
+
+    ctx.strokeStyle = 'rgba(30, 24, 35, 0.72)'
+    ctx.lineWidth = 12
+    ctx.beginPath()
+    ctx.moveTo(bones.shoulder.x, bones.shoulder.y)
     ctx.lineTo(bones.hand.x, bones.hand.y)
     ctx.stroke()
     ctx.strokeStyle = 'rgba(255, 178, 73, 0.96)'
