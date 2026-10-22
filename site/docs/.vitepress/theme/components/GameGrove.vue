@@ -45,9 +45,21 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="root" class="game-grove" aria-hidden="true">
+    <img
+      class="game-grove__crystal-katana"
+      :src="withBase('/game-grove/crystal-crab-katana.png')"
+      alt=""
+    />
+
     <div
       class="game-grove__ground"
       :style="{ backgroundImage: `url(${withBase('/game-grove/pixel-ground.png')})` }"
+    />
+
+    <img
+      class="game-grove__es-character"
+      :src="withBase('/game-grove/es-character.png')"
+      alt=""
     />
 
     <img
@@ -119,7 +131,7 @@ onBeforeUnmount(() => {
 
 .game-grove__ground {
   position: absolute;
-  z-index: 0;
+  z-index: 1;
   top: 95px;
   left: 0;
   width: 100%;
@@ -147,6 +159,34 @@ onBeforeUnmount(() => {
   transform: rotate(12deg);
   user-select: none;
   animation: queen-slime-flight 4.4s ease-in-out infinite;
+}
+
+.game-grove__crystal-katana {
+  position: absolute;
+  z-index: 0;
+  top: 25px;
+  left: 110px;
+  display: block;
+  width: 132px;
+  height: auto;
+  image-rendering: pixelated;
+  transform: rotate(30deg);
+  transform-origin: 0 50%;
+  pointer-events: none;
+  user-select: none;
+}
+
+.game-grove__es-character {
+  position: absolute;
+  z-index: 2;
+  bottom: 10px;
+  left: -7px;
+  display: block;
+  width: 150px;
+  height: auto;
+  filter: drop-shadow(0 5px 4px rgba(67, 48, 70, 0.18));
+  pointer-events: none;
+  user-select: none;
 }
 
 .game-grove__sans {
