@@ -15,9 +15,12 @@ function layout() {
   const heroRect = hero.getBoundingClientRect()
   const containerRect = container.getBoundingClientRect()
   const mainRect = main.getBoundingClientRect()
+  const grass = hero.querySelector('.hero-grass') as HTMLElement | null
+  const flowerRoot = grass?.getBoundingClientRect().bottom
+    ?? heroRect.bottom - Math.max(46, Math.min(72, window.innerWidth * 0.05)) / 2 + 4
 
   root.value.style.left = `${containerRect.left - mainRect.left}px`
-  root.value.style.top = `${heroRect.bottom - mainRect.top - 94}px`
+  root.value.style.top = `${flowerRoot - mainRect.top - 102}px`
   root.value.style.width = `${containerRect.width}px`
 }
 
@@ -42,6 +45,12 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="root" class="game-grove" aria-hidden="true">
+    <img
+      class="game-grove__ground"
+      :src="withBase('/game-grove/pixel-ground.png')"
+      alt=""
+    />
+
     <div class="game-grove__scene game-grove__scene--terraria">
       <span class="terraria-bench">
         <i class="terraria-bench__top" />
@@ -111,8 +120,23 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
+.game-grove__ground {
+  position: absolute;
+  z-index: 0;
+  top: 95px;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  opacity: 0.96;
+  pointer-events: none;
+  user-select: none;
+}
+
 .game-grove__scene {
   position: absolute;
+  z-index: 2;
   bottom: 0;
   width: 166px;
   height: 96px;
@@ -123,9 +147,9 @@ onBeforeUnmount(() => {
   content: '';
   position: absolute;
   right: 24px;
-  bottom: 17px;
+  bottom: 6px;
   left: 24px;
-  height: 10px;
+  height: 7px;
   border-radius: 50%;
   background: rgba(81, 74, 91, 0.1);
   filter: blur(4px);
@@ -157,7 +181,7 @@ onBeforeUnmount(() => {
 }
 
 .game-grove__guide {
-  bottom: 11px;
+  bottom: 10px;
   left: 82px;
   width: 36px;
   height: 64px;
@@ -165,7 +189,7 @@ onBeforeUnmount(() => {
 
 .terraria-bench {
   position: absolute;
-  bottom: 18px;
+  bottom: 10px;
   left: 27px;
   width: 62px;
   height: 58px;
@@ -280,7 +304,7 @@ onBeforeUnmount(() => {
 }
 
 .game-grove__block--table {
-  bottom: 20px;
+  bottom: 10px;
   left: 38px;
   z-index: 2;
 }
