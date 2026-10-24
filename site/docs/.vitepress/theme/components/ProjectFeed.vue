@@ -3,7 +3,8 @@ import { withBase } from 'vitepress'
 
 type ProjectTile = {
   id: string
-  eyebrow: string
+  date: string
+  category: string
   title: string
   summary: string
   link?: string
@@ -15,7 +16,8 @@ type ProjectTile = {
 const tiles: ProjectTile[] = [
   {
     id: 'P01',
-    eyebrow: 'FEATURED PROJECT',
+    date: '2026-10-22',
+    category: '图形',
     title: 'ACN-Estimation',
     summary: '从自然纹理 Albedo 估计切线空间法线。',
     link: '/projects/acn-estimation/',
@@ -25,7 +27,8 @@ const tiles: ProjectTile[] = [
   },
   {
     id: 'P02',
-    eyebrow: 'PLACEHOLDER 02',
+    date: '待上线',
+    category: '未分类',
     title: '预留项目位',
     summary: '项目内容待添加。',
     colors: ['#715ec9', '#d4bee7', '#2a2458'],
@@ -33,7 +36,8 @@ const tiles: ProjectTile[] = [
   },
   {
     id: 'P03',
-    eyebrow: 'PLACEHOLDER 03',
+    date: '待上线',
+    category: '未分类',
     title: '预留项目位',
     summary: '项目内容待添加。',
     colors: ['#287f88', '#8bd1bd', '#173e48'],
@@ -41,7 +45,8 @@ const tiles: ProjectTile[] = [
   },
   {
     id: 'P04',
-    eyebrow: 'PLACEHOLDER 04',
+    date: '待上线',
+    category: '未分类',
     title: '预留项目位',
     summary: '项目内容待添加。',
     colors: ['#b36d8d', '#edb6c5', '#5c3045'],
@@ -49,7 +54,8 @@ const tiles: ProjectTile[] = [
   },
   {
     id: 'P05',
-    eyebrow: 'PLACEHOLDER 05',
+    date: '待上线',
+    category: '未分类',
     title: '预留项目位',
     summary: '项目内容待添加。',
     colors: ['#8c6d4c', '#d8bd8c', '#433226'],
@@ -57,7 +63,8 @@ const tiles: ProjectTile[] = [
   },
   {
     id: 'P06',
-    eyebrow: 'PLACEHOLDER 06',
+    date: '待上线',
+    category: '未分类',
     title: '预留项目位',
     summary: '项目内容待添加。',
     colors: ['#54657e', '#aebbd0', '#263141'],
@@ -95,11 +102,14 @@ const tiles: ProjectTile[] = [
           }"
         >
           <img v-if="tile.image" :src="withBase(tile.image)" alt="" />
-          <span>{{ tile.id }}</span>
         </div>
         <div class="project-tile__body">
-          <small>{{ tile.eyebrow }}</small>
           <h3>{{ tile.title }}</h3>
+          <div class="project-tile__meta">
+            <span>{{ tile.date }}</span>
+            <i aria-hidden="true"></i>
+            <span>{{ tile.category }}</span>
+          </div>
           <p>{{ tile.summary }}</p>
         </div>
       </component>
@@ -120,8 +130,7 @@ const tiles: ProjectTile[] = [
   margin-bottom: 16px;
 }
 
-.project-feed__eyebrow,
-.project-tile__body small {
+.project-feed__eyebrow {
   display: block;
   color: var(--vp-c-text-3);
   font-family: var(--vp-font-family-mono);
@@ -252,26 +261,33 @@ const tiles: ProjectTile[] = [
   opacity: 0.46;
 }
 
-.project-tile__cover span {
-  position: absolute;
-  z-index: 1;
-  top: 10px;
-  left: 11px;
-  color: rgba(255, 255, 255, 0.82);
-  font-family: var(--vp-font-family-mono);
-  font-size: 10px;
-}
-
 .project-tile__body {
   padding: 14px 17px 17px;
 }
 
 .project-tile__body h3 {
-  margin: 6px 0 0;
+  margin: 0;
   border: 0;
   padding: 0;
   font-size: 18px;
   line-height: 1.45;
+}
+
+.project-tile__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 9px;
+  color: var(--vp-c-text-3);
+  font-size: 11px;
+}
+
+.project-tile__meta i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
 }
 
 .project-tile__body p {

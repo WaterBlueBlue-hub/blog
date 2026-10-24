@@ -130,7 +130,6 @@ function handleCardClick(note: Note, event: MouseEvent) {
           }"
         >
           <img v-if="imageFor(note)" :src="imageFor(note)" alt="" loading="lazy" />
-          <span class="note-card__code">N{{ String(note.id).padStart(2, '0') }}</span>
           <span v-if="cardEditorState.active" class="note-card__edit">点击编辑</span>
           <span v-if="note.placeholder" class="note-card__serial" aria-hidden="true">
             {{ String(note.id).padStart(2, '0') }}
@@ -145,17 +144,8 @@ function handleCardClick(note: Note, event: MouseEvent) {
             <span>{{ valueFor(note, 'topic') }}</span>
           </div>
           <p>{{ valueFor(note, 'excerpt') }}</p>
-          <div class="note-card__footer">
-            <div class="note-card__tags" aria-label="笔记标签">
-              <span v-for="tag in tagsFor(note)" :key="tag">#{{ tag }}</span>
-            </div>
-            <span
-              v-if="note.link && !cardEditorState.active"
-              class="note-card__arrow"
-              aria-hidden="true"
-            >
-              ↗
-            </span>
+          <div class="note-card__tags" aria-label="笔记标签">
+            <span v-for="tag in tagsFor(note)" :key="tag">#{{ tag }}</span>
           </div>
         </div>
       </component>
@@ -325,17 +315,6 @@ function handleCardClick(note: Note, event: MouseEvent) {
   transform: scale(1.025);
 }
 
-.note-card__code {
-  position: absolute;
-  z-index: 2;
-  top: 10px;
-  left: 11px;
-  color: rgba(255, 255, 255, 0.75);
-  font-family: var(--vp-font-family-mono);
-  font-size: 8px;
-  letter-spacing: 1px;
-}
-
 .note-card__edit {
   position: absolute;
   z-index: 3;
@@ -404,18 +383,11 @@ function handleCardClick(note: Note, event: MouseEvent) {
   line-height: 1.75;
 }
 
-.note-card__footer {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: auto;
-}
-
 .note-card__tags {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin-top: auto;
 }
 
 .note-card__tags span {
@@ -424,17 +396,6 @@ function handleCardClick(note: Note, event: MouseEvent) {
   background: rgba(116, 105, 120, 0.075);
   color: var(--vp-c-text-3);
   font-size: 10px;
-}
-
-.note-card__arrow {
-  color: var(--vp-c-brand-1);
-  font-size: 18px;
-  line-height: 1;
-  transition: transform 0.2s ease;
-}
-
-.note-card--link:hover .note-card__arrow {
-  transform: translate(2px, -2px);
 }
 
 .note-card--placeholder:nth-child(3) .note-card__cover {
@@ -493,8 +454,7 @@ function handleCardClick(note: Note, event: MouseEvent) {
 
 @media (prefers-reduced-motion: reduce) {
   .note-card,
-  .note-card__cover img,
-  .note-card__arrow {
+  .note-card__cover img {
     transition: none;
   }
 }
