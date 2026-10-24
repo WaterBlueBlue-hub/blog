@@ -28,7 +28,7 @@ const notes: Note[] = [
     excerpt: '整理 KaTeX 与 MathJax 通用的行内公式、独立公式、多行对齐、矩阵和常见错误。',
     tags: ['LaTeX', 'KaTeX', 'MathJax'],
     image: '/notes/latex-cover.webp',
-    link: '/notes/math-mechanics/latex-math.html',
+    link: '/notes/writing-tools/latex-math.html',
     coverMode: 'icon',
   },
   {

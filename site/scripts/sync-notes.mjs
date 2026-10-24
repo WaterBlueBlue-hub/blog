@@ -24,30 +24,13 @@ const IMAGE_PROCESSING_ITEMS = [
   ['数字图像处理/滤波算子.md', 'filtering-operators'],
 ]
 
-/** 公开站点不收录的目录（面试问答属于个人求职材料，不适合公开） */
-const EXCLUDE_DIRS = ['面试']
-
 const SECTIONS = [
   {
-    slug: 'math-mechanics',
-    title: '数学与力学',
-    desc: '线性代数、分析力学、连续介质力学——模拟器里每个公式的来源。',
+    slug: 'writing-tools',
+    title: '写作工具',
+    desc: 'Markdown、LaTeX 与 MathJax 的常用写法。',
     items: [
-      ['基础理论/物理模拟中的线性代数.md', 'linear-algebra'],
-      ['基础理论/分析力学.md', 'analytical-mechanics'],
-      ['基础理论/连续介质力学.md', 'continuum-mechanics'],
-      ['基础理论/场论.md', 'field-theory'],
-      ['基础理论/滤波.md', 'filtering'],
       ['基础理论/LaTeX.md', 'latex-math'],
-    ],
-  },
-  {
-    slug: 'numerics',
-    title: '数值方法',
-    desc: '积分器、迭代解法与伴随方法，决定模拟稳不稳、准不准。',
-    items: [
-      ['数值方法/数值积分器与迭代法.md', 'integrators'],
-      ['数值方法/伴随方法.md', 'adjoint'],
     ],
   },
   {
@@ -56,62 +39,6 @@ const SECTIONS = [
     desc: '噪声、空间域滤波与边缘算子：从图像处理基础到法线估计实践。',
     source: 'website',
     items: IMAGE_PROCESSING_ITEMS,
-  },
-  {
-    slug: 'simulation',
-    title: '模拟算法',
-    desc: 'XPBD 主体、阻尼、邻域搜索、涟漪与流体渲染的实现取舍。',
-    items: [
-      ['模拟算法/基于位置的扩展动力学（XPBD）.md', 'xpbd'],
-      ['模拟算法/阻尼算法.md', 'damping'],
-      ['模拟算法/邻域搜索.md', 'neighbor-search'],
-      ['模拟算法/涟漪模拟.md', 'ripples'],
-      ['模拟算法/流体渲染.md', 'fluid-rendering'],
-      ['模拟算法/Tanabe-Kaneko 模型.md', 'tanabe-kaneko'],
-    ],
-  },
-  {
-    slug: 'constraints',
-    title: '约束与碰撞',
-    desc: '距离、二面角弯曲与相交测试：从推导到代码里的那一行。',
-    items: [
-      ['约束函数/距离约束.md', 'distance'],
-      ['约束函数/弯曲约束.md', 'bending'],
-      ['碰撞/相交测试.md', 'intersection'],
-    ],
-  },
-  {
-    slug: 'fluid',
-    title: '流体',
-    desc: 'SPH 核函数、涡量与 PBF 的概念梳理，流体解算器的数学准备。',
-    items: [
-      ['流体/概念.md', 'concepts'],
-      ['流体/核函数.md', 'kernels'],
-      ['流体/涡.md', 'vorticity'],
-    ],
-  },
-  {
-    slug: 'unity',
-    title: 'Unity 引擎',
-    desc: '脚本生命周期、渲染管线扩展点与常用 API 的笔记。',
-    items: [
-      ['Unity 引擎/生命周期.md', 'lifecycle'],
-      ['Unity 引擎/脚本 API/Object/Texture.md', 'texture'],
-      ['Unity 引擎/脚本 API/Object/ScriptableObject/ScriptableRendererFeature.md', 'renderer-feature'],
-      ['Unity 引擎/脚本 API/Rendering/ScriptableRenderPass.md', 'render-pass'],
-    ],
-  },
-  {
-    slug: 'cs',
-    title: '编程与系统',
-    desc: 'C# 内存模型、Job System、操作系统与计算机组成：写出跑得快的代码。',
-    items: [
-      ['基础理论/job.md', 'job-system'],
-      ['基础理论/面向对象编程.md', 'oop'],
-      ['基础理论/操作系统.md', 'operating-systems'],
-      ['基础理论/计算机组成.md', 'computer-organization'],
-      ['计算机基础/C#.md', 'csharp'],
-    ],
   },
 ]
 
@@ -171,28 +98,6 @@ function rewriteWebsiteNoteLinks(markdown) {
 }
 
 syncImageProcessingSnapshot()
-
-const mdFiles = []
-for (const dir of fs.existsSync(SRC) ? fs.readdirSync(SRC) : []) {
-  if (EXCLUDE_DIRS.includes(dir)) continue
-  walk(path.join(SRC, dir), dir)
-}
-
-function walk(absDir, relDir) {
-  for (const name of fs.readdirSync(absDir)) {
-    const abs = path.join(absDir, name)
-    const stat = fs.statSync(abs)
-    if (stat.isDirectory()) {
-      if (EXCLUDE_DIRS.includes(name)) continue
-      walk(abs, `${relDir}/${name}`)
-    } else if (name.toLowerCase().endsWith('.md')) {
-      mdFiles.push(`${relDir}/${name}`)
-    }
-  }
-}
-
-const known = new Set(SECTIONS.flatMap((s) => s.items.map((i) => i[0])))
-const unmapped = mdFiles.filter((f) => !known.has(f))
 
 function getTitle(md, fallback) {
   const m = md.match(/^\s*#\s+(.+?)\s*$/m)
@@ -312,11 +217,6 @@ for (const section of SECTIONS) {
     path.join(secDir, 'index.md'),
     `---\ntitle: ${section.title}\n---\n\n# ${section.title}\n\n${section.desc}\n\n${list}\n`,
   )
-}
-
-/* 未登记的新笔记：放进页面末尾提示，避免默默丢掉 */
-for (const rel of unmapped) {
-  warnings.push(`未登记的笔记（未上线）：${rel}`)
 }
 
 writeIfChanged(
