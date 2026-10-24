@@ -64,15 +64,6 @@ const notes: Note[] = [
     link: '/notes/image-processing/filtering-operators.html',
     coverMode: 'full',
   },
-  ...Array.from({ length: 2 }, (_, index): Note => ({
-    id: index + 105,
-    title: '预留笔记位',
-    date: '待整理',
-    topic: '笔记',
-    excerpt: '这一位置暂未发布，后续会用于整理新的数学、图形或工程笔记。',
-    tags: ['预留'],
-    placeholder: true,
-  })),
 ]
 
 const publishedCount = notes.filter((note) => !note.placeholder).length
