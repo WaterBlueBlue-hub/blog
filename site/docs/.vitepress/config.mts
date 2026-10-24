@@ -129,7 +129,7 @@ export default defineConfig({
     },
 
     outline: { level: [2, 3], label: '本页目录' },
-    docFooter: { prev: '上一篇', next: '下一篇' },
+    docFooter: { prev: false, next: false },
     darkModeSwitchLabel: '外观',
     lightModeSwitchTitle: '切换到浅色模式',
     darkModeSwitchTitle: '切换到深色模式',
