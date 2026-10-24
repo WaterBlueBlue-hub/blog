@@ -13,8 +13,16 @@ import { fileURLToPath } from 'node:url'
 const SITE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const REPO = path.resolve(SITE, '..')
 const SRC = path.join(REPO, '笔记')
+const WEBSITE_ROOT = path.resolve(SITE, '../../../个人网站')
+const WEBSITE_NOTES_SRC = path.join(WEBSITE_ROOT, '笔记')
+const WEBSITE_NOTES_SNAPSHOT = path.join(SITE, 'content', 'notes')
 const DOCS = path.join(SITE, 'docs')
 const OUT = path.join(DOCS, 'notes')
+const IMAGE_PROCESSING_ITEMS = [
+  ['数字图像处理/噪声.md', 'noise'],
+  ['数字图像处理/滤波.md', 'filtering'],
+  ['数字图像处理/滤波算子.md', 'filtering-operators'],
+]
 
 /** 公开站点不收录的目录（面试问答属于个人求职材料，不适合公开） */
 const EXCLUDE_DIRS = ['面试']
@@ -41,6 +49,13 @@ const SECTIONS = [
       ['数值方法/数值积分器与迭代法.md', 'integrators'],
       ['数值方法/伴随方法.md', 'adjoint'],
     ],
+  },
+  {
+    slug: 'image-processing',
+    title: '数字图像处理',
+    desc: '噪声、空间域滤波与边缘算子：从图像处理基础到法线估计实践。',
+    source: 'website',
+    items: IMAGE_PROCESSING_ITEMS,
   },
   {
     slug: 'simulation',
@@ -101,6 +116,61 @@ const SECTIONS = [
 ]
 
 const MIN_CHARS = 40
+
+function copyIfChanged(from, to) {
+  if (
+    fs.existsSync(to) &&
+    fs.readFileSync(from).equals(fs.readFileSync(to))
+  ) {
+    return
+  }
+  fs.mkdirSync(path.dirname(to), { recursive: true })
+  fs.copyFileSync(from, to)
+}
+
+/** 本地有个人网站内容工作区时，同步三篇图像处理笔记及其配图快照。 */
+function syncImageProcessingSnapshot() {
+  if (!fs.existsSync(WEBSITE_NOTES_SRC)) return
+
+  for (const [rel] of IMAGE_PROCESSING_ITEMS) {
+    const from = path.join(WEBSITE_NOTES_SRC, rel)
+    if (!fs.existsSync(from)) continue
+    const to = path.join(WEBSITE_NOTES_SNAPSHOT, rel)
+    copyIfChanged(from, to)
+
+    const raw = fs.readFileSync(from, 'utf8')
+    const sourceDir = path.dirname(from)
+    const destinationDir = path.dirname(to)
+    for (const match of raw.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)) {
+      const ref = decodeURI(match[1])
+      if (/^(https?:)?\/\//.test(ref)) continue
+      const assetFrom = path.resolve(sourceDir, ref)
+      const assetTo = path.resolve(destinationDir, ref)
+      if (!fs.existsSync(assetFrom)) continue
+      copyIfChanged(assetFrom, assetTo)
+    }
+  }
+}
+
+function rewriteWebsiteNoteLinks(markdown) {
+  return markdown
+    .replace(
+      /\]\(\.\.\/\.\.\/项目\/ACN-Estimation：[^)]+\.md\)/g,
+      '](/projects/acn-estimation/)',
+    )
+    .replace(
+      /\]\(\.\.\/\.\.\/文章\/ACN-Estimation：[^)]+\.md\)/g,
+      '](/articles/graphics/acn-estimation-albedo-to-normal/)',
+    )
+    .replace(/\]\(噪声\.md\)/g, '](/notes/image-processing/noise.html)')
+    .replace(/\]\(滤波\.md\)/g, '](/notes/image-processing/filtering.html)')
+    .replace(
+      /\]\(滤波算子\.md\)/g,
+      '](/notes/image-processing/filtering-operators.html)',
+    )
+}
+
+syncImageProcessingSnapshot()
 
 const mdFiles = []
 for (const dir of fs.existsSync(SRC) ? fs.readdirSync(SRC) : []) {
@@ -181,11 +251,14 @@ const warnings = []
 
 for (const section of SECTIONS) {
   const secDir = path.join(OUT, section.slug)
+  const sectionSource = section.source === 'website'
+    ? WEBSITE_NOTES_SNAPSHOT
+    : SRC
   fs.mkdirSync(secDir, { recursive: true })
 
   const entries = []
   for (const [rel, slug] of section.items) {
-    const abs = path.join(SRC, rel)
+    const abs = path.join(sectionSource, rel)
     if (!fs.existsSync(abs)) {
       warnings.push(`缺少笔记：${rel}`)
       continue
@@ -197,7 +270,11 @@ for (const section of SECTIONS) {
     }
 
     const title = getTitle(raw, path.basename(rel, '.md'))
-    const body = transform(raw)
+    const body = transform(
+      section.source === 'website'
+        ? rewriteWebsiteNoteLinks(raw)
+        : raw,
+    )
     const front = `---\ntitle: "${title.replace(/"/g, '\\"')}"\n---\n\n`
     writeIfChanged(path.join(secDir, `${slug}.md`), front + body)
 

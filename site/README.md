@@ -15,6 +15,7 @@ npm run preview  # 本地预览构建结果
 ```
 site/
   scripts/sync-notes.mjs     把 笔记/ 同步成 docs/notes/**（并生成侧边栏）
+  content/notes/             个人网站数字图像处理笔记的仓库快照
   docs/
     index.md                 首页（hero、常读的几篇）
     about.md                 关于 / 联系方式
@@ -26,7 +27,7 @@ site/
 
 ## 加一篇笔记
 
-1. 在仓库根目录 `笔记/<主题>/xxx.md` 里写内容（Markdown + `$...$` / `$$...$$` 公式 + 同目录图片）。
+1. 在仓库根目录 `笔记/<主题>/xxx.md` 里写内容（Markdown + `$...$` / `$$...$$` 公式 + 同目录图片）。`数字图像处理/` 三篇笔记从 `D:\作品集\个人网站\笔记\数字图像处理` 同步到仓库快照后构建。
 2. 在 `scripts/sync-notes.mjs` 的 `SECTIONS` 里登记一行：`['<主题>/xxx.md', '<slug>']`，
    slug 决定网址，例如 `xpbd` → `/notes/simulation/xpbd.html`。
 3. `npm run dev`（或 `npm run build`）即可。

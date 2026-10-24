@@ -74,6 +74,18 @@ function rewriteLinks(markdown) {
       `](${PROJECT_ROUTE})`,
     )
     .replace(
+      /\]\(\.\.\/笔记\/数字图像处理\/噪声\.md\)/g,
+      '](/notes/image-processing/noise.html)',
+    )
+    .replace(
+      /\]\(\.\.\/笔记\/数字图像处理\/滤波\.md\)/g,
+      '](/notes/image-processing/filtering.html)',
+    )
+    .replace(
+      /\]\(\.\.\/笔记\/数字图像处理\/滤波算子\.md\)/g,
+      '](/notes/image-processing/filtering-operators.html)',
+    )
+    .replace(
       /\]\(\.\.\/素材\/ACN-Estimation\/图片\//g,
       '](/acn-estimation/images/',
     )
