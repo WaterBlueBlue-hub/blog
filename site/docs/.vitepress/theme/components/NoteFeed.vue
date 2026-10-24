@@ -16,6 +16,7 @@ type Note = {
   image?: string
   link?: string
   placeholder?: boolean
+  coverMode?: 'icon' | 'full'
 }
 
 const notes: Note[] = [
@@ -28,9 +29,43 @@ const notes: Note[] = [
     tags: ['LaTeX', 'KaTeX', 'MathJax'],
     image: '/notes/latex-cover.webp',
     link: '/notes/math-mechanics/latex-math.html',
+    coverMode: 'icon',
   },
-  ...Array.from({ length: 5 }, (_, index): Note => ({
-    id: index + 2,
+  {
+    id: 101,
+    title: '噪声',
+    date: '2026-10-24',
+    topic: '数字图像处理',
+    excerpt: '从高斯与椒盐噪声，到 Perlin 和 Worley 的程序化生成与参数对比。',
+    tags: ['Perlin', 'Worley', '噪声模型'],
+    image: '/note-covers/noise.png',
+    link: '/notes/image-processing/noise.html',
+    coverMode: 'full',
+  },
+  {
+    id: 102,
+    title: '滤波',
+    date: '2026-10-24',
+    topic: '数字图像处理',
+    excerpt: '均值、高斯、双边、中值与形态学滤波的公式、适用范围和效果对照。',
+    tags: ['高斯滤波', '双边滤波', '形态学'],
+    image: '/note-covers/filtering.png',
+    link: '/notes/image-processing/filtering.html',
+    coverMode: 'full',
+  },
+  {
+    id: 103,
+    title: '滤波算子',
+    date: '2026-10-24',
+    topic: '数字图像处理',
+    excerpt: 'Roberts、Sobel、Scharr、Laplacian、LoG 与 Canny 的卷积核和响应对比。',
+    tags: ['Sobel', 'LoG', 'Canny'],
+    image: '/note-covers/operators.png',
+    link: '/notes/image-processing/filtering-operators.html',
+    coverMode: 'full',
+  },
+  ...Array.from({ length: 2 }, (_, index): Note => ({
+    id: index + 105,
     title: '预留笔记位',
     date: '待整理',
     topic: '笔记',
@@ -39,6 +74,8 @@ const notes: Note[] = [
     placeholder: true,
   })),
 ]
+
+const publishedCount = notes.filter((note) => !note.placeholder).length
 
 function valueFor(note: Note, field: 'title' | 'date' | 'topic' | 'excerpt' | 'image') {
   return getCardOverride('note', note.id)?.[field] ?? note[field] ?? ''
@@ -77,7 +114,7 @@ function handleCardClick(note: Note, event: MouseEvent) {
         <span class="note-feed__eyebrow">NOTES / QUICK REFERENCE</span>
         <h2 id="note-feed-title">笔记</h2>
       </div>
-      <span class="note-feed__total"><b>1</b> / 6</span>
+      <span class="note-feed__total"><b>{{ publishedCount }}</b> / {{ notes.length }}</span>
     </header>
 
     <div :key="cardEditorState.revision" class="note-feed__grid">
@@ -96,7 +133,10 @@ function handleCardClick(note: Note, event: MouseEvent) {
       >
         <div
           class="note-card__cover"
-          :class="{ 'has-custom-cover': Boolean(getCardOverride('note', note.id)?.image) }"
+          :class="{
+            'has-custom-cover':
+              Boolean(getCardOverride('note', note.id)?.image) || note.coverMode === 'full',
+          }"
         >
           <img v-if="imageFor(note)" :src="imageFor(note)" alt="" loading="lazy" />
           <span class="note-card__code">N{{ String(note.id).padStart(2, '0') }}</span>
