@@ -60,6 +60,29 @@ const SITE_TITLE = 'WaterBlueBlue 的博客'
 const SITE_DESC =
   '实时物理模拟、图形学与 Unity 工程实践的技术笔记：XPBD 约束推导、PBF 流体、数值方法与实现细节。'
 
+const projectSidebar = [
+  {
+    text: '数字图像处理',
+    collapsed: false,
+    items: [
+      { text: 'ACN-Estimation', link: '/projects/acn-estimation/' },
+    ],
+  },
+]
+
+const articleSidebar = [
+  {
+    text: '数字图像处理',
+    collapsed: false,
+    items: [
+      {
+        text: 'ACN-Estimation：基于纹理—几何耦合的自然材质法线估计',
+        link: '/articles/graphics/acn-estimation-albedo-to-normal/',
+      },
+    ],
+  },
+]
+
 export default defineConfig({
   // 部署到 GitHub Pages 的子路径时：SITE_BASE=/repo-name/ npm run build
   base: process.env.SITE_BASE || '/',
@@ -101,6 +124,8 @@ export default defineConfig({
 
     sidebar: {
       '/notes/': notesSidebar,
+      '/projects/': projectSidebar,
+      '/articles/': articleSidebar,
     },
 
     outline: { level: [2, 3], label: '本页目录' },

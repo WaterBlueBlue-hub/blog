@@ -10,9 +10,23 @@ const SITE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const DOCS = path.join(SITE, 'docs')
 const WEBSITE_ROOT = path.resolve(SITE, '../../../个人网站')
 const TITLE = 'ACN-Estimation：基于纹理—几何耦合的自然材质法线估计'
-const LOCAL_PROJECT_SOURCE = path.join(WEBSITE_ROOT, '项目', `${TITLE}.md`)
-const LOCAL_ARTICLE_SOURCE = path.join(WEBSITE_ROOT, '文章', `${TITLE}.md`)
-const MEDIA_SOURCE = path.join(WEBSITE_ROOT, '素材', 'ACN-Estimation')
+const CATEGORY = '数字图像处理'
+const LOCAL_PROJECT_SOURCE = path.join(WEBSITE_ROOT, '项目', CATEGORY, `${TITLE}.md`)
+const LOCAL_ARTICLE_SOURCE = path.join(WEBSITE_ROOT, '文章', CATEGORY, `${TITLE}.md`)
+const PROJECT_MEDIA_SOURCE = path.join(
+  WEBSITE_ROOT,
+  '项目',
+  CATEGORY,
+  '素材',
+  'ACN',
+)
+const ARTICLE_MEDIA_SOURCE = path.join(
+  WEBSITE_ROOT,
+  '文章',
+  CATEGORY,
+  '素材',
+  'ACN',
+)
 const CONTENT_DIR = path.join(SITE, 'content', 'acn-estimation')
 const PROJECT_SOURCE = path.join(CONTENT_DIR, 'project.md')
 const ARTICLE_SOURCE = path.join(CONTENT_DIR, 'article.md')
@@ -74,16 +88,40 @@ function rewriteLinks(markdown) {
       `](${PROJECT_ROUTE})`,
     )
     .replace(
-      /\]\(\.\.\/笔记\/数字图像处理\/噪声\.md\)/g,
+      /\]\(\.\.\/\.\.\/文章\/数字图像处理\/[^)]+\.md\)/g,
+      `](${ARTICLE_ROUTE})`,
+    )
+    .replace(
+      /\]\(\.\.\/\.\.\/项目\/数字图像处理\/[^)]+\.md\)/g,
+      `](${PROJECT_ROUTE})`,
+    )
+    .replace(
+      /\]\((?:\.\.\/)+笔记\/数字图像处理\/噪声\.md\)/g,
       '](/notes/image-processing/noise.html)',
     )
     .replace(
-      /\]\(\.\.\/笔记\/数字图像处理\/滤波\.md\)/g,
+      /\]\((?:\.\.\/)+笔记\/数字图像处理\/滤波\.md\)/g,
       '](/notes/image-processing/filtering.html)',
     )
     .replace(
-      /\]\(\.\.\/笔记\/数字图像处理\/滤波算子\.md\)/g,
+      /\]\((?:\.\.\/)+笔记\/数字图像处理\/滤波算子\.md\)/g,
       '](/notes/image-processing/filtering-operators.html)',
+    )
+    .replace(
+      /\]\((?:\.\.\/)*素材\/ACN\/图片\//g,
+      '](/acn-estimation/images/',
+    )
+    .replace(
+      /(src|poster)="(?:\.\.\/)*素材\/ACN\/图片\//g,
+      '$1="/acn-estimation/images/',
+    )
+    .replace(
+      /\]\((?:\.\.\/)*素材\/ACN\/视频\//g,
+      '](/acn-estimation/video/',
+    )
+    .replace(
+      /(src|poster)="(?:\.\.\/)*素材\/ACN\/视频\//g,
+      '$1="/acn-estimation/video/',
     )
     .replace(
       /\]\(\.\.\/素材\/ACN-Estimation\/图片\//g,
@@ -129,7 +167,7 @@ function rewriteLinks(markdown) {
 
 function page(markdown, fallbackTitle) {
   const title = titleOf(markdown, fallbackTitle).replace(/"/g, '\\"')
-  return `---\ntitle: "${title}"\noutline: [2, 3]\npageClass: acn-reading\naside: left\n---\n\n${rewriteLinks(markdown).trim()}\n`
+  return `---\ntitle: "${title}"\noutline: [2, 3]\npageClass: acn-reading\naside: true\n---\n\n${rewriteLinks(markdown).trim()}\n`
 }
 
 const article = fs.readFileSync(ARTICLE_SOURCE, 'utf8')
@@ -148,25 +186,27 @@ writeIfChanged(
   `---\ntitle: 文章\n---\n\n# 文章\n\n<div class="collection-grid">\n  <a class="collection-card" href="${ARTICLE_ROUTE}">\n    <span>ARTICLE / GRAPHICS</span>\n    <h2>基于纹理—几何耦合的自然材质法线估计</h2>\n    <p>从 Albedo 估计切线空间法线的方法、实验与边界。</p>\n  </a>\n</div>\n`,
 )
 
-if (USE_LOCAL_SOURCES && fs.existsSync(MEDIA_SOURCE)) {
-  for (const dir of ['图片', '视频']) {
-    if (!fs.existsSync(path.join(MEDIA_SOURCE, dir))) {
-      throw new Error(`ACN 素材目录不存在：${path.join(MEDIA_SOURCE, dir)}`)
-    }
-  }
-
+if (
+  USE_LOCAL_SOURCES &&
+  fs.existsSync(PROJECT_MEDIA_SOURCE) &&
+  fs.existsSync(ARTICLE_MEDIA_SOURCE)
+) {
   fs.rmSync(PUBLIC_DIR, { recursive: true, force: true })
   fs.mkdirSync(PUBLIC_DIR, { recursive: true })
-  fs.cpSync(
-    path.join(MEDIA_SOURCE, '图片'),
-    path.join(PUBLIC_DIR, 'images'),
-    { recursive: true },
-  )
-  fs.cpSync(
-    path.join(MEDIA_SOURCE, '视频'),
-    path.join(PUBLIC_DIR, 'video'),
-    { recursive: true },
-  )
+  for (const source of [ARTICLE_MEDIA_SOURCE, PROJECT_MEDIA_SOURCE]) {
+    for (const [sourceDir, targetDir] of [
+      ['图片', 'images'],
+      ['视频', 'video'],
+    ]) {
+      const from = path.join(source, sourceDir)
+      if (fs.existsSync(from)) {
+        fs.cpSync(from, path.join(PUBLIC_DIR, targetDir), {
+          recursive: true,
+          force: true,
+        })
+      }
+    }
+  }
 } else if (
   !fs.existsSync(path.join(PUBLIC_DIR, 'images')) ||
   !fs.existsSync(path.join(PUBLIC_DIR, 'video'))

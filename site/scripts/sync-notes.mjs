@@ -155,11 +155,11 @@ function syncImageProcessingSnapshot() {
 function rewriteWebsiteNoteLinks(markdown) {
   return markdown
     .replace(
-      /\]\(\.\.\/\.\.\/项目\/ACN-Estimation：[^)]+\.md\)/g,
+      /\]\(\.\.\/\.\.\/项目\/数字图像处理\/ACN-Estimation：[^)]+\.md\)/g,
       '](/projects/acn-estimation/)',
     )
     .replace(
-      /\]\(\.\.\/\.\.\/文章\/ACN-Estimation：[^)]+\.md\)/g,
+      /\]\(\.\.\/\.\.\/文章\/数字图像处理\/ACN-Estimation：[^)]+\.md\)/g,
       '](/articles/graphics/acn-estimation-albedo-to-normal/)',
     )
     .replace(/\]\(噪声\.md\)/g, '](/notes/image-processing/noise.html)')

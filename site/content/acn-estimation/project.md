@@ -4,7 +4,7 @@
 
 &emsp;&emsp;ACN-Estimation 是一个离线 Windows 工具，尝试直接从自然纹理的 Albedo 估计切线空间法线贴图。它重点关注当颜色明暗与表面起伏存在统计耦合时，能否用轻量、确定性的算法快速生成可用的法线原型。
 
-![ACN-Estimation 界面与 Albedo、法线对照](../素材/ACN-Estimation/图片/cover.webp)
+![ACN-Estimation 界面与 Albedo、法线对照](素材/ACN/图片/cover.webp)
 
 ## 项目概览
 
@@ -21,9 +21,9 @@
 
 ## 演示视频
 
-<video controls preload="metadata" poster="../素材/ACN-Estimation/视频/acn-estimation-demo-poster.webp">
-  <source src="../素材/ACN-Estimation/视频/acn-estimation-demo-1080p.mp4" type="video/mp4">
-  <track kind="subtitles" src="../素材/ACN-Estimation/视频/acn-estimation-demo.zh-CN.vtt" srclang="zh-CN" label="简体中文" default>
+<video controls preload="metadata" poster="素材/ACN/视频/acn-estimation-demo-poster.webp">
+  <source src="素材/ACN/视频/acn-estimation-demo-1080p.mp4" type="video/mp4">
+  <track kind="subtitles" src="素材/ACN/视频/acn-estimation-demo.zh-CN.vtt" srclang="zh-CN" label="简体中文" default>
   当前浏览器不支持 HTML5 视频播放。
 </video>
 
@@ -69,21 +69,21 @@ X/Y 强度独立增强
 
 &emsp;&emsp;固定参数下，各向同性木头可以得到较平滑的结果：
 
-![各向同性木头对比](../素材/ACN-Estimation/图片/comparison-isotropic-wood.webp)
+![各向同性木头对比](素材/ACN/图片/comparison-isotropic-wood.webp)
 
 &emsp;&emsp;同一组参数应用到各向异性金属时，横向沟槽几乎消失：
 
-![各向异性金属固定参数结果](../素材/ACN-Estimation/图片/comparison-fixed-parameters.webp)
+![各向异性金属固定参数结果](素材/ACN/图片/comparison-fixed-parameters.webp)
 
 &emsp;&emsp;将 Y 方向强度提高到 `40`，再依次执行形态学清理与横向平均后，条纹结构恢复，随机噪声受到抑制：
 
-![各向异性金属优化结果](../素材/ACN-Estimation/图片/comparison-optimized.webp)
+![各向异性金属优化结果](素材/ACN/图片/comparison-optimized.webp)
 
 ## 失败边界
 
 &emsp;&emsp;集装箱纹理包含强烈的文字和印刷图案。算法会把文字亮度边缘错误解释成凹凸，即使继续调整参数也无法消除这个根本矛盾。
 
-![集装箱文字失败案例](../素材/ACN-Estimation/图片/failure-container.webp)
+![集装箱文字失败案例](素材/ACN/图片/failure-container.webp)
 
 &emsp;&emsp;因此，Albedo 到 Normal 是一个病态问题：单张颜色图可能对应多种真实几何。该工具适合自然纹理和方向性材质的快速原型，不适合替代高模烘焙，也不适合文字、标识和印刷图案的自动生产。
 
@@ -97,5 +97,5 @@ X/Y 强度独立增强
 
 ## 延伸阅读
 
-- 文章：[ACN-Estimation：基于纹理—几何耦合的自然材质法线估计](../文章/ACN-Estimation：基于纹理—几何耦合的自然材质法线估计.md)
-- 笔记：[噪声](../笔记/数字图像处理/噪声.md)、[滤波](../笔记/数字图像处理/滤波.md)、[滤波算子](../笔记/数字图像处理/滤波算子.md)
+- 文章：[ACN-Estimation：基于纹理—几何耦合的自然材质法线估计](../../文章/数字图像处理/ACN-Estimation：基于纹理—几何耦合的自然材质法线估计.md)
+- 笔记：[噪声](../../笔记/数字图像处理/噪声.md)、[滤波](../../笔记/数字图像处理/滤波.md)、[滤波算子](../../笔记/数字图像处理/滤波算子.md)

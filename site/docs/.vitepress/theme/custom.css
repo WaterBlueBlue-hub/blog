@@ -308,25 +308,16 @@
   max-width: 1000px !important;
 }
 
-/* ACN 项目页与文章页：更宽的正文与左侧目录 */
+/* ACN 项目页与文章页：左侧分类、中间正文、右侧目录 */
 @media (min-width: 1280px) {
-  .acn-reading .VPDoc:not(.has-sidebar) .container {
-    max-width: 1720px;
-  }
-
-  .acn-reading .VPDoc:not(.has-sidebar) .content {
-    max-width: none;
-    flex: 1;
-    min-width: 0;
-  }
-
   .acn-reading .VPDoc.has-aside .content-container {
-    max-width: 1200px;
+    max-width: 960px;
   }
 
   .acn-reading .VPDoc .aside {
     max-width: 224px;
-    padding-right: 24px;
+    padding-right: 0;
+    padding-left: 24px;
   }
 
   .acn-reading .VPDoc .aside-container,

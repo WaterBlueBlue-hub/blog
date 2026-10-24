@@ -13,10 +13,10 @@
   </thead>
   <tbody>
     <tr>
-      <td><img src="../素材/ACN-Estimation/图片/anisotropic-metal-original-normal.webp" alt="各向异性金属 Original 标配法线贴图" width="150"></td>
-      <td><img src="../素材/ACN-Estimation/图片/anisotropic-metal-original-unity.webp" alt="各向异性金属 Original Unity 渲染结果" width="150"></td>
-      <td><img src="../素材/ACN-Estimation/图片/anisotropic-metal-generated-normal.webp" alt="各向异性金属工具生成的法线贴图" width="150"></td>
-      <td><img src="../素材/ACN-Estimation/图片/anisotropic-metal-generated-unity.webp" alt="各向异性金属工具生成的 Unity 渲染结果" width="150"></td>
+      <td><img src="素材/ACN/图片/anisotropic-metal-original-normal.webp" alt="各向异性金属 Original 标配法线贴图" width="150"></td>
+      <td><img src="素材/ACN/图片/anisotropic-metal-original-unity.webp" alt="各向异性金属 Original Unity 渲染结果" width="150"></td>
+      <td><img src="素材/ACN/图片/anisotropic-metal-generated-normal.webp" alt="各向异性金属工具生成的法线贴图" width="150"></td>
+      <td><img src="素材/ACN/图片/anisotropic-metal-generated-unity.webp" alt="各向异性金属工具生成的 Unity 渲染结果" width="150"></td>
     </tr>
   </tbody>
 </table>
@@ -34,10 +34,10 @@
   </thead>
   <tbody>
     <tr>
-      <td><img src="../素材/ACN-Estimation/图片/isotropic-wood-original-normal.webp" alt="各向同性木头 Original 标配法线贴图" width="150"></td>
-      <td><img src="../素材/ACN-Estimation/图片/isotropic-wood-original-unity.webp" alt="各向同性木头 Original Unity 渲染结果" width="150"></td>
-      <td><img src="../素材/ACN-Estimation/图片/isotropic-wood-generated-normal.webp" alt="各向同性木头工具生成的法线贴图" width="150"></td>
-      <td><img src="../素材/ACN-Estimation/图片/isotropic-wood-generated-unity.webp" alt="各向同性木头工具生成的 Unity 渲染结果" width="150"></td>
+      <td><img src="素材/ACN/图片/isotropic-wood-original-normal.webp" alt="各向同性木头 Original 标配法线贴图" width="150"></td>
+      <td><img src="素材/ACN/图片/isotropic-wood-original-unity.webp" alt="各向同性木头 Original Unity 渲染结果" width="150"></td>
+      <td><img src="素材/ACN/图片/isotropic-wood-generated-normal.webp" alt="各向同性木头工具生成的法线贴图" width="150"></td>
+      <td><img src="素材/ACN/图片/isotropic-wood-generated-unity.webp" alt="各向同性木头工具生成的 Unity 渲染结果" width="150"></td>
     </tr>
   </tbody>
 </table>
@@ -152,11 +152,11 @@ normal_rgb = ((normal * 0.5 + 0.5) * 255).astype(np.uint8)
 <table border="0" style="width: 100%; table-layout: fixed;">
   <tr>
     <td align="center" valign="top" style="width: 50%; padding: 8px;">
-      <img src="../素材/ACN-Estimation/图片/anisotropic-metal-y40-normal.webp" alt="各向异性金属高强度 Y 梯度法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/anisotropic-metal-y40-normal.webp" alt="各向异性金属高强度 Y 梯度法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px; word-wrap: break-word;">各向异性金属<br><b>Sobel_intensity_y=40</b></div>
     </td>
     <td align="center" valign="top" style="width: 50%; padding: 8px;">
-      <img src="../素材/ACN-Estimation/图片/anisotropic-metal-y40-unity.webp" alt="各向异性金属高强度 Y 梯度 Unity 渲染结果" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/anisotropic-metal-y40-unity.webp" alt="各向异性金属高强度 Y 梯度 Unity 渲染结果" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px; word-wrap: break-word;">各向异性金属 Unity 渲染结果<br><b>Sobel_intensity_y=40</b></div>
     </td>
   </tr>
@@ -186,11 +186,11 @@ $$
 <table border="0" style="width: 100%; table-layout: fixed;">
   <tr>
     <td align="center" valign="top" style="width: 50%; padding: 8px;">
-      <img src="../素材/ACN-Estimation/图片/anisotropic-metal-generated-normal.webp" alt="各向异性金属横向平均后的法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/anisotropic-metal-generated-normal.webp" alt="各向异性金属横向平均后的法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px; word-wrap: break-word;">各向异性金属<br><b>Sobel_intensity_y=40_avg</b></div>
     </td>
     <td align="center" valign="top" style="width: 50%; padding: 8px;">
-      <img src="../素材/ACN-Estimation/图片/anisotropic-metal-generated-unity.webp" alt="各向异性金属横向平均后的 Unity 渲染结果" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/anisotropic-metal-generated-unity.webp" alt="各向异性金属横向平均后的 Unity 渲染结果" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px; word-wrap: break-word;">各向异性金属 Unity 渲染结果<br><b>Sobel_intensity_y=40_avg</b></div>
     </td>
   </tr>
@@ -217,10 +217,10 @@ $$
   </thead>
   <tbody>
     <tr>
-      <td align="center" valign="top" style="width: 25%; padding: 8px;"><img src="../素材/ACN-Estimation/图片/anisotropic-metal-y40-normal.webp" alt="各向异性金属法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;"></td>
-      <td align="center" valign="top" style="width: 25%; padding: 8px;"><img src="../素材/ACN-Estimation/图片/normal-red-channel.webp" alt="法线贴图 R 通道" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;"></td>
-      <td align="center" valign="top" style="width: 25%; padding: 8px;"><img src="../素材/ACN-Estimation/图片/normal-green-channel.webp" alt="法线贴图 G 通道" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;"></td>
-      <td align="center" valign="top" style="width: 25%; padding: 8px;"><img src="../素材/ACN-Estimation/图片/normal-blue-channel.webp" alt="法线贴图 B 通道" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;"></td>
+      <td align="center" valign="top" style="width: 25%; padding: 8px;"><img src="素材/ACN/图片/anisotropic-metal-y40-normal.webp" alt="各向异性金属法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;"></td>
+      <td align="center" valign="top" style="width: 25%; padding: 8px;"><img src="素材/ACN/图片/normal-red-channel.webp" alt="法线贴图 R 通道" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;"></td>
+      <td align="center" valign="top" style="width: 25%; padding: 8px;"><img src="素材/ACN/图片/normal-green-channel.webp" alt="法线贴图 G 通道" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;"></td>
+      <td align="center" valign="top" style="width: 25%; padding: 8px;"><img src="素材/ACN/图片/normal-blue-channel.webp" alt="法线贴图 B 通道" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;"></td>
     </tr>
   </tbody>
 </table>
@@ -244,7 +244,7 @@ final_normal = cv2.merge([b_reconstructed, final_g, final_r])
 
 &emsp;&emsp;G 通道中主要可以看到三类噪声：离散的黑色麻点、沿条纹分布的白色带状异常，以及局部聚集的簇状噪声。中值滤波对孤立的椒盐噪声和短小异常点较有效。它把局部窗口内的像素排序，并取中间值作为中心像素的新值：
 
-![G 通道中的黑色麻点、白色带状和簇状噪声](../素材/ACN-Estimation/图片/normal-noise-types.webp)
+![G 通道中的黑色麻点、白色带状和簇状噪声](素材/ACN/图片/normal-noise-types.webp)
 
 ```python
 smooth = cv2.medianBlur(target_channel, 5)
@@ -252,7 +252,7 @@ smooth = cv2.medianBlur(target_channel, 5)
 
 | 中值滤波前的 G 通道 | 中值滤波后的 G 通道 |
 | :---: | :---: |
-| ![中值滤波前的 G 通道](../素材/ACN-Estimation/图片/normal-green-channel.webp) | ![中值滤波后的 G 通道](../素材/ACN-Estimation/图片/normal-green-median.webp) |
+| ![中值滤波前的 G 通道](素材/ACN/图片/normal-green-channel.webp) | ![中值滤波后的 G 通道](素材/ACN/图片/normal-green-median.webp) |
 
 &emsp;&emsp;中值滤波减少了孤立噪点，但长条噪声、成簇异常以及与有效条纹相连的区域仍会保留。后续步骤需要继续从几何形状上判断连通区域是否像真正的长条纹。
 
@@ -342,7 +342,7 @@ target_denoised[feature_mask > 0] = target_channel[feature_mask > 0]
 &emsp;&emsp;这一步把背景中大量零散波动强制归零，使非条纹区域恢复为平坦表面。需要注意的是，这会主动删除未被判定为长条纹的所有细节，因此只适用于方向结构非常明确的材质。
 
 <p align="center">
-  <img src="../素材/ACN-Estimation/图片/morphology-cleanup.webp" alt="形态学筛选区域可视化" style="width: 50%; max-width: 480px; height: auto;">
+  <img src="素材/ACN/图片/morphology-cleanup.webp" alt="形态学筛选区域可视化" style="width: 50%; max-width: 480px; height: auto;">
 </p>
 
 &emsp;&emsp;可视化中绿色表示通过长度与长宽比筛选的特征区域，红色表示被判定为噪声的连通分量。筛选结果直接决定后续哪些条纹能被写回法线贴图。
@@ -362,7 +362,7 @@ $$
 
 | 去噪后的法线贴图 | 仍无法完全清除的噪声 |
 | :---: | :---: |
-| ![形态学去噪后的法线贴图](../素材/ACN-Estimation/图片/normal-morphology-result.webp) | ![形态学去噪后残留的局部噪声](../素材/ACN-Estimation/图片/normal-morphology-residual.webp) |
+| ![形态学去噪后的法线贴图](素材/ACN/图片/normal-morphology-result.webp) | ![形态学去噪后残留的局部噪声](素材/ACN/图片/normal-morphology-residual.webp) |
 
 &emsp;&emsp;背景中的短碎噪声被大量清除，主要横向条纹得到保留，法线贴图从密集颗粒状分布变为条理更清晰的方向结构。仍有一部分噪声与有效条纹相连，或在局部聚集成簇。由于它们的外接矩形也可能满足长度与长宽比条件，单纯依靠几何筛选无法彻底去除。
 
@@ -382,24 +382,24 @@ Average_Y = 0
 
 ### 4.1、各向同性木头
 
-![各向同性木头 Unity 渲染对照](../素材/ACN-Estimation/图片/comparison-isotropic-wood.webp)
+![各向同性木头 Unity 渲染对照](素材/ACN/图片/comparison-isotropic-wood.webp)
 
 <table border="0" style="width: 100%; table-layout: fixed;">
   <tr>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/isotropic-wood-albedo.webp" alt="各向同性木头 Albedo" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/isotropic-wood-albedo.webp" alt="各向同性木头 Albedo" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">各向同性木头<br><b>Albedo</b></div>
     </td>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/isotropic-wood-original-normal.webp" alt="各向同性木头 Original 法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/isotropic-wood-original-normal.webp" alt="各向同性木头 Original 法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">各向同性木头<br><b>Original</b></div>
     </td>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/isotropic-wood-sobel-normal.webp" alt="各向同性木头 Sobel 法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/isotropic-wood-sobel-normal.webp" alt="各向同性木头 Sobel 法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">各向同性木头<br><b>Sobel</b></div>
     </td>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/isotropic-wood-generated-normal.webp" alt="各向同性木头 Sobel 加双边滤波法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/isotropic-wood-generated-normal.webp" alt="各向同性木头 Sobel 加双边滤波法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">各向同性木头<br><b>Sobel + Bilateral</b></div>
     </td>
   </tr>
@@ -407,24 +407,24 @@ Average_Y = 0
 
 ### 4.2、各向同性金属
 
-![各向同性金属 Unity 渲染对照](../素材/ACN-Estimation/图片/comparison-isotropic-metal.webp)
+![各向同性金属 Unity 渲染对照](素材/ACN/图片/comparison-isotropic-metal.webp)
 
 <table border="0" style="width: 100%; table-layout: fixed;">
   <tr>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/isotropic-metal-albedo.webp" alt="各向同性金属 Albedo" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/isotropic-metal-albedo.webp" alt="各向同性金属 Albedo" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">各向同性金属<br><b>Albedo</b></div>
     </td>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/isotropic-metal-original-normal.webp" alt="各向同性金属 Original 法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/isotropic-metal-original-normal.webp" alt="各向同性金属 Original 法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">各向同性金属<br><b>Original</b></div>
     </td>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/isotropic-metal-sobel-normal.webp" alt="各向同性金属 Sobel 法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/isotropic-metal-sobel-normal.webp" alt="各向同性金属 Sobel 法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">各向同性金属<br><b>Sobel</b></div>
     </td>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/isotropic-metal-bilateral-normal.webp" alt="各向同性金属 Sobel 加双边滤波法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/isotropic-metal-bilateral-normal.webp" alt="各向同性金属 Sobel 加双边滤波法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">各向同性金属<br><b>Sobel + Bilateral</b></div>
     </td>
   </tr>
@@ -432,24 +432,24 @@ Average_Y = 0
 
 ### 4.3、各向异性木头
 
-![各向异性木头 Unity 渲染对照](../素材/ACN-Estimation/图片/comparison-anisotropic-wood.webp)
+![各向异性木头 Unity 渲染对照](素材/ACN/图片/comparison-anisotropic-wood.webp)
 
 <table border="0" style="width: 100%; table-layout: fixed;">
   <tr>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/anisotropic-wood-albedo.webp" alt="各向异性木头 Albedo" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/anisotropic-wood-albedo.webp" alt="各向异性木头 Albedo" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">各向异性木头<br><b>Albedo</b></div>
     </td>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/anisotropic-wood-original-normal.webp" alt="各向异性木头 Original 法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/anisotropic-wood-original-normal.webp" alt="各向异性木头 Original 法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">各向异性木头<br><b>Original</b></div>
     </td>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/anisotropic-wood-sobel-normal.webp" alt="各向异性木头 Sobel 法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/anisotropic-wood-sobel-normal.webp" alt="各向异性木头 Sobel 法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">各向异性木头<br><b>Sobel</b></div>
     </td>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/anisotropic-wood-bilateral-normal.webp" alt="各向异性木头 Sobel 加双边滤波法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/anisotropic-wood-bilateral-normal.webp" alt="各向异性木头 Sobel 加双边滤波法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">各向异性木头<br><b>Sobel + Bilateral</b></div>
     </td>
   </tr>
@@ -457,24 +457,24 @@ Average_Y = 0
 
 ### 4.4、各向异性金属
 
-![各向异性金属固定参数 Unity 渲染对照](../素材/ACN-Estimation/图片/comparison-fixed-parameters.webp)
+![各向异性金属固定参数 Unity 渲染对照](素材/ACN/图片/comparison-fixed-parameters.webp)
 
 <table border="0" style="width: 100%; table-layout: fixed;">
   <tr>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/anisotropic-metal-albedo.webp" alt="各向异性金属 Albedo" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/anisotropic-metal-albedo.webp" alt="各向异性金属 Albedo" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">各向异性金属<br><b>Albedo</b></div>
     </td>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/anisotropic-metal-original-normal.webp" alt="各向异性金属 Original 法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/anisotropic-metal-original-normal.webp" alt="各向异性金属 Original 法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">各向异性金属<br><b>Original</b></div>
     </td>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/anisotropic-metal-sobel-fixed-normal.webp" alt="各向异性金属固定参数 Sobel 法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/anisotropic-metal-sobel-fixed-normal.webp" alt="各向异性金属固定参数 Sobel 法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">各向异性金属<br><b>Sobel</b></div>
     </td>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/anisotropic-metal-bilateral-fixed-normal.webp" alt="各向异性金属固定参数 Sobel 加双边滤波法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/anisotropic-metal-bilateral-fixed-normal.webp" alt="各向异性金属固定参数 Sobel 加双边滤波法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">各向异性金属<br><b>Sobel + Bilateral</b></div>
     </td>
   </tr>
@@ -485,19 +485,19 @@ Average_Y = 0
 <table border="0" style="width: 100%; table-layout: fixed;">
   <tr>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/anisotropic-metal-y40-normal.webp" alt="各向异性金属高强度 Y 梯度法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/anisotropic-metal-y40-normal.webp" alt="各向异性金属高强度 Y 梯度法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">各向异性金属<br><b>Sobel y=40</b></div>
     </td>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/anisotropic-metal-y40-unity.webp" alt="各向异性金属高强度 Y 梯度渲染结果" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/anisotropic-metal-y40-unity.webp" alt="各向异性金属高强度 Y 梯度渲染结果" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">Unity 渲染结果<br><b>Sobel y=40</b></div>
     </td>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/anisotropic-metal-generated-normal.webp" alt="各向异性金属横向平均后的法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/anisotropic-metal-generated-normal.webp" alt="各向异性金属横向平均后的法线贴图" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">各向异性金属<br><b>Sobel y=40 + 横向平均</b></div>
     </td>
     <td align="center" valign="top" style="width: 25%; padding: 5px;">
-      <img src="../素材/ACN-Estimation/图片/anisotropic-metal-generated-unity.webp" alt="各向异性金属横向平均后的 Unity 渲染结果" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
+      <img src="素材/ACN/图片/anisotropic-metal-generated-unity.webp" alt="各向异性金属横向平均后的 Unity 渲染结果" style="width: 100%; aspect-ratio: 1/1; object-fit: contain;">
       <div style="font-size: 12px; margin-top: 8px;">Unity 渲染结果<br><b>Sobel y=40 + 横向平均</b></div>
     </td>
   </tr>
@@ -509,17 +509,17 @@ Average_Y = 0
 
 ### 5.1、颜色与几何高度解耦
 
-![集装箱纹理在不同法线条件下的渲染对照](../素材/ACN-Estimation/图片/failure-container.webp)
+![集装箱纹理在不同法线条件下的渲染对照](素材/ACN/图片/failure-container.webp)
 
 &emsp;&emsp;集装箱同时包含真实的瓦楞结构、喷漆文字和印刷标识。文字边缘在 Albedo 中表现为强烈亮度变化，但这些变化并不代表表面高度。对于这类输入，灰度与几何相互独立，算法无法只凭颜色判断哪些边缘属于真实凹凸。
 
-![集装箱 Albedo、Original 法线与 Sobel 法线对照](../素材/ACN-Estimation/图片/container-normal-comparison.webp)
+![集装箱 Albedo、Original 法线与 Sobel 法线对照](素材/ACN/图片/container-normal-comparison.webp)
 
 &emsp;&emsp;标配法线保存了瓦楞结构，而 Sobel 结果会把文字和图案边缘错误解释成浮雕，同时削弱原本连续的水平沟槽。问题无法通过继续调整强度或滤波参数从根本上解决，因为输入中并不包含区分“文字亮度”和“几何高度”的语义信息。
 
 ### 5.2、传统滤波缺少结构感知
 
-![形态学宽度仅变化 5 像素造成的特征与噪声同步消亡](../素材/ACN-Estimation/图片/filter-parameter-sensitivity.webp)
+![形态学宽度仅变化 5 像素造成的特征与噪声同步消亡](素材/ACN/图片/filter-parameter-sensitivity.webp)
 
 &emsp;&emsp;传统滤波主要依据局部像素统计和固定邻域处理图像。在它看来，有效条纹和随机噪声都属于高频波动，仅靠幅值和连通关系很难稳定地区分两者。
 &emsp;&emsp;上图展示了参数敏感性问题：形态学宽度从 `2045` 调整到 `2050`，只变化了 5 个像素，特征区域与噪声区域就同时大面积消失。继续收紧阈值可能只留下极少细节，放宽阈值又会把噪声重新带回。由于传统算子没有建立几何结构先验，很难找到稳定、通用的平滑临界点。
@@ -532,5 +532,5 @@ Average_Y = 0
 
 ## 7、延伸阅读
 
-- 项目：[ACN-Estimation：基于纹理—几何耦合的自然材质法线估计](../项目/ACN-Estimation：基于纹理—几何耦合的自然材质法线估计.md)
-- 笔记：[噪声](../笔记/数字图像处理/噪声.md)、[滤波](../笔记/数字图像处理/滤波.md)、[滤波算子](../笔记/数字图像处理/滤波算子.md)
+- 项目：[ACN-Estimation：基于纹理—几何耦合的自然材质法线估计](../../项目/数字图像处理/ACN-Estimation：基于纹理—几何耦合的自然材质法线估计.md)
+- 笔记：[噪声](../../笔记/数字图像处理/噪声.md)、[滤波](../../笔记/数字图像处理/滤波.md)、[滤波算子](../../笔记/数字图像处理/滤波算子.md)
