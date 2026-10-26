@@ -14,6 +14,7 @@ import ProjectFeed from './components/ProjectFeed.vue'
 import ArticleFeed from './components/ArticleFeed.vue'
 import NoteFeed from './components/NoteFeed.vue'
 import PaperLibrary from './components/PaperLibrary.vue'
+import SkillShowcase from './components/SkillShowcase.vue'
 
 export default {
   extends: DefaultTheme,
@@ -43,5 +44,6 @@ export default {
     ctx.app.component('ArticleFeed', ArticleFeed)
     ctx.app.component('NoteFeed', NoteFeed)
     ctx.app.component('PaperLibrary', PaperLibrary)
+    ctx.app.component('SkillShowcase', SkillShowcase)
   },
 }

@@ -22,3 +22,5 @@ hero:
 <NoteFeed />
 
 <PaperLibrary />
+
+<SkillShowcase />
