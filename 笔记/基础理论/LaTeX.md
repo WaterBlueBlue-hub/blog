@@ -1,9 +1,7 @@
 # LaTeX 数学公式速查
-
 &emsp;&emsp;本文整理 Markdown 笔记中最常用的 LaTeX 数学语法，重点覆盖 KaTeX 与 MathJax 共同支持的基础写法。除独立公式、多行对齐和矩阵等环境外，大部分命令也可以直接用于行内公式。
 
 ## 1、基本写法
-
 &emsp;&emsp;Markdown 中的行内公式使用 `$...$`，独立公式使用独占一行的 `$$...$$`。行内公式适合变量、短表达式和简短关系式；独立公式适合较长、需要居中展示或包含多行结构的内容。
 
 ```markdown
@@ -16,7 +14,6 @@ $$
 ```
 
 &emsp;&emsp;上面的行内公式会显示为 $E = mc^2$，独立公式会显示为：
-
 $$
 E = mc^2
 $$
@@ -24,7 +21,6 @@ $$
 &emsp;&emsp;命令中的反斜杠用于区分普通字符和 LaTeX 命令，例如 `\alpha`、`\frac`。在数学环境中直接写 `\alpha`，不需要写成 `\\alpha`；只有在公式内表示换行时，才使用 `\\`。
 
 ## 2、希腊字母
-
 &emsp;&emsp;希腊字母由反斜杠加英文名称表示，大小写通过首字母区分。需要注意的是，只有部分大写希腊字母拥有独立的 LaTeX 命令，例如 $\Gamma$、$\Delta$、$\Theta$、$\Lambda$、$\Xi$、$\Pi$、$\Sigma$、$\Upsilon$、$\Phi$、$\Psi$、$\Omega$；其余大写形式通常直接使用对应的拉丁字母。
 
 ```latex
@@ -37,18 +33,17 @@ $$
 ```
 
 $$
-\alpha,\ \beta,\ \gamma,\ \delta,\ \epsilon,\ \varepsilon,\ 
-\theta,\ \vartheta,\ \lambda,\ \mu,\ \pi,\ \rho,\ 
+\alpha,\ \beta,\ \gamma,\ \delta,\ \epsilon,\ \varepsilon,\
+\theta,\ \vartheta,\ \lambda,\ \mu,\ \pi,\ \rho,\
 \sigma,\ \phi,\ \varphi,\ \omega
 $$
 
 $$
-\Gamma,\ \Delta,\ \Theta,\ \Lambda,\ \Xi,\ \Pi,\ 
+\Gamma,\ \Delta,\ \Theta,\ \Lambda,\ \Xi,\ \Pi,\
 \Sigma,\ \Upsilon,\ \Phi,\ \Psi,\ \Omega
 $$
 
 ## 3、上下标与字体
-
 &emsp;&emsp;下划线 `_` 表示下标，尖号 `^` 表示上标。当上下标包含多个字符，或本身带有命令时，需要用花括号把它们作为一个整体包裹起来。
 
 ```latex
@@ -74,7 +69,6 @@ $$
 &emsp;&emsp;常用字体命令包括 `\mathrm`、`\mathbf`、`\mathit`、`\mathcal`、`\mathbb` 和 `\boldsymbol`。`\mathscr` 也可用于花体字母，但不同渲染器对其支持并不完全一致，发布前应确认网站能否正常显示。
 
 ## 4、分式与根式
-
 &emsp;&emsp;`\frac{分子}{分母}` 用于生成分式。行内公式中如果希望分式保持较大的字号，可以使用 `\dfrac`；嵌套分式过长时，可改用指数或斜线形式以减少行高。
 
 ```latex
@@ -96,8 +90,8 @@ $$
 $$
 \sqrt{2},\quad \sqrt{x+y},\quad \sqrt[3]{x+y}
 $$
-## 5、关系符与集合符号
 
+## 5、关系符与集合符号
 &emsp;&emsp;常见关系符和集合符号如下。
 
 ```latex
@@ -115,8 +109,8 @@ x\in A,\quad x\notin A
 ```
 
 $$
-\pm,\ \mp,\ \times,\ \cdot,\ \div,\ 
-\ne,\ \approx,\ \equiv,\ \le,\ \ge,\ \ll,\ \gg,\ 
+\pm,\ \mp,\ \times,\ \cdot,\ \div,\
+\ne,\ \approx,\ \equiv,\ \le,\ \ge,\ \ll,\ \gg,\
 \propto,\ \sim
 $$
 
@@ -141,7 +135,6 @@ $$
 &emsp;&emsp;常见数集可写为 $\mathbb{N}$、$\mathbb{Z}$、$\mathbb{Q}$、$\mathbb{R}$ 和 $\mathbb{C}$。当符号右侧包含多个字符时，同样要用花括号包裹，例如 $\mathbb{R}_{+}$。
 
 ## 6、函数与大型运算符
-
 &emsp;&emsp;正弦、对数、极限等标准函数应使用对应的命令，而不是直接输入字母。这样函数名会以直立体显示，并与变量之间保留正确的间距。
 
 ```latex
@@ -190,7 +183,6 @@ $$
 $$
 
 ## 7、标注符号与箭头
-
 &emsp;&emsp;向量、导数点、估计量和线段常用等宽标注符号。单字符可以省略花括号，多字符则应使用花括号。
 
 ```latex
@@ -223,7 +215,6 @@ $$
 $$
 
 ## 8、括号与定界符
-
 &emsp;&emsp;普通括号可以直接输入。当括号内部包含分式、求和或上下标，需要括号随内容自动缩放时，应使用 `\left` 和 `\right`。二者必须成对出现；如果只需要显示一侧，另一侧用点号占位，例如 `\left.` 或 `\right.`。
 
 ```latex
@@ -261,7 +252,6 @@ $$
 $$
 
 ## 9、多行公式与分段函数
-
 &emsp;&emsp;需要在多行之间对齐等号或关系符时，使用 `aligned` 环境，并在需要对齐的位置写 `&`，用 `\\` 换行。`aligned` 可以嵌入 Markdown 的独立公式中，兼容性通常比完整 LaTeX 文档中的 `align` 环境更好。
 
 ```latex
@@ -301,7 +291,6 @@ f(x)=
 $$
 
 ## 10、矩阵与行列式
-
 &emsp;&emsp;`matrix` 只生成矩阵内容，不添加括号；`pmatrix`、`bmatrix` 和 `Bmatrix` 分别生成圆括号、方括号和花括号，`vmatrix` 与 `Vmatrix` 则用于行列式。矩阵列之间用 `&` 分隔，行末用 `\\` 换行。
 
 ```latex
@@ -359,7 +348,6 @@ a_{m1} & a_{m2} & \cdots & a_{mn}
 $$
 
 ## 11、文本、运算符与间距
-
 &emsp;&emsp;公式中的说明文字应放进 `\text{...}`，自定义函数名可以使用 `\operatorname{...}`。这样不仅能保证字母直立，也能让 LaTeX 正确处理函数与变量之间的间距。
 
 ```latex
@@ -395,7 +383,6 @@ a\,b,\qquad a\quad b,\qquad a\qquad b
 $$
 
 ## 12、综合示例
-
 &emsp;&emsp;下面的高斯概率密度函数同时用到了分式、根式、上下标、指数函数、自动缩放括号和文本命令：
 
 ```latex
@@ -417,11 +404,10 @@ p(x)
 \right),
 \qquad x\in\mathbb{R}
 $$
-
-&emsp;&emsp;其中，$\mu$ 为均值，$\sigma$ 为标准差。书写复杂公式时，可以按“先写出结构，再补局部符号，最后检查括号和环境配对”的顺序组织，避免在一个公式中同时排查语法与数学含义。
+其中，$\mu$ 为均值，$\sigma$ 为标准差。书写复杂公式时，可以按“先写出结构，再补局部符号，最后检查括号和环境配对”的顺序组织，避免在一个公式中同时排查语法与数学含义。
+其中，$\mu$ 为均值，$\sigma$ 为标准差。书写复杂公式时，可以按“先写出结构，再补局部符号，最后检查括号和环境配对”的顺序组织，避免在一个公式中同时排查语法与数学含义。
 
 ## 13、常见错误
-
 &emsp;&emsp;上下标包含多个字符时，必须加花括号。`x_{ij}` 会得到 $x_{ij}$，而 `x_ij` 只会把 `i` 作为下标，后面的 `j` 被当作普通字符。
 
 &emsp;&emsp;`\left` 与 `\right` 必须成对使用。只写出其中一侧时，另一侧应使用 `\left.` 或 `\right.` 占位。

@@ -43,6 +43,7 @@ const ARTICLE_OUT = path.join(
   'index.md',
 )
 const PROJECT_OUT = path.join(DOCS, 'projects', 'acn-estimation', 'index.md')
+const SITE_BASE = process.env.SITE_BASE || '/'
 
 function writeIfChanged(file, content) {
   fs.mkdirSync(path.dirname(file), { recursive: true })
@@ -162,6 +163,11 @@ function rewriteLinks(markdown) {
     .replace(
       /(src|poster)="(?:\.\/)?video\//g,
       '$1="/acn-estimation/video/',
+    )
+    .replace(
+      /(<track\b[^>]*\bsrc=")(\/[^"]*)"/g,
+      (_, prefix, src) =>
+        `${prefix}${SITE_BASE.replace(/\/$/, '')}${src}"`,
     )
 }
 
