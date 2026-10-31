@@ -245,34 +245,7 @@ private void ApplyBoneDrag(XPBD_Body body, float dt)
 }
 ```
 
-## 3、在 XPBD 求解器中的位置
-&emsp;&emsp;风场作用发生在位置预测之前。求解器先刷新角色产生的近场气流与叶片气动，再对每个 Body 依次执行动画混合、全局风场、局部风阻和位置预测。这样风力先进入速度，随后才参与半隐式积分、约束投影与碰撞修正，不会绕过 XPBD 的约束系统。
-
-```csharp
-// 动画驱动先于物理外力
-body.ApplyAnimationBlend();
-
-// 同一 Body 可以依次叠加多个风场
-for (int w = 0; w < windFields.Count; w++)
-{
-    var wind = windFields[w];
-    if (wind == null || !wind.isActiveAndEnabled) continue;
-
-    // 全局风场 → 当前 Body 的速度增量
-    wind.ApplyTo(body, dt);
-}
-
-// 局部风阻之后才进入位置预测
-body.ApplyAirDrag(dt);
-PredictPositions(body, dt);
-
-// 固定点在预测后恢复目标位置
-body.FixEndpoints(dt);
-```
-
-&emsp;&emsp;全局风场与局部风阻的顺序也不能随意交换。全局风场回答“当前空间里空气如何流动”，局部风阻回答“物体相对于当前空气如何运动”，两者都应在预测位置之前折算为速度变化。
-
-## 4、结果对照
+## 3、结果对照
 <p align="center">
   <img src="素材/wind-field/图片/风场布料时序.webp" alt="网格布料与骨骼代理布料在风场中的连续形变" style="width: 100%; max-width: 900px; height: auto;">
 </p>
@@ -281,6 +254,6 @@ body.FixEndpoints(dt);
 
 &emsp;&emsp;网格布料能够表现更细的局部褶皱与翻卷，骨骼代理则以更少的状态量给出低频、整体化的弯曲响应。两者共享同一条风速采样的采样口径，但根据几何形式选择不同的阻力计算路径。
 
-## 5、延伸阅读
+## 4、延伸阅读
 - 项目：Unity 实时柔性体与粒子流体系统（暂未上线）
 - 笔记：[噪声](<../../../../笔记/数字图像处理/噪声.md>)
