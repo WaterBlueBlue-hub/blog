@@ -18,6 +18,17 @@ const SOURCE_DIR = path.join(
   '物理',
   'XPBD',
 )
+const NOTE_COVER_SOURCE = path.join(
+  REPO,
+  '笔记',
+  '计算机图形学',
+  '物理',
+  'XPBD',
+  '素材',
+  '基于位置的扩展动力学（XPBD）',
+  '约束流形.png',
+)
+const PUBLIC_COVER_DIR = path.join(DOCS, 'public', 'xpbd')
 
 const CLOTH_ROUTE = '/articles/graphics/xpbd-cloth/'
 const RIG_ROUTE = '/articles/graphics/xpbd-rig/'
@@ -78,6 +89,30 @@ function page(markdown, fallbackTitle) {
   const title = titleOf(markdown, fallbackTitle).replace(/"/g, '\\"')
   const body = rewriteLinks(markdown).trim()
   return `---\ntitle: "${title}"\noutline: [2, 3]\naside: true\n---\n\n${body}\n`
+}
+
+const coverFiles = [
+  {
+    from: path.join(SOURCE_DIR, '素材', 'xpbd-cloth', '图片', '柔度权重与窗帘结果.webp'),
+    to: 'article-cloth.webp',
+  },
+  {
+    from: path.join(SOURCE_DIR, '素材', 'xpbd-rig', '图片', '姿态维持对比_用户截图.webp'),
+    to: 'article-rig.webp',
+  },
+  {
+    from: NOTE_COVER_SOURCE,
+    to: 'note-cover.png',
+  },
+]
+
+fs.rmSync(PUBLIC_COVER_DIR, { recursive: true, force: true })
+fs.mkdirSync(PUBLIC_COVER_DIR, { recursive: true })
+for (const cover of coverFiles) {
+  if (!fs.existsSync(cover.from)) {
+    throw new Error(`XPBD 首页封面不存在：${cover.from}`)
+  }
+  fs.copyFileSync(cover.from, path.join(PUBLIC_COVER_DIR, cover.to))
 }
 
 for (const article of ARTICLES) {

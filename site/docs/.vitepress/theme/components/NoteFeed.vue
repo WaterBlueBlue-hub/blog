@@ -21,6 +21,17 @@ type Note = {
 
 const notes: Note[] = [
   {
+    id: 104,
+    title: '基于位置的扩展动力学（XPBD）',
+    date: '2026-10-31',
+    topic: '计算机图形学 · 物理',
+    excerpt: '从约束流形出发，对照 PBD 与 XPBD 的位置投影、拉格朗日乘子和柔度更新。',
+    tags: ['XPBD', 'PBD', '约束投影'],
+    image: '/xpbd/note-cover.png',
+    link: '/notes/graphics-physics/xpbd.html',
+    coverMode: 'full',
+  },
+  {
     id: 1,
     title: 'LaTeX 数学公式速查',
     date: '2026-10-22',

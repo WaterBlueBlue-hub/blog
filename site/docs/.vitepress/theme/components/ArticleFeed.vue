@@ -26,6 +26,30 @@ type Category = (typeof categories)[number]
 
 const articles: Article[] = [
   {
+    id: 15,
+    title: '基于 XPBD 的网格布料仿真',
+    date: '2026-10-31',
+    category: '物理',
+    excerpt: '从距离与二面角约束出发，构建各向同性、各向异性与单向折痕控制，并扩展到封闭布气球。',
+    tags: ['XPBD', '布料', '约束'],
+    colors: ['#2f7d74', '#a7dbc4', '#173e42'],
+    pattern: 'mesh',
+    image: '/xpbd/article-cloth.webp',
+    link: '/articles/graphics/xpbd-cloth/',
+  },
+  {
+    id: 16,
+    title: '基于 XPBD 的柔性骨骼仿真',
+    date: '2026-10-31',
+    category: '物理',
+    excerpt: '以层级骨骼链代理裙摆、袖子和发带，组合系链、弯曲、扭转与姿态维持约束。',
+    tags: ['XPBD', '骨骼链', '姿态维持'],
+    colors: ['#5d5bb5', '#bdacd9', '#24234f'],
+    pattern: 'orbit',
+    image: '/xpbd/article-rig.webp',
+    link: '/articles/graphics/xpbd-rig/',
+  },
+  {
     id: 14,
     title: '基于 Perlin 噪声的实时风场模拟',
     date: '2026-10-31',
