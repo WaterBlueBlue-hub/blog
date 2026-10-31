@@ -72,6 +72,16 @@ const projectSidebar = [
 
 const articleSidebar = [
   {
+    text: '计算机图形学 · 物理',
+    collapsed: false,
+    items: [
+      {
+        text: '基于 Perlin 噪声的实时风场模拟',
+        link: '/articles/graphics/perlin-real-time-wind/',
+      },
+    ],
+  },
+  {
     text: '数字图像处理',
     collapsed: false,
     items: [

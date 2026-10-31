@@ -3,10 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "sync": "node scripts/sync-notes.mjs && node scripts/sync-acn.mjs",
+    "sync": "node scripts/sync-notes.mjs && node scripts/sync-acn.mjs && node scripts/sync-perlin-wind.mjs",
     "papers": "node scripts/build-papers.mjs",
-    "dev": "node scripts/sync-notes.mjs && node scripts/sync-acn.mjs && vitepress dev docs --port 5173",
-    "build": "node scripts/sync-notes.mjs && node scripts/sync-acn.mjs && vitepress build docs",
+    "dev": "node scripts/sync-notes.mjs && node scripts/sync-acn.mjs && node scripts/sync-perlin-wind.mjs && vitepress dev docs --port 5173",
+    "build": "node scripts/sync-notes.mjs && node scripts/sync-acn.mjs && node scripts/sync-perlin-wind.mjs && vitepress build docs",
     "preview": "vitepress preview docs --port 4173"
   },
   "devDependencies": {
