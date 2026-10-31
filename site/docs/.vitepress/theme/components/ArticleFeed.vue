@@ -26,6 +26,17 @@ type Category = (typeof categories)[number]
 
 const articles: Article[] = [
   {
+    id: 14,
+    title: '基于 Perlin 噪声的实时风场模拟',
+    date: '2026-10-31',
+    category: '物理',
+    excerpt: '用 Perlin 噪声构造连续风向，并以二次阻力模型驱动网格布料、骨骼代理与场景动态元素。',
+    tags: ['Perlin', '风场', '气动力'],
+    colors: ['#2d6fb7', '#75d7c5', '#163d52'],
+    pattern: 'wave',
+    link: '/articles/graphics/perlin-real-time-wind/',
+  },
+  {
     id: 13,
     title: 'ACN-Estimation：基于纹理—几何耦合的自然材质法线估计',
     date: '2026-10-22',
