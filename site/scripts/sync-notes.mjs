@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url'
 const SITE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const REPO = path.resolve(SITE, '..')
 const SRC = path.join(REPO, '笔记')
-const WEBSITE_ROOT = path.resolve(SITE, '../../../个人网站')
+const WEBSITE_ROOT = path.resolve(SITE, '..')
 const WEBSITE_NOTES_SRC = path.join(WEBSITE_ROOT, '笔记')
 const WEBSITE_NOTES_SNAPSHOT = path.join(SITE, 'content', 'notes')
 const DOCS = path.join(SITE, 'docs')
@@ -88,6 +88,10 @@ function rewriteWebsiteNoteLinks(markdown) {
     .replace(
       /\]\(\.\.\/\.\.\/文章\/数字图像处理\/ACN-Estimation：[^)]+\.md\)/g,
       '](/articles/graphics/acn-estimation-albedo-to-normal/)',
+    )
+    .replace(
+      /\]\(\.\.\/\.\.\/文章\/计算机图形学\/物理\/空气动力学仿真\/基于%20Perlin%20噪声的实时风场模拟\.md(#[^)]+)?\)/g,
+      (_, hash = '') => `](/articles/graphics/perlin-real-time-wind/${hash})`,
     )
     .replace(/\]\(噪声\.md\)/g, '](/notes/image-processing/noise.html)')
     .replace(/\]\(滤波\.md\)/g, '](/notes/image-processing/filtering.html)')

@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 
 const SITE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const DOCS = path.join(SITE, 'docs')
-const WEBSITE_ROOT = path.resolve(SITE, '../../../个人网站')
+const WEBSITE_ROOT = path.resolve(SITE, '..')
 const TITLE = '基于 Perlin 噪声的实时风场模拟'
 const CATEGORY = path.join('计算机图形学', '物理', '空气动力学仿真')
 const LOCAL_ARTICLE_SOURCE = path.join(

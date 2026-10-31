@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 
 const SITE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const DOCS = path.join(SITE, 'docs')
-const WEBSITE_ROOT = path.resolve(SITE, '../../../个人网站')
+const WEBSITE_ROOT = path.resolve(SITE, '..')
 const TITLE = 'ACN-Estimation：基于纹理—几何耦合的自然材质法线估计'
 const CATEGORY = '数字图像处理'
 const LOCAL_PROJECT_SOURCE = path.join(WEBSITE_ROOT, '项目', CATEGORY, `${TITLE}.md`)
