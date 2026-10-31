@@ -79,6 +79,14 @@ const articleSidebar = [
         text: '基于 Perlin 噪声的实时风场模拟',
         link: '/articles/graphics/perlin-real-time-wind/',
       },
+      {
+        text: '基于 XPBD 的网格布料仿真',
+        link: '/articles/graphics/xpbd-cloth/',
+      },
+      {
+        text: '基于 XPBD 的柔性骨骼仿真',
+        link: '/articles/graphics/xpbd-rig/',
+      },
     ],
   },
   {

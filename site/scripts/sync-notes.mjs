@@ -23,6 +23,9 @@ const IMAGE_PROCESSING_ITEMS = [
   ['数字图像处理/滤波.md', 'filtering'],
   ['数字图像处理/滤波算子.md', 'filtering-operators'],
 ]
+const XPBD_NOTE_ITEMS = [
+  ['计算机图形学/物理/XPBD/基于位置的扩展动力学（XPBD）.md', 'xpbd'],
+]
 
 const SECTIONS = [
   {
@@ -39,6 +42,12 @@ const SECTIONS = [
     desc: '噪声、空间域滤波与边缘算子：从图像处理基础到法线估计实践。',
     source: 'website',
     items: IMAGE_PROCESSING_ITEMS,
+  },
+  {
+    slug: 'graphics-physics',
+    title: '计算机图形学 · 物理',
+    desc: 'XPBD 约束投影与实时物理仿真的数学基础。',
+    items: XPBD_NOTE_ITEMS,
   },
 ]
 
@@ -93,6 +102,19 @@ function rewriteWebsiteNoteLinks(markdown) {
       /\]\(\.\.\/\.\.\/文章\/计算机图形学\/物理\/空气动力学仿真\/基于%20Perlin%20噪声的实时风场模拟\.md(#[^)]+)?\)/g,
       (_, hash = '') => `](/articles/graphics/perlin-real-time-wind/${hash})`,
     )
+    .replace(
+      /\[Unity 实时柔性体与粒子流体系统\]\(<\.\.\/\.\.\/\.\.\/\.\.\/项目\/计算机图形学\/物理\/[^)]+\.md>\)/g,
+      'Unity 实时柔性体与粒子流体系统（暂未上线）',
+    )
+    .replace(
+      /\]\(\.\.\/\.\.\/\.\.\/\.\.\/文章\/计算机图形学\/物理\/XPBD\/基于%20XPBD%20的网格布料仿真\.md\)/g,
+      '](/articles/graphics/xpbd-cloth/)',
+    )
+    .replace(
+      /\]\(\.\.\/\.\.\/\.\.\/\.\.\/文章\/计算机图形学\/物理\/XPBD\/基于%20XPBD%20的柔性骨骼仿真\.md\)/g,
+      '](/articles/graphics/xpbd-rig/)',
+    )
+    .replace(/(<img\b[^>]*\bsrc=")素材\//g, '$1./素材/')
     .replace(/\]\(噪声\.md\)/g, '](/notes/image-processing/noise.html)')
     .replace(/\]\(滤波\.md\)/g, '](/notes/image-processing/filtering.html)')
     .replace(
@@ -114,9 +136,44 @@ function writeIfChanged(file, content) {
   fs.writeFileSync(file, content, 'utf8')
 }
 
+const SAFE_HTML_TAGS = new Set([
+  'a',
+  'audio',
+  'blockquote',
+  'br',
+  'details',
+  'div',
+  'em',
+  'figcaption',
+  'figure',
+  'img',
+  'p',
+  'picture',
+  'source',
+  'span',
+  'strong',
+  'sub',
+  'summary',
+  'sup',
+  'table',
+  'tbody',
+  'td',
+  'th',
+  'thead',
+  'tr',
+  'track',
+  'video',
+])
+
 /** <T> / <float3> 这类泛型写法会被 Vue 当成组件标签，转成实体 */
 function escapeAngles(text) {
-  return text.replace(/<(\/?)([A-Za-z][A-Za-z0-9_.]*)([^<>]*)>/g, '&lt;$1$2$3&gt;')
+  return text.replace(
+    /<(\/?)([A-Za-z][A-Za-z0-9_.]*)([^<>]*)>/g,
+    (tag, slash, name, rest) =>
+      SAFE_HTML_TAGS.has(name.toLowerCase())
+        ? tag
+        : `&lt;${slash}${name}${rest}&gt;`,
+  )
 }
 
 function transform(md) {
@@ -180,7 +237,7 @@ for (const section of SECTIONS) {
 
     const title = getTitle(raw, path.basename(rel, '.md'))
     const body = transform(
-      section.source === 'website'
+      section.source === 'website' || section.slug === 'graphics-physics'
         ? rewriteWebsiteNoteLinks(raw)
         : raw,
     )
@@ -189,9 +246,15 @@ for (const section of SECTIONS) {
 
     // 复制同目录配图（以及 ../素材 之类的相对引用）
     const srcDir = path.dirname(abs)
-    for (const m of raw.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)) {
-      const ref = decodeURI(m[1])
-      if (/^(https?:)?\/\//.test(ref)) continue
+    const imageReferences = [
+      ...[...raw.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)].map((m) => m[1]),
+      ...[...raw.matchAll(/<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)].map(
+        (m) => m[1],
+      ),
+    ]
+    for (const rawRef of imageReferences) {
+      const ref = decodeURI(rawRef)
+      if (/^(https?:)?\/\//.test(ref) || ref.startsWith('/') || ref.startsWith('data:')) continue
       const from = path.resolve(srcDir, ref)
       const to = path.resolve(secDir, ref)
       if (!fs.existsSync(from)) {

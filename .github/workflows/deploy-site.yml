@@ -6,6 +6,7 @@ on:
     paths:
       - 'site/**'
       - '笔记/**'
+      - '文章/**'
       - '.github/workflows/deploy-site.yml'
   workflow_dispatch:
 
