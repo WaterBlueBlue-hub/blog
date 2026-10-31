@@ -212,46 +212,6 @@ const tiles: ProjectTile[] = [
     linear-gradient(135deg, var(--cover-a), var(--cover-c));
 }
 
-.project-tile__cover::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0.38;
-}
-
-.project-tile__cover.is-grid::before {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px);
-  background-size: 26px 26px;
-}
-
-.project-tile__cover.is-wave::before {
-  inset: 18% -20% -34%;
-  background: repeating-radial-gradient(
-    ellipse at 50% 100%,
-    rgba(255, 255, 255, 0) 0 18px,
-    rgba(255, 255, 255, 0.23) 19px 20px,
-    rgba(255, 255, 255, 0) 21px 38px
-  );
-}
-
-.project-tile__cover.is-orbit::before {
-  inset: -18% 12% 18% -12%;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  box-shadow:
-    42px 9px 0 -20px rgba(255, 255, 255, 0.22),
-    86px -8px 0 -34px rgba(255, 255, 255, 0.28);
-}
-
-.project-tile__cover.is-mesh::before {
-  background-image:
-    linear-gradient(36deg, transparent 47%, rgba(255, 255, 255, 0.18) 48% 50%, transparent 51%),
-    linear-gradient(-36deg, transparent 47%, rgba(255, 255, 255, 0.18) 48% 50%, transparent 51%);
-  background-size: 30px 24px;
-}
-
 .project-tile__cover img {
   position: absolute;
   inset: 0;
