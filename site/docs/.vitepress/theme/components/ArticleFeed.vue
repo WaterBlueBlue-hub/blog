@@ -280,7 +280,6 @@ function goToPage(next: number) {
         >
           <img v-if="imageFor(article)" :src="imageFor(article)" alt="" />
           <span v-if="cardEditorState.active" class="article-card__edit">点击编辑</span>
-          <span class="article-card__mark" aria-hidden="true"></span>
         </div>
 
         <div class="article-card__body">
@@ -504,13 +503,6 @@ function goToPage(next: number) {
   display: none;
 }
 
-.article-card__cover.has-image .article-card__mark {
-  border-color: rgba(28, 42, 63, 0.32);
-  box-shadow:
-    0 0 0 8px rgba(28, 42, 63, 0.06),
-    0 0 0 16px rgba(28, 42, 63, 0.035);
-}
-
 .article-card__cover.is-grid::before {
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px),
@@ -556,19 +548,6 @@ function goToPage(next: number) {
   font-family: var(--vp-font-family-mono);
   font-size: 8px;
   letter-spacing: 0.4px;
-}
-
-.article-card__mark {
-  position: absolute;
-  right: 14px;
-  bottom: 12px;
-  width: 42px;
-  height: 42px;
-  border: 1px solid rgba(255, 255, 255, 0.42);
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 8px rgba(255, 255, 255, 0.06),
-    0 0 0 16px rgba(255, 255, 255, 0.04);
 }
 
 .article-card__body {
