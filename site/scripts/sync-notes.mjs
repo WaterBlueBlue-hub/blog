@@ -23,8 +23,9 @@ const IMAGE_PROCESSING_ITEMS = [
   ['数字图像处理/滤波.md', 'filtering'],
   ['数字图像处理/滤波算子.md', 'filtering-operators'],
 ]
-const XPBD_NOTE_ITEMS = [
+const GRAPHICS_PHYSICS_ITEMS = [
   ['计算机图形学/物理/XPBD/基于位置的扩展动力学（XPBD）.md', 'xpbd'],
+  ['物理/流体力学/空气动力学/空气动力学的一些基础定理.md', 'aerodynamics-basics'],
 ]
 
 const SECTIONS = [
@@ -46,8 +47,8 @@ const SECTIONS = [
   {
     slug: 'graphics-physics',
     title: '计算机图形学 · 物理',
-    desc: 'XPBD 约束投影与实时物理仿真的数学基础。',
-    items: XPBD_NOTE_ITEMS,
+    desc: 'XPBD 约束投影、空气动力学定律与实时物理仿真的数学基础。',
+    items: GRAPHICS_PHYSICS_ITEMS,
   },
 ]
 
@@ -113,6 +114,18 @@ function rewriteWebsiteNoteLinks(markdown) {
     .replace(
       /\]\(\.\.\/\.\.\/\.\.\/\.\.\/文章\/计算机图形学\/物理\/XPBD\/基于%20XPBD%20的柔性骨骼仿真\.md\)/g,
       '](/articles/graphics/xpbd-rig/)',
+    )
+    .replace(
+      /\]\(\.\.\/\.\.\/\.\.\/\.\.\/文章\/计算机图形学\/物理\/空气动力学仿真\/基于%20Perlin%20噪声的实时风场模拟\.md\)/g,
+      '](/articles/graphics/perlin-real-time-wind/)',
+    )
+    .replace(
+      /\[基于 Tanabe-Kaneko 模型的落叶模拟\]\(\.\.\/\.\.\/\.\.\/\.\.\/文章\/计算机图形学\/物理\/空气动力学仿真\/基于%20Tanabe-Kaneko%20模型的落叶模拟\.md\)/g,
+      '基于 Tanabe-Kaneko 模型的落叶模拟（暂未上线）',
+    )
+    .replace(
+      /\[Tanabe-Kaneko 模型\]\(\.\.\/\.\.\/\.\.\/计算机图形学\/物理\/空气动力学仿真\/Tanabe-Kaneko%20模型\.md\)/g,
+      'Tanabe-Kaneko 模型（暂未上线）',
     )
     .replace(/(<img\b[^>]*\bsrc=")素材\//g, '$1./素材/')
     .replace(/\]\(噪声\.md\)/g, '](/notes/image-processing/noise.html)')

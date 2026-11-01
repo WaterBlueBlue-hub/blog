@@ -83,6 +83,10 @@ function rewriteLinks(markdown) {
       /\]\(\.\.\/\.\.\/\.\.\/\.\.\/笔记\/数字图像处理\/噪声\.md#([^)]+)\)/g,
       '](/notes/image-processing/noise.html#$1)',
     )
+    .replace(
+      /\]\(<\.\.\/\.\.\/\.\.\/\.\.\/笔记\/物理\/流体力学\/空气动力学\/空气动力学的一些基础定理\.md>\)/g,
+      '](/notes/graphics-physics/aerodynamics-basics.html)',
+    )
     .replace(/src="素材\//g, 'src="./素材/')
 }
 

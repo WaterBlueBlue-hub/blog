@@ -72,126 +72,6 @@ const articles: Article[] = [
     image: '/acn-estimation/images/article-cover.webp',
     link: '/articles/graphics/acn-estimation-albedo-to-normal/',
   },
-  {
-    id: 1,
-    title: 'XPBD 柔度与迭代次数为什么总是打架',
-    date: '2026-10-18',
-    category: '物理',
-    excerpt: '从约束残差和乘子更新出发，整理柔度映射在实际调参中出现的非线性问题。',
-    tags: ['XPBD', '约束', '推导'],
-    colors: ['#426fd1', '#75c9ee', '#142852'],
-    pattern: 'grid',
-  },
-  {
-    id: 2,
-    title: 'PBF 表面的密度振荡从哪里来',
-    date: '2026-10-16',
-    category: '物理',
-    excerpt: '记录自由表面密度偏低、单侧约束和位置修正共同造成的细小振荡。',
-    tags: ['PBF', '流体', '稳定性'],
-    colors: ['#285aa8', '#5fc7da', '#102449'],
-    pattern: 'wave',
-  },
-  {
-    id: 3,
-    title: '从二面角约束理解弯曲刚度',
-    date: '2026-10-13',
-    category: '物理',
-    excerpt: '把二面角、梯度和零能模式放在同一张图里，重新理解布料的弯曲响应。',
-    tags: ['弯曲', '几何', '约束'],
-    colors: ['#7867c6', '#d7afde', '#2f285d'],
-    pattern: 'mesh',
-  },
-  {
-    id: 4,
-    title: '用 Burst Job 加速近场叶片气动',
-    date: '2026-10-10',
-    category: '工程',
-    excerpt: '叶片数量上来以后，托管循环成为瓶颈；这里整理批处理与数据布局的取舍。',
-    tags: ['Unity', 'Burst', 'Job System'],
-    colors: ['#2b8f82', '#a4dda0', '#153e43'],
-    pattern: 'wave',
-  },
-  {
-    id: 5,
-    title: 'SSFR 深度补洞与法线重建记录',
-    date: '2026-10-08',
-    category: '图形',
-    excerpt: '从粒子深度到屏幕空间法线，记录补洞半径、滤波和轮廓稳定性的调参过程。',
-    tags: ['SSFR', '渲染', '法线'],
-    colors: ['#5b68c9', '#d399c7', '#1d2856'],
-    pattern: 'orbit',
-  },
-  {
-    id: 6,
-    title: '布料裙摆绕腿碰撞调试',
-    date: '2026-10-05',
-    category: '物理',
-    excerpt: '约束与碰撞的先后顺序会直接影响裙摆是否卷进腿部胶囊体。',
-    tags: ['布料', '碰撞', '角色'],
-    colors: ['#c8768e', '#efb4bd', '#63394d'],
-    pattern: 'mesh',
-  },
-  {
-    id: 7,
-    title: 'Unity 生命周期里的物理时序坑',
-    date: '2026-10-02',
-    category: '工程',
-    excerpt: 'Update、FixedUpdate 和 LateUpdate 混用后，力的累积和渲染会怎样错位。',
-    tags: ['Unity', '时序', '刚体'],
-    colors: ['#b27b50', '#ecc28f', '#4d3429'],
-    pattern: 'grid',
-  },
-  {
-    id: 8,
-    title: '一次流体调试面板的重构',
-    date: '2026-09-29',
-    category: '图形',
-    excerpt: '把粒子、胶囊体、速度和密度放在一起观察之后，调试路径发生了什么变化。',
-    tags: ['可视化', '调试', 'Canvas'],
-    colors: ['#437fae', '#9fd3dc', '#173b52'],
-    pattern: 'orbit',
-  },
-  {
-    id: 9,
-    title: '写论文和写工程之间',
-    date: '2026-09-26',
-    category: '随笔',
-    excerpt: '同一套算法，论文关心结论是否成立，工程还要面对性能、资产和可调参数。',
-    tags: ['写作', '方法', '记录'],
-    colors: ['#b49287', '#ead2c4', '#59413d'],
-    pattern: 'wave',
-  },
-  {
-    id: 10,
-    title: '我为什么把演示场景拆成五套',
-    date: '2026-09-22',
-    category: '工程',
-    excerpt: '角色、叶片、布料和水池共享同一个解算器，却需要完全不同的验收方式。',
-    tags: ['Unity', '场景', '工程化'],
-    colors: ['#6579ab', '#c1cde7', '#2c385b'],
-    pattern: 'grid',
-  },
-  {
-    id: 11,
-    title: '2026 秋番第一印象',
-    date: '2026-09-18',
-    category: '随笔',
-    excerpt: '只记第一集留下的画面、节奏和角色记忆点，不写完整评价。',
-    tags: ['动画', '观后感', '秋番'],
-    colors: ['#c789a6', '#edbfce', '#63374f'],
-    pattern: 'orbit',
-  },
-  {
-    id: 12,
-    title: '一个技术博客首页的交互实验',
-    date: '2026-09-15',
-    category: '图形',
-    excerpt: '从流体、花朵到枫叶，把实时模拟的视觉语言带进个人博客首屏。',
-    tags: ['网页', '交互', '物理模拟'],
-    colors: ['#5b8f90', '#d6bca2', '#263d46'],
-    pattern: 'mesh',
-  },
 ]
 
 const activeCategory = ref<Category>('全部')
@@ -199,6 +79,10 @@ const page = ref(1)
 
 const countFor = (category: Category) =>
   category === '全部' ? articles.length : articles.filter((article) => article.category === category).length
+
+const visibleCategories = categories.filter(
+  (category) => category === '全部' || countFor(category) > 0,
+)
 
 const filtered = computed(() =>
   activeCategory.value === '全部'
@@ -268,7 +152,7 @@ function goToPage(next: number) {
 
     <nav class="article-feed__filters" aria-label="文章分类">
       <button
-        v-for="category in categories"
+        v-for="category in visibleCategories"
         :key="category"
         type="button"
         :class="{ 'is-active': activeCategory === category }"

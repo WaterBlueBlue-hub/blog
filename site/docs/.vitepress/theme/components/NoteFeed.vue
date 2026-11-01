@@ -32,6 +32,15 @@ const notes: Note[] = [
     coverMode: 'full',
   },
   {
+    id: 105,
+    title: '空气动力学的一些基础定理',
+    date: '2026-10-31',
+    topic: '计算机图形学 · 物理',
+    excerpt: '整理无穿透条件、Kutta 条件、Biot-Savart 定律、Kutta-Joukowski 定理与二次阻力定律。',
+    tags: ['空气动力学', '环量', '阻力'],
+    link: '/notes/graphics-physics/aerodynamics-basics.html',
+  },
+  {
     id: 1,
     title: 'LaTeX 数学公式速查',
     date: '2026-10-22',
