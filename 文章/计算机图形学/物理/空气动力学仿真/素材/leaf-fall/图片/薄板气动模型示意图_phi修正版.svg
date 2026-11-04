@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <marker id="arrow-v" markerWidth="13" markerHeight="13" refX="11" refY="6.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L13,6.5 L0,13 Z" fill="#2b73b5"/>
+    </marker>
+    <marker id="arrow-n" markerWidth="13" markerHeight="13" refX="11" refY="6.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L13,6.5 L0,13 Z" fill="#56626d"/>
+    </marker>
+    <marker id="arrow-l" markerWidth="13" markerHeight="13" refX="11" refY="6.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L13,6.5 L0,13 Z" fill="#15956f"/>
+    </marker>
+    <marker id="arrow-m" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L11,5.5 L0,11 Z" fill="#d96b29"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="900" fill="#ffffff"/>
+
+  <!-- thin plate -->
+  <line x1="350" y1="230" x2="1200" y2="760"
+        stroke="#394b59" stroke-width="18" stroke-linecap="round"/>
+  <line x1="350" y1="223" x2="1200" y2="753"
+        stroke="#ffffff" stroke-opacity="0.24" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- centroid -->
+  <circle cx="775" cy="495" r="8" fill="#20272e"/>
+
+  <!-- relative flow -->
+  <line x1="775" y1="495" x2="775" y2="805"
+        stroke="#2b73b5" stroke-width="5" marker-end="url(#arrow-v)"/>
+  <text x="798" y="790" fill="#1f5f9a"
+        font-family="Cambria Math, Microsoft YaHei, serif"
+        font-size="36" font-style="italic">U</text>
+
+  <!-- surface normal -->
+  <line x1="775" y1="495" x2="615" y2="748"
+        stroke="#56626d" stroke-width="5" marker-end="url(#arrow-n)"/>
+  <text x="582" y="785" fill="#46525c"
+        font-family="Cambria Math, Microsoft YaHei, serif"
+        font-size="36" font-style="italic">n</text>
+
+  <!-- lift -->
+  <line x1="775" y1="495" x2="1080" y2="495"
+        stroke="#15956f" stroke-width="5" marker-end="url(#arrow-l)"/>
+  <text x="1100" y="507" fill="#08785a"
+        font-family="Cambria Math, Microsoft YaHei, serif"
+        font-size="36" font-style="italic">L</text>
+
+  <!-- angle between flow and normal -->
+  <path d="M775 600 A105 105 0 0 1 694 644"
+        fill="none" stroke="#56626d" stroke-width="3"/>
+  <text x="793" y="625" fill="#46525c"
+        font-family="Cambria Math, Microsoft YaHei, serif"
+        font-size="32" font-style="italic">ϕ</text>
+
+  <!-- restoring torque -->
+  <path d="M719 443 A77 77 0 1 1 727 561"
+        fill="none" stroke="#d96b29" stroke-width="4" marker-end="url(#arrow-m)"/>
+  <text x="848" y="432" fill="#c65c20"
+        font-family="Cambria Math, Microsoft YaHei, serif"
+        font-size="34" font-weight="700">M</text>
+</svg>

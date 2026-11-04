@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 100 1200 520">
+  <defs>
+    <marker id="arrow-blue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#2b73b5"/>
+    </marker>
+    <style>
+      .label { fill: #25313a; font: italic 30px "Cambria Math", "Microsoft YaHei", serif; }
+      .geometry { stroke: #64717b; stroke-width: 3; fill: none; }
+      .dash { stroke: #8d98a1; stroke-width: 3; stroke-dasharray: 10 8; fill: none; }
+      .velocity { stroke: #2b73b5; stroke-width: 5; fill: none; marker-end: url(#arrow-blue); }
+      .accent { fill: #e06c2d; }
+      .source { fill: #26323c; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="650" fill="#ffffff"/>
+
+  <!-- influence capsule -->
+  <line x1="260" y1="420" x2="930" y2="330" stroke="#33404a" stroke-width="246" stroke-linecap="round"/>
+  <line x1="260" y1="420" x2="930" y2="330" stroke="#dceafb" stroke-width="234" stroke-linecap="round"/>
+  <line x1="260" y1="420" x2="930" y2="330" class="dash" opacity="0.62"/>
+
+  <!-- source endpoints -->
+  <circle cx="260" cy="420" r="10" class="source"/>
+  <text x="218" y="470" class="label">A</text>
+  <circle cx="930" cy="330" r="10" class="source"/>
+  <text x="952" y="325" class="label">B</text>
+
+  <!-- endpoint velocities -->
+  <line x1="260" y1="420" x2="322" y2="281" class="velocity"/>
+  <text x="330" y="292" fill="#1f5f9a" font-style="italic" font-size="30" font-family="Cambria Math, Microsoft YaHei, serif">v<tspan dy="7" font-size="21">A</tspan></text>
+  <line x1="930" y1="330" x2="1027" y2="448" class="velocity"/>
+  <text x="1033" y="470" fill="#1f5f9a" font-style="italic" font-size="30" font-family="Cambria Math, Microsoft YaHei, serif">v<tspan dy="7" font-size="21">B</tspan></text>
+
+  <!-- leaf point and closest source point -->
+  <circle cx="650" cy="165" r="10" class="accent"/>
+  <text x="670" y="158" class="label">x</text>
+  <circle cx="677" cy="364" r="8" fill="#2f947f"/>
+  <text x="694" y="372" class="label">x<tspan dy="7" font-size="21">s</tspan></text>
+  <line x1="650" y1="165" x2="677" y2="364" class="dash"/>
+  <text x="675" y="270" fill="#b55220" font-style="italic" font-size="30" font-family="Cambria Math, Microsoft YaHei, serif">d</text>
+
+  <!-- projection parameter -->
+  <line x1="260" y1="420" x2="677" y2="364" stroke="#2f947f" stroke-width="6" opacity="0.88"/>
+  <text x="450" y="375" fill="#237565" font-style="italic" font-size="30" font-family="Cambria Math, Microsoft YaHei, serif">t</text>
+
+  <!-- radius -->
+  <line x1="677" y1="364" x2="693" y2="485" class="geometry"/>
+  <text x="710" y="470" class="label">R</text>
+
+  <!-- interpolated source velocity -->
+  <line x1="677" y1="364" x2="760" y2="384" class="velocity"/>
+  <text x="764" y="370" fill="#1f5f9a" font-style="italic" font-size="29" font-family="Cambria Math, Microsoft YaHei, serif">v<tspan dy="7" font-size="20">s</tspan><tspan dy="-7">(t)</tspan></text>
+</svg>

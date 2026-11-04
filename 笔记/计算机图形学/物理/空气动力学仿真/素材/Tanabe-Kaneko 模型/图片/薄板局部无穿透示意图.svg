@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <marker id="arrow-gray" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#68737d"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#15956f"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#2b73b5"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#d96b29"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="900" fill="#ffffff"/>
+
+  <!-- local camberline -->
+  <path d="M220 635 C540 585 1000 520 1380 355"
+        fill="none" stroke="#394b59" stroke-width="12" stroke-linecap="round"/>
+  <text x="1080" y="377" fill="#56626d" font-family="Cambria Math, Microsoft YaHei, serif" font-size="29" font-style="italic">z<tspan baseline-shift="sub" font-size="20">c</tspan>(x)</text>
+
+  <!-- evaluation point -->
+  <circle cx="800" cy="510" r="8" fill="#20272e"/>
+
+  <!-- global coordinate axes -->
+  <line x1="800" y1="510" x2="1290" y2="510" stroke="#aeb8c0" stroke-width="3" stroke-dasharray="10 8" marker-end="url(#arrow-gray)"/>
+  <text x="1305" y="521" fill="#68737d" font-family="Cambria Math, Microsoft YaHei, serif" font-size="29" font-style="italic">x</text>
+  <line x1="800" y1="510" x2="800" y2="185" stroke="#aeb8c0" stroke-width="3" stroke-dasharray="10 8" marker-end="url(#arrow-gray)"/>
+  <text x="760" y="166" fill="#68737d" font-family="Cambria Math, Microsoft YaHei, serif" font-size="29" font-style="italic">z</text>
+
+  <!-- local tangent -->
+  <line x1="800" y1="510" x2="1110" y2="449" stroke="#15956f" stroke-width="5" marker-end="url(#arrow-green)"/>
+  <text x="1124" y="447" fill="#08785a" font-family="Cambria Math, Microsoft YaHei, serif" font-size="32" font-style="italic">t</text>
+
+  <!-- local normal -->
+  <line x1="800" y1="510" x2="732" y2="255" stroke="#68737d" stroke-width="5" marker-end="url(#arrow-gray)"/>
+  <text x="706" y="232" fill="#56626d" font-family="Cambria Math, Microsoft YaHei, serif" font-size="32" font-style="italic">n</text>
+
+  <!-- freestream -->
+  <line x1="800" y1="510" x2="1170" y2="300" stroke="#2b73b5" stroke-width="5" marker-end="url(#arrow-blue)"/>
+  <text x="1185" y="294" fill="#1f5f9a" font-family="Cambria Math, Microsoft YaHei, serif" font-size="30" font-style="italic">U<tspan baseline-shift="sub" font-size="20">∞</tspan></text>
+
+  <!-- angle alpha -->
+  <path d="M895 510 A95 95 0 0 0 876 459"
+        fill="none" stroke="#2b73b5" stroke-width="3"/>
+  <text x="910" y="474" fill="#1f5f9a" font-family="Cambria Math, Microsoft YaHei, serif" font-size="28" font-style="italic">α</text>
+
+  <!-- induced velocity opposite normal -->
+  <line x1="800" y1="510" x2="868" y2="770" stroke="#d96b29" stroke-width="5" marker-end="url(#arrow-orange)"/>
+  <text x="883" y="758" fill="#c65c20" font-family="Cambria Math, Microsoft YaHei, serif" font-size="30" font-weight="600">−wn</text>
+</svg>

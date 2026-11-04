@@ -24,6 +24,17 @@ const PAGE_SIZE = 6
 
 const notes: Note[] = [
   {
+    id: 108,
+    title: 'Tanabe-Kaneko 模型',
+    date: '2026-11-04',
+    topic: '计算机图形学 · 物理',
+    excerpt: '从薄板受力、各向异性阻尼与 Kutta-Joukowski 升力出发，推导纸片自由下落的运动方程。',
+    tags: ['Tanabe-Kaneko', '薄板', '环量'],
+    image: '/leaf-fall/note-cover.png',
+    link: '/notes/graphics-physics/tanabe-kaneko-model.html',
+    coverMode: 'full',
+  },
+  {
     id: 106,
     title: '数值积分器',
     date: '2026-11-04',

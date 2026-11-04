@@ -27,6 +27,7 @@ const GRAPHICS_PHYSICS_ITEMS = [
   ['计算机图形学/物理/XPBD/基于位置的扩展动力学（XPBD）.md', 'xpbd'],
   ['计算机图形学/物理/数值计算基础/数值积分器.md', 'numerical-integrators'],
   ['计算机图形学/物理/数值计算基础/数值迭代法.md', 'numerical-iteration-methods'],
+  ['计算机图形学/物理/空气动力学仿真/Tanabe-Kaneko 模型.md', 'tanabe-kaneko-model'],
   ['物理/流体力学/空气动力学/空气动力学的一些基础定理.md', 'aerodynamics-basics'],
 ]
 
@@ -141,11 +142,23 @@ function rewriteWebsiteNoteLinks(markdown) {
     )
     .replace(
       /\[基于 Tanabe-Kaneko 模型的落叶模拟\]\(\.\.\/\.\.\/\.\.\/\.\.\/文章\/计算机图形学\/物理\/空气动力学仿真\/基于%20Tanabe-Kaneko%20模型的落叶模拟\.md\)/g,
-      '基于 Tanabe-Kaneko 模型的落叶模拟（暂未上线）',
+      '[基于 Tanabe-Kaneko 模型的落叶模拟](/articles/graphics/tanabe-kaneko-leaf-fall/)',
+    )
+    .replace(
+      /\[基于 Tanabe-Kaneko 模型的落叶模拟\]\(<\.\.\/\.\.\/\.\.\/\.\.\/文章\/计算机图形学\/物理\/空气动力学仿真\/基于 Tanabe-Kaneko 模型的落叶模拟\.md>\)/g,
+      '[基于 Tanabe-Kaneko 模型的落叶模拟](/articles/graphics/tanabe-kaneko-leaf-fall/)',
     )
     .replace(
       /\[Tanabe-Kaneko 模型\]\(\.\.\/\.\.\/\.\.\/计算机图形学\/物理\/空气动力学仿真\/Tanabe-Kaneko%20模型\.md\)/g,
-      'Tanabe-Kaneko 模型（暂未上线）',
+      '[Tanabe-Kaneko 模型](/notes/graphics-physics/tanabe-kaneko-model.html)',
+    )
+    .replace(
+      /\[Tanabe-Kaneko 模型\]\(<\.\.\/\.\.\/\.\.\/计算机图形学\/物理\/空气动力学仿真\/Tanabe-Kaneko 模型\.md>\)/g,
+      '[Tanabe-Kaneko 模型](/notes/graphics-physics/tanabe-kaneko-model.html)',
+    )
+    .replace(
+      /\]\(\.\.\/\.\.\/\.\.\/物理\/流体力学\/空气动力学\/空气动力学的一些基础定理\.md\)/g,
+      '](/notes/graphics-physics/aerodynamics-basics.html)',
     )
     .replace(
       /\[基于位置的扩展动力学（XPBD）\]\(<\.\.\/XPBD\/基于位置的扩展动力学（XPBD）\.md>\)/g,

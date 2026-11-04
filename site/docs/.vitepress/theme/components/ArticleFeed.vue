@@ -61,6 +61,18 @@ const articles: Article[] = [
     link: '/articles/graphics/perlin-real-time-wind/',
   },
   {
+    id: 17,
+    title: '基于 Tanabe-Kaneko 模型的落叶模拟',
+    date: '2026-11-04',
+    category: '物理',
+    excerpt: '把准定常薄板模型扩展到三维 XPBD 柔性叶片，并加入恢复、角阻尼、尾流自激与近场骨骼气流。',
+    tags: ['Tanabe-Kaneko', '落叶', '空气动力学'],
+    colors: ['#a24d34', '#e1b268', '#4d281f'],
+    pattern: 'wave',
+    image: '/leaf-fall/article-cover.png',
+    link: '/articles/graphics/tanabe-kaneko-leaf-fall/',
+  },
+  {
     id: 13,
     title: 'ACN-Estimation：基于纹理—几何耦合的自然材质法线估计',
     date: '2026-10-22',

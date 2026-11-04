@@ -80,6 +80,10 @@ const articleSidebar = [
         link: '/articles/graphics/perlin-real-time-wind/',
       },
       {
+        text: '基于 Tanabe-Kaneko 模型的落叶模拟',
+        link: '/articles/graphics/tanabe-kaneko-leaf-fall/',
+      },
+      {
         text: '基于 XPBD 的网格布料仿真',
         link: '/articles/graphics/xpbd-cloth/',
       },
