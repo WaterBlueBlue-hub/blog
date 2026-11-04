@@ -19,7 +19,7 @@ const route = useRoute()
 const root = ref<HTMLDivElement | null>(null)
 
 let ready = false
-let decorateFrame = 0
+let scatterFrame = 0
 let observer: MutationObserver | undefined
 
 function shuffle<T>(items: T[]): T[] {
@@ -31,87 +31,91 @@ function shuffle<T>(items: T[]): T[] {
   return result
 }
 
-function clearAvatars() {
-  document.querySelectorAll('.sidebar-q-avatar').forEach((node) => node.remove())
-  document.querySelectorAll('.sidebar-q-with-avatar').forEach((node) => {
-    node.classList.remove('sidebar-q-with-avatar')
-  })
+function clearScatter() {
+  document.querySelectorAll('.sidebar-q-canvas').forEach((node) => node.remove())
 }
 
-function decorateSidebar() {
-  const sidebar = root.value?.closest('.VPSidebar')
-  if (!sidebar) return
+function scatterQ() {
+  const sidebar = root.value?.closest('.VPSidebar') as HTMLElement | null
+  const nav = sidebar?.querySelector<HTMLElement>('.nav')
+  if (!sidebar || !nav) return
 
-  clearAvatars()
-  const items = Array.from(
-    sidebar.querySelectorAll<HTMLElement>('.VPSidebarItem.level-0 > .item'),
-  ).filter((item) => item.querySelector('.text'))
-  if (!items.length) return
+  clearScatter()
+  const sidebarRect = sidebar.getBoundingClientRect()
+  const navRect = nav.getBoundingClientRect()
+  const gutter = Math.floor(navRect.left - sidebarRect.left)
+  const height = Math.floor(nav.scrollHeight)
+  if (gutter < 100 || height < 180) return
 
+  const layer = document.createElement('div')
+  layer.className = 'sidebar-q-canvas'
+  layer.style.left = '6px'
+  layer.style.top = `${Math.max(0, Math.floor(navRect.top - sidebarRect.top + sidebar.scrollTop))}px`
+  layer.style.width = `${gutter - 12}px`
+  layer.style.height = `${height}px`
+
+  const count = Math.max(8, Math.min(16, Math.round(height / 90)))
+  const bandHeight = height / count
   const picked = shuffle(assets)
-  items.forEach((item, index) => {
-    const size = 32 + Math.random() * 13
-    const offsetX = -27 + Math.random() * 10
-    const offsetY = -5 + Math.random() * 10
-    const rotation = -9 + Math.random() * 18
+  const maxSize = Math.min(72, gutter * 0.4)
+  const minSize = Math.max(38, maxSize - 22)
+
+  for (let index = 0; index < count; index++) {
+    const size = minSize + Math.random() * (maxSize - minSize)
+    const maxX = Math.max(0, gutter - 12 - size)
+    const bandTop = index * bandHeight
+    const yRange = Math.max(0, bandHeight - size)
     const image = document.createElement('img')
 
-    image.className = 'sidebar-q-avatar'
+    image.className = 'sidebar-q-scatter'
     image.src = picked[index % picked.length]
     image.alt = ''
     image.decoding = 'async'
     image.draggable = false
+    image.style.left = `${Math.random() * maxX}px`
+    image.style.top = `${bandTop + Math.random() * yRange}px`
     image.style.width = `${size.toFixed(1)}px`
     image.style.height = `${size.toFixed(1)}px`
-    image.style.left = `${offsetX.toFixed(1)}px`
-    image.style.top = `calc(50% + ${offsetY.toFixed(1)}px)`
-    image.style.transform = `translateY(-50%) rotate(${rotation.toFixed(1)}deg)`
+    image.style.transform = `rotate(${(-12 + Math.random() * 24).toFixed(1)}deg)`
+    layer.appendChild(image)
+  }
 
-    item.classList.add('sidebar-q-with-avatar')
-    item.prepend(image)
-  })
+  sidebar.appendChild(layer)
 }
 
-function scheduleDecorate() {
-  if (decorateFrame) return
-  decorateFrame = requestAnimationFrame(() => {
-    decorateFrame = 0
-    decorateSidebar()
+function scheduleScatter() {
+  if (scatterFrame) return
+  scatterFrame = requestAnimationFrame(() => {
+    scatterFrame = 0
+    scatterQ()
   })
 }
 
 onMounted(async () => {
   ready = true
   await nextTick()
-  decorateSidebar()
+  scatterQ()
 
-  const sidebar = root.value?.closest('.VPSidebar')
-  if (sidebar) {
-    observer = new MutationObserver((mutations) => {
-      const externalChange = mutations.some((mutation) =>
-        [...mutation.addedNodes, ...mutation.removedNodes].some(
-          (node) =>
-            node.nodeType === 1 &&
-            !(node as Element).classList.contains('sidebar-q-avatar'),
-        ),
-      )
-      if (externalChange) scheduleDecorate()
-    })
-    observer.observe(sidebar, { childList: true, subtree: true })
+  const nav = root.value?.closest('.VPSidebar')?.querySelector('.nav')
+  if (nav) {
+    observer = new MutationObserver(scheduleScatter)
+    observer.observe(nav, { childList: true, subtree: true })
   }
+  window.addEventListener('resize', scheduleScatter)
 })
 
 watch(
   () => route.path,
   () => {
-    if (ready) nextTick(scheduleDecorate)
+    if (ready) nextTick(scheduleScatter)
   },
 )
 
 onBeforeUnmount(() => {
   observer?.disconnect()
-  cancelAnimationFrame(decorateFrame)
-  clearAvatars()
+  cancelAnimationFrame(scatterFrame)
+  clearScatter()
+  window.removeEventListener('resize', scheduleScatter)
 })
 </script>
 
@@ -124,22 +128,23 @@ onBeforeUnmount(() => {
   display: none;
 }
 
-:global(.sidebar-q-with-avatar) {
-  box-sizing: border-box;
-  padding-left: 20px;
+:global(.sidebar-q-canvas) {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
 }
 
-:global(.sidebar-q-avatar) {
+:global(.sidebar-q-scatter) {
   position: absolute;
-  z-index: 2;
   display: block;
   object-fit: contain;
   pointer-events: none;
   user-select: none;
-  filter: drop-shadow(0 3px 3px rgba(55, 45, 70, 0.18));
+  filter: drop-shadow(0 4px 4px rgba(55, 45, 70, 0.18));
 }
 
-:global(.dark) :global(.sidebar-q-avatar) {
-  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.32));
+:global(.dark .sidebar-q-scatter) {
+  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.34));
 }
 </style>
