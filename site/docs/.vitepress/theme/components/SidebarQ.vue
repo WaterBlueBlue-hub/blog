@@ -54,11 +54,11 @@ function scatterQ() {
   layer.style.width = `${gutter - 12}px`
   layer.style.height = `${height}px`
 
-  const count = Math.max(18, Math.min(28, Math.round(height / 38)))
+  const count = Math.max(24, Math.min(36, Math.round(height / 28.5)))
   const bandHeight = height / count
   const picked = shuffle(assets)
-  const maxSize = Math.min(50, gutter * 0.38)
-  const minSize = Math.max(24, maxSize - 14)
+  const maxSize = Math.min(46, gutter * 0.34)
+  const minSize = Math.max(22, maxSize - 12)
   const contentWidth = gutter - 12
   const columns = contentWidth >= 150 ? 3 : 2
   const columnWidth = contentWidth / columns
