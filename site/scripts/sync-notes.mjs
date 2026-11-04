@@ -25,6 +25,8 @@ const IMAGE_PROCESSING_ITEMS = [
 ]
 const GRAPHICS_PHYSICS_ITEMS = [
   ['计算机图形学/物理/XPBD/基于位置的扩展动力学（XPBD）.md', 'xpbd'],
+  ['计算机图形学/物理/数值计算基础/数值积分器.md', 'numerical-integrators'],
+  ['计算机图形学/物理/数值计算基础/数值迭代法.md', 'numerical-iteration-methods'],
   ['物理/流体力学/空气动力学/空气动力学的一些基础定理.md', 'aerodynamics-basics'],
 ]
 
@@ -45,9 +47,27 @@ const SECTIONS = [
     items: IMAGE_PROCESSING_ITEMS,
   },
   {
+    slug: 'graphics-rendering',
+    title: '计算机图形学 · 渲染',
+    desc: '辐射度量、着色模型与实时渲染管线。',
+    items: [],
+  },
+  {
+    slug: 'graphics-geometry',
+    title: '计算机图形学 · 几何',
+    desc: '几何表示、曲线曲面与几何处理。',
+    items: [],
+  },
+  {
+    slug: 'graphics-animation',
+    title: '计算机图形学 · 动画',
+    desc: '角色蒙皮、动画控制与实时形变。',
+    items: [],
+  },
+  {
     slug: 'graphics-physics',
     title: '计算机图形学 · 物理',
-    desc: 'XPBD 约束投影、空气动力学定律与实时物理仿真的数学基础。',
+    desc: '数值计算、XPBD 约束投影、空气动力学与实时物理仿真。',
     items: GRAPHICS_PHYSICS_ITEMS,
   },
 ]
@@ -126,6 +146,18 @@ function rewriteWebsiteNoteLinks(markdown) {
     .replace(
       /\[Tanabe-Kaneko 模型\]\(\.\.\/\.\.\/\.\.\/计算机图形学\/物理\/空气动力学仿真\/Tanabe-Kaneko%20模型\.md\)/g,
       'Tanabe-Kaneko 模型（暂未上线）',
+    )
+    .replace(
+      /\[基于位置的扩展动力学（XPBD）\]\(<\.\.\/XPBD\/基于位置的扩展动力学（XPBD）\.md>\)/g,
+      '[基于位置的扩展动力学（XPBD）](/notes/graphics-physics/xpbd.html)',
+    )
+    .replace(
+      /\]\(数值积分器\.md\)/g,
+      '](/notes/graphics-physics/numerical-integrators.html)',
+    )
+    .replace(
+      /\]\(数值迭代法\.md\)/g,
+      '](/notes/graphics-physics/numerical-iteration-methods.html)',
     )
     .replace(/(<img\b[^>]*\bsrc=")素材\//g, '$1./素材/')
     .replace(/\]\(噪声\.md\)/g, '](/notes/image-processing/noise.html)')
