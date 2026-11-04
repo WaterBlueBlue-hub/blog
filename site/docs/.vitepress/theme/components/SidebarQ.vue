@@ -44,8 +44,8 @@ function scatterQ() {
   const sidebarRect = sidebar.getBoundingClientRect()
   const navRect = nav.getBoundingClientRect()
   const gutter = Math.floor(navRect.left - sidebarRect.left)
-  const topInset = 6
-  const bottomInset = 76
+  const topInset = Math.max(0, Math.ceil(navRect.top - sidebarRect.top + 4))
+  const bottomInset = 88
   const height = Math.max(0, sidebar.clientHeight - topInset - bottomInset)
   if (gutter < 100 || height < 180) return
 
