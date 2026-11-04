@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560">
+  <defs>
+    <marker id="arrow-dark" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#33404a"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#2b73b5"/>
+    </marker>
+    <style>
+      .flow { stroke: #2b73b5; stroke-width: 4; fill: none; marker-end: url(#arrow-blue); }
+      .label { fill: #26323c; font: italic 27px "Cambria Math", "Microsoft YaHei", serif; }
+      .note { fill: #56616b; font: 22px "Microsoft YaHei", sans-serif; }
+    </style>
+  </defs>
+
+  <rect width="900" height="560" fill="#ffffff"/>
+  <path d="M160 280 C290 205 575 218 745 280 C575 342 290 355 160 280 Z" fill="#dceafb" stroke="#33404a" stroke-width="4"/>
+
+  <path d="M80 175 C260 120 560 150 745 280" class="flow"/>
+  <path d="M80 385 C260 440 560 410 745 280" class="flow"/>
+  <path d="M745 280 L825 280" class="flow"/>
+  <path d="M80 135 L190 135" class="flow"/>
+  <text x="90" y="120" class="label">U</text>
+
+  <circle cx="745" cy="280" r="8" fill="#e06c2d"/>
+  <text x="758" y="300" class="note">后缘</text>
+  <text x="125" y="315" class="note">前缘</text>
+  <text x="380" y="430" class="label">γ(l)=0</text>
+</svg>

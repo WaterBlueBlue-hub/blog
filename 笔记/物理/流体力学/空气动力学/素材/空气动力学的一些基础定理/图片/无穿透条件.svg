@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560">
+  <defs>
+    <marker id="arrow-dark" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#33404a"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#2b73b5"/>
+    </marker>
+    <style>
+      .label { fill: #26323c; font: italic 28px "Cambria Math", "Microsoft YaHei", serif; }
+      .note { fill: #56616b; font: 22px "Microsoft YaHei", sans-serif; }
+      .dash { stroke: #8d98a1; stroke-width: 3; stroke-dasharray: 10 8; fill: none; }
+      .axis { stroke: #33404a; stroke-width: 4; fill: none; marker-end: url(#arrow-dark); }
+      .vel { stroke: #2b73b5; stroke-width: 5; fill: none; marker-end: url(#arrow-blue); }
+    </style>
+  </defs>
+
+  <rect width="900" height="560" fill="#ffffff"/>
+  <path d="M90 380 Q450 330 810 380 L810 520 L90 520 Z" fill="#dce3e8" stroke="#33404a" stroke-width="4"/>
+  <path d="M120 500 L160 460 M190 500 L230 460 M260 500 L300 460 M330 500 L370 460 M400 500 L440 460 M470 500 L510 460 M540 500 L580 460 M610 500 L650 460 M680 500 L720 460 M750 500 L790 460" stroke="#84909a" stroke-width="2"/>
+
+  <circle cx="450" cy="354" r="8" fill="#33404a"/>
+  <line x1="245" y1="354" x2="655" y2="354" class="dash"/>
+  <line x1="450" y1="354" x2="450" y2="155" class="axis"/>
+  <text x="465" y="180" class="label">n</text>
+
+  <line x1="360" y1="353" x2="610" y2="353" class="vel"/>
+  <text x="625" y="344" fill="#1f5f9a" font-style="italic" font-size="28" font-family="Cambria Math, Microsoft YaHei, serif">V = V<tspan dy="6" font-size="18">t</tspan></text>
+
+  <text x="585" y="270" class="note">V · n = 0</text>
+</svg>

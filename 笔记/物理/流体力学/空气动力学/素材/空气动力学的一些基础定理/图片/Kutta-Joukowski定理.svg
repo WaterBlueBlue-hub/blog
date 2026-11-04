@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560">
+  <defs>
+    <marker id="arrow-dark" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#33404a"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#2b73b5"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#2f947f"/>
+    </marker>
+    <style>
+      .label { fill: #26323c; font: italic 28px "Cambria Math", "Microsoft YaHei", serif; }
+      .note { fill: #56616b; font: 22px "Microsoft YaHei", sans-serif; }
+    </style>
+  </defs>
+
+  <rect width="900" height="560" fill="#ffffff"/>
+  <text x="75" y="105" class="label">U</text>
+  <line x1="110" y1="96" x2="250" y2="96" stroke="#2b73b5" stroke-width="5" marker-end="url(#arrow-blue)"/>
+
+  <path d="M260 280 C370 220 570 230 700 280 C570 330 370 340 260 280 Z" fill="#dceafb" stroke="#33404a" stroke-width="4"/>
+
+  <ellipse cx="480" cy="280" rx="300" ry="155" fill="none" stroke="#2f947f" stroke-width="4" stroke-dasharray="12 8"/>
+  <path d="M480 115 A300 165 0 0 1 760 250" fill="none" stroke="#2f947f" stroke-width="4" marker-end="url(#arrow-green)"/>
+  <text x="755" y="140" fill="#237565" font-style="italic" font-size="28" font-family="Cambria Math, Microsoft YaHei, serif">C, Γ</text>
+
+  <line x1="480" y1="280" x2="480" y2="145" stroke="#2f947f" stroke-width="6" marker-end="url(#arrow-green)"/>
+  <text x="498" y="165" fill="#237565" font-style="italic" font-size="29" font-family="Cambria Math, Microsoft YaHei, serif">L′</text>
+
+  <text x="535" y="455" class="note">L′ = ρUΓ</text>
+</svg>

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900">
+  <defs>
+    <marker id="arrow-dark" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#33404a"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#2b73b5"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#2f947f"/>
+    </marker>
+    <style>
+      .label { fill: #26323c; font: italic 28px "Cambria Math", "Microsoft YaHei", serif; }
+      .note { fill: #56616b; font: 22px "Microsoft YaHei", sans-serif; }
+      .dash { stroke: #8d98a1; stroke-width: 3; stroke-dasharray: 10 8; fill: none; }
+    </style>
+  </defs>
+
+  <rect width="900" height="900" fill="#ffffff"/>
+  <text x="55" y="62" class="note">有限涡线微元</text>
+
+  <path d="M190 285 C300 210 470 255 650 135" stroke="#33404a" stroke-width="7" fill="none"/>
+  <line x1="410" y1="244" x2="515" y2="196" stroke="#2b73b5" stroke-width="8" marker-end="url(#arrow-blue)"/>
+  <text x="455" y="174" fill="#1f5f9a" font-style="italic" font-size="28" font-family="Cambria Math, Microsoft YaHei, serif">dℓ</text>
+
+  <circle cx="615" cy="330" r="9" fill="#e06c2d"/>
+  <text x="632" y="337" class="label">P</text>
+  <line x1="465" y1="220" x2="615" y2="330" class="dash"/>
+  <text x="530" y="295" class="label">r</text>
+
+  <circle cx="465" cy="220" r="17" fill="#ffffff" stroke="#2f947f" stroke-width="3"/>
+  <circle cx="465" cy="220" r="5" fill="#2f947f"/>
+  <text x="488" y="230" fill="#237565" font-style="italic" font-size="27" font-family="Cambria Math, Microsoft YaHei, serif">dV</text>
+  <text x="300" y="365" class="note">dV ∝ dℓ × r</text>
+
+  <line x1="60" y1="455" x2="840" y2="455" stroke="#d8dee5" stroke-width="2"/>
+  <text x="55" y="505" class="note">无限长直涡线</text>
+
+  <line x1="450" y1="545" x2="450" y2="845" stroke="#33404a" stroke-width="7"/>
+  <circle cx="450" cy="705" r="180" fill="none" stroke="#2b73b5" stroke-width="4"/>
+  <path d="M450 525 A180 180 0 0 1 625 643" fill="none" stroke="#2b73b5" stroke-width="4" marker-end="url(#arrow-blue)"/>
+  <circle cx="450" cy="705" r="7" fill="#33404a"/>
+  <circle cx="630" cy="705" r="7" fill="#e06c2d"/>
+  <line x1="450" y1="705" x2="630" y2="705" class="dash"/>
+  <text x="530" y="684" class="label">r</text>
+  <line x1="630" y1="705" x2="630" y2="570" stroke="#2f947f" stroke-width="5" marker-end="url(#arrow-green)"/>
+  <text x="650" y="620" fill="#237565" font-style="italic" font-size="28" font-family="Cambria Math, Microsoft YaHei, serif">v<tspan dy="6" font-size="19">θ</tspan></text>
+  <text x="245" y="830" class="label">v<tspan dy="6" font-size="19">θ</tspan><tspan dy="-6">=Γ/(2πr)</tspan></text>
+</svg>
