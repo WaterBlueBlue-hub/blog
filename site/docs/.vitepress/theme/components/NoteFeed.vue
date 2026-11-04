@@ -321,19 +321,18 @@ function handleCardClick(note: Note, event: MouseEvent) {
 }
 
 .note-card .note-card__cover.has-custom-cover img {
-  top: 50%;
-  left: 50%;
-  width: 90%;
+  top: 0;
+  left: 0;
+  width: 100%;
   max-width: none;
-  height: 90%;
-  border-radius: 8px;
-  object-fit: contain;
-  object-position: center;
-  transform: translate(-50%, -50%);
+  height: 100%;
+  border-radius: 0;
+  object-fit: cover;
+  transform: none;
 }
 
 .note-card--link:hover .note-card__cover.has-custom-cover img {
-  transform: translate(-50%, -50%) scale(1.02);
+  transform: scale(1.025);
 }
 
 .note-card__edit {
