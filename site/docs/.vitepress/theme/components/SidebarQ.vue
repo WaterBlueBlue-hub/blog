@@ -17,12 +17,10 @@ const assets = groups.flatMap(({ prefix, count }) =>
 
 const route = useRoute()
 const root = ref<HTMLDivElement | null>(null)
-const selected = ref<string[]>([])
-const gridStyle = ref<Record<string, string>>({})
 
 let ready = false
-let resizeFrame = 0
-let resizeObserver: ResizeObserver | undefined
+let decorateFrame = 0
+let observer: MutationObserver | undefined
 
 function shuffle<T>(items: T[]): T[] {
   const result = [...items]
@@ -33,123 +31,115 @@ function shuffle<T>(items: T[]): T[] {
   return result
 }
 
-function fillSidebar() {
-  const element = root.value
-  const sidebar = element?.closest('.VPSidebar') as HTMLElement | null
-  if (!element || !sidebar) return
-
-  const rootRect = element.getBoundingClientRect()
-  const sidebarRect = sidebar.getBoundingClientRect()
-  const available = Math.floor(sidebarRect.bottom - rootRect.top - 60)
-  const width = Math.floor(rootRect.width)
-
-  if (available < 48 || width < 100) {
-    selected.value = []
-    return
-  }
-
-  const gap = 5
-  const columns = width >= 180 ? 3 : 2
-  const cell = Math.floor((width - gap * (columns - 1)) / columns)
-  const rows = Math.max(1, Math.min(6, Math.floor((available + gap) / (cell + gap))))
-  const visibleHeight = rows * cell + gap * (rows - 1)
-  const count = columns * rows
-
-  selected.value = shuffle(assets).slice(0, count)
-  gridStyle.value = {
-    '--q-columns': String(columns),
-    '--q-rows': String(rows),
-    '--q-height': `${Math.min(available, visibleHeight)}px`,
-  }
+function clearAvatars() {
+  document.querySelectorAll('.sidebar-q-avatar').forEach((node) => node.remove())
+  document.querySelectorAll('.sidebar-q-with-avatar').forEach((node) => {
+    node.classList.remove('sidebar-q-with-avatar')
+  })
 }
 
-function scheduleFill() {
-  if (resizeFrame) return
-  resizeFrame = requestAnimationFrame(() => {
-    resizeFrame = 0
-    fillSidebar()
+function decorateSidebar() {
+  const sidebar = root.value?.closest('.VPSidebar')
+  if (!sidebar) return
+
+  clearAvatars()
+  const items = Array.from(
+    sidebar.querySelectorAll<HTMLElement>('.VPSidebarItem.level-0 > .item'),
+  ).filter((item) => item.querySelector('.text'))
+  if (!items.length) return
+
+  const picked = shuffle(assets)
+  items.forEach((item, index) => {
+    const size = 32 + Math.random() * 13
+    const offsetX = -27 + Math.random() * 10
+    const offsetY = -5 + Math.random() * 10
+    const rotation = -9 + Math.random() * 18
+    const image = document.createElement('img')
+
+    image.className = 'sidebar-q-avatar'
+    image.src = picked[index % picked.length]
+    image.alt = ''
+    image.decoding = 'async'
+    image.draggable = false
+    image.style.width = `${size.toFixed(1)}px`
+    image.style.height = `${size.toFixed(1)}px`
+    image.style.left = `${offsetX.toFixed(1)}px`
+    image.style.top = `calc(50% + ${offsetY.toFixed(1)}px)`
+    image.style.transform = `translateY(-50%) rotate(${rotation.toFixed(1)}deg)`
+
+    item.classList.add('sidebar-q-with-avatar')
+    item.prepend(image)
+  })
+}
+
+function scheduleDecorate() {
+  if (decorateFrame) return
+  decorateFrame = requestAnimationFrame(() => {
+    decorateFrame = 0
+    decorateSidebar()
   })
 }
 
 onMounted(async () => {
   ready = true
   await nextTick()
-  fillSidebar()
+  decorateSidebar()
+
   const sidebar = root.value?.closest('.VPSidebar')
   if (sidebar) {
-    resizeObserver = new ResizeObserver(scheduleFill)
-    resizeObserver.observe(sidebar)
+    observer = new MutationObserver((mutations) => {
+      const externalChange = mutations.some((mutation) =>
+        [...mutation.addedNodes, ...mutation.removedNodes].some(
+          (node) =>
+            node.nodeType === 1 &&
+            !(node as Element).classList.contains('sidebar-q-avatar'),
+        ),
+      )
+      if (externalChange) scheduleDecorate()
+    })
+    observer.observe(sidebar, { childList: true, subtree: true })
   }
-  window.addEventListener('resize', scheduleFill)
 })
 
 watch(
   () => route.path,
   () => {
-    if (ready) nextTick(fillSidebar)
+    if (ready) nextTick(scheduleDecorate)
   },
 )
 
 onBeforeUnmount(() => {
-  resizeObserver?.disconnect()
-  cancelAnimationFrame(resizeFrame)
-  window.removeEventListener('resize', scheduleFill)
+  observer?.disconnect()
+  cancelAnimationFrame(decorateFrame)
+  clearAvatars()
 })
 </script>
 
 <template>
-  <div ref="root" class="sidebar-q" aria-hidden="true">
-    <div v-if="selected.length" class="sidebar-q__grid" :style="gridStyle">
-      <span v-for="asset in selected" :key="asset" class="sidebar-q__cell">
-        <img :src="asset" alt="" decoding="async" draggable="false" />
-      </span>
-    </div>
-  </div>
+  <div ref="root" class="sidebar-q-hook" aria-hidden="true" />
 </template>
 
 <style scoped>
-.sidebar-q {
+.sidebar-q-hook {
+  display: none;
+}
+
+:global(.sidebar-q-with-avatar) {
   box-sizing: border-box;
-  width: 100%;
-  margin: 14px auto 8px;
-  padding: 0 8px;
+  padding-left: 20px;
+}
+
+:global(.sidebar-q-avatar) {
+  position: absolute;
+  z-index: 2;
+  display: block;
+  object-fit: contain;
   pointer-events: none;
   user-select: none;
+  filter: drop-shadow(0 3px 3px rgba(55, 45, 70, 0.18));
 }
 
-.sidebar-q__grid {
-  height: var(--q-height, 0);
-  display: grid;
-  grid-template-columns: repeat(var(--q-columns, 3), minmax(0, 1fr));
-  grid-template-rows: repeat(var(--q-rows, 1), minmax(0, 1fr));
-  gap: 5px;
-}
-
-.sidebar-q__cell {
-  min-width: 0;
-  min-height: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.16);
-}
-
-.sidebar-q__cell img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  image-rendering: auto;
-  filter: drop-shadow(0 5px 5px rgba(55, 45, 70, 0.16));
-}
-
-.dark .sidebar-q__cell {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-@media (max-width: 959px) {
-  .sidebar-q {
-    margin-top: 16px;
-  }
+:global(.dark) :global(.sidebar-q-avatar) {
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.32));
 }
 </style>
