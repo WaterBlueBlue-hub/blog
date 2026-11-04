@@ -2,25 +2,32 @@
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, withBase } from 'vitepress'
 
-const groups = [
-  { prefix: 'lok', count: 6 },
-  { prefix: 'star', count: 69 },
-  { prefix: 'mujica', count: 14 },
-  { prefix: 'mygo', count: 9 },
-]
-
-const assets = groups.flatMap(({ prefix, count }) =>
-  Array.from({ length: count }, (_, index) =>
-    withBase(`/sidebar-q/${prefix}-${String(index + 1).padStart(2, '0')}.webp`),
-  ),
-)
-
 const route = useRoute()
 const root = ref<HTMLDivElement | null>(null)
+const assets = ref<string[]>([])
 
 let ready = false
 let scatterFrame = 0
 let observer: MutationObserver | undefined
+
+async function loadAssets() {
+  try {
+    const response = await fetch(
+      `${withBase('/sidebar-q/manifest.json')}?v=${Date.now()}`,
+      { cache: 'no-store' },
+    )
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
+    const files = await response.json()
+    if (!Array.isArray(files)) throw new Error('素材清单格式无效')
+
+    assets.value = files
+      .filter((file): file is string => typeof file === 'string' && file.endsWith('.webp'))
+      .map((file) => withBase(`/sidebar-q/${file.replace(/^\/+/, '')}`))
+  } catch (error) {
+    console.error('[SidebarQ] 无法加载 Q 版素材清单', error)
+  }
+}
 
 function shuffle<T>(items: T[]): T[] {
   const result = [...items]
@@ -41,6 +48,8 @@ function scatterQ() {
   if (!sidebar || !nav) return
 
   clearScatter()
+  if (!assets.value.length) return
+
   const sidebarRect = sidebar.getBoundingClientRect()
   const navRect = nav.getBoundingClientRect()
   const gutter = Math.floor(navRect.left - sidebarRect.left)
@@ -58,7 +67,7 @@ function scatterQ() {
 
   const count = Math.max(24, Math.min(36, Math.round(height / 28.5)))
   const bandHeight = height / count
-  const picked = shuffle(assets)
+  const picked = shuffle(assets.value)
   const maxSize = Math.min(55.2, gutter * 0.408)
   const minSize = Math.max(26.4, maxSize - 14.4)
   const contentWidth = gutter - 12
@@ -105,6 +114,7 @@ function scheduleScatter() {
 onMounted(async () => {
   ready = true
   await nextTick()
+  await loadAssets()
   scatterQ()
 
   const nav = root.value?.closest('.VPSidebar')?.querySelector('.nav')
