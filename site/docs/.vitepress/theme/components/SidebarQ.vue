@@ -59,12 +59,18 @@ function scatterQ() {
   const picked = shuffle(assets)
   const maxSize = Math.min(50, gutter * 0.38)
   const minSize = Math.max(24, maxSize - 14)
+  const contentWidth = gutter - 12
+  const columns = contentWidth >= 150 ? 3 : 2
+  const columnWidth = contentWidth / columns
 
   for (let index = 0; index < count; index++) {
     const size = minSize + Math.random() * (maxSize - minSize)
-    const maxX = Math.max(0, gutter - 12 - size)
+    const column = index % columns
+    const maxX = Math.max(0, columnWidth - size)
     const bandTop = index * bandHeight
-    const yRange = Math.max(0, bandHeight - size)
+    const maxY = Math.max(0, bandHeight - size)
+    const centerY = bandTop + bandHeight / 2
+    const jitterY = (Math.random() - 0.5) * Math.min(9, bandHeight * 0.24)
     const image = document.createElement('img')
 
     image.className = 'sidebar-q-scatter'
@@ -72,8 +78,11 @@ function scatterQ() {
     image.alt = ''
     image.decoding = 'async'
     image.draggable = false
-    image.style.left = `${Math.random() * maxX}px`
-    image.style.top = `${bandTop + Math.random() * yRange}px`
+    image.style.left = `${column * columnWidth + Math.random() * maxX}px`
+    image.style.top = `${Math.max(
+      bandTop,
+      Math.min(bandTop + maxY, centerY - size / 2 + jitterY),
+    ).toFixed(1)}px`
     image.style.width = `${size.toFixed(1)}px`
     image.style.height = `${size.toFixed(1)}px`
     image.style.transform = `rotate(${(-12 + Math.random() * 24).toFixed(1)}deg)`
