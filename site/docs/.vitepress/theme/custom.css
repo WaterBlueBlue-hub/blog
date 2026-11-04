@@ -554,16 +554,23 @@ body::after {
   color: rgba(255, 255, 255, 0.64);
 }
 
-/* 顶栏：玻璃 */
+/* 顶栏：背景铺在整个固定导航容器上，避免缩放时出现分段色差 */
+.VPNav {
+  background: #fff;
+}
+
 .VPNav .VPNavBar {
-  background: rgba(255, 255, 255, 0.52) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(1.15);
-  backdrop-filter: blur(14px) saturate(1.15);
+  background: transparent !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.4);
 }
 
+.dark .VPNav {
+  background: #10121e;
+}
+
 .dark .VPNav .VPNavBar {
-  background: rgba(16, 18, 30, 0.55) !important;
   border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
