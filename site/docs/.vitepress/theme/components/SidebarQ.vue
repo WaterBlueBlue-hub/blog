@@ -44,13 +44,15 @@ function scatterQ() {
   const sidebarRect = sidebar.getBoundingClientRect()
   const navRect = nav.getBoundingClientRect()
   const gutter = Math.floor(navRect.left - sidebarRect.left)
-  const height = Math.floor(nav.scrollHeight)
+  const topInset = 6
+  const bottomInset = 76
+  const height = Math.max(0, sidebar.clientHeight - topInset - bottomInset)
   if (gutter < 100 || height < 180) return
 
   const layer = document.createElement('div')
   layer.className = 'sidebar-q-canvas'
   layer.style.left = '6px'
-  layer.style.top = `${Math.max(0, Math.floor(navRect.top - sidebarRect.top + sidebar.scrollTop))}px`
+  layer.style.top = `${Math.max(0, Math.floor(sidebar.scrollTop + topInset))}px`
   layer.style.width = `${gutter - 12}px`
   layer.style.height = `${height}px`
 
@@ -85,7 +87,7 @@ function scatterQ() {
     ).toFixed(1)}px`
     image.style.width = `${size.toFixed(1)}px`
     image.style.height = `${size.toFixed(1)}px`
-    image.style.transform = `rotate(${(-12 + Math.random() * 24).toFixed(1)}deg)`
+    image.style.setProperty('--q-rotation', `${(-12 + Math.random() * 24).toFixed(1)}deg`)
     layer.appendChild(image)
   }
 
@@ -148,12 +150,28 @@ onBeforeUnmount(() => {
   position: absolute;
   display: block;
   object-fit: contain;
-  pointer-events: none;
+  pointer-events: auto;
   user-select: none;
+  z-index: 1;
+  transform: rotate(var(--q-rotation)) scale(1);
   filter: drop-shadow(0 4px 4px rgba(55, 45, 70, 0.18));
+  transition:
+    transform 160ms ease,
+    filter 160ms ease;
+  will-change: transform;
+}
+
+:global(.sidebar-q-scatter:hover) {
+  z-index: 3;
+  transform: rotate(var(--q-rotation)) scale(1.2);
+  filter: drop-shadow(0 7px 8px rgba(55, 45, 70, 0.26));
 }
 
 :global(.dark .sidebar-q-scatter) {
   filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.34));
+}
+
+:global(.dark .sidebar-q-scatter:hover) {
+  filter: drop-shadow(0 7px 10px rgba(0, 0, 0, 0.44));
 }
 </style>
