@@ -30,6 +30,9 @@ const GRAPHICS_PHYSICS_ITEMS = [
   ['计算机图形学/物理/空气动力学仿真/Tanabe-Kaneko 模型.md', 'tanabe-kaneko-model'],
   ['物理/流体力学/空气动力学/空气动力学的一些基础定理.md', 'aerodynamics-basics'],
 ]
+const GRAPHICS_ANIMATION_ITEMS = [
+  ['计算机图形学/动画/蒙皮/线性混合蒙皮（LBS）.md', 'lbs'],
+]
 
 const SECTIONS = [
   {
@@ -63,7 +66,7 @@ const SECTIONS = [
     slug: 'graphics-animation',
     title: '计算机图形学 · 动画',
     desc: '角色蒙皮、动画控制与实时形变。',
-    items: [],
+    items: GRAPHICS_ANIMATION_ITEMS,
   },
   {
     slug: 'graphics-physics',
@@ -159,6 +162,22 @@ function rewriteWebsiteNoteLinks(markdown) {
     .replace(
       /\]\(\.\.\/\.\.\/\.\.\/物理\/流体力学\/空气动力学\/空气动力学的一些基础定理\.md\)/g,
       '](/notes/graphics-physics/aerodynamics-basics.html)',
+    )
+    .replace(
+      /\]\(\.\.\/\.\.\/\.\.\/\.\.\/文章\/计算机图形学\/动画\/蒙皮\/基于%20LBS%20的裙摆防穿模工具\.md\)/g,
+      '](/articles/graphics/lbs-skirt-clipping-tool/)',
+    )
+    .replace(
+      /\]\(<\.\.\/\.\.\/物理\/XPBD\/基于位置的扩展动力学（XPBD）\.md>\)/g,
+      '](/notes/graphics-physics/xpbd.html)',
+    )
+    .replace(
+      /\[李群基础中的特殊正交群\]\([^)]+\)/g,
+      '李群基础中的特殊正交群（暂未上线）',
+    )
+    .replace(
+      /\[齐次坐标与 MVP 变换矩阵中的旋转\]\(<[^>]+>\)/g,
+      '齐次坐标与 MVP 变换矩阵中的旋转（暂未上线）',
     )
     .replace(
       /\[基于位置的扩展动力学（XPBD）\]\(<\.\.\/XPBD\/基于位置的扩展动力学（XPBD）\.md>\)/g,
@@ -295,7 +314,7 @@ for (const section of SECTIONS) {
 
     const title = getTitle(raw, path.basename(rel, '.md'))
     const body = transform(
-      section.source === 'website' || section.slug === 'graphics-physics'
+      section.source === 'website' || section.slug.startsWith('graphics-')
         ? rewriteWebsiteNoteLinks(raw)
         : raw,
     )
@@ -311,7 +330,7 @@ for (const section of SECTIONS) {
       ),
     ]
     for (const rawRef of imageReferences) {
-      const ref = decodeURI(rawRef)
+      const ref = decodeURI(rawRef.replace(/^<|>$/g, ''))
       if (/^(https?:)?\/\//.test(ref) || ref.startsWith('/') || ref.startsWith('data:')) continue
       const from = path.resolve(srcDir, ref)
       const to = path.resolve(secDir, ref)

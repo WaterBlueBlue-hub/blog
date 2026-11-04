@@ -94,6 +94,16 @@ const articleSidebar = [
     ],
   },
   {
+    text: '计算机图形学 · 动画',
+    collapsed: false,
+    items: [
+      {
+        text: '基于 LBS 的裙摆防穿模工具',
+        link: '/articles/graphics/lbs-skirt-clipping-tool/',
+      },
+    ],
+  },
+  {
     text: '数字图像处理',
     collapsed: false,
     items: [

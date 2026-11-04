@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <defs>
+    <marker id="arrow-both" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#56616b"/>
+    </marker>
+    <style>
+      .label { fill: #26323c; font: italic 30px "Cambria Math", "Microsoft YaHei", serif; }
+      .zone { fill: #56616b; font: 24px "Microsoft YaHei", sans-serif; }
+      .dash { stroke: #8d98a1; stroke-width: 3; stroke-dasharray: 10 8; fill: none; }
+      .dimension { stroke: #56616b; stroke-width: 3; fill: none; marker-start: url(#arrow-both); marker-end: url(#arrow-both); }
+      .boundary { stroke: #8794a2; stroke-width: 2; stroke-dasharray: 9 8; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="700" fill="#ffffff"/>
+
+  <!-- radial influence bands around the bone segment -->
+  <line x1="220" y1="380" x2="980" y2="380" stroke="#dceafb" stroke-width="380" stroke-linecap="round"/>
+  <line x1="220" y1="380" x2="980" y2="380" stroke="#cfeadd" stroke-width="200" stroke-linecap="round"/>
+  <line x1="220" y1="190" x2="980" y2="190" class="boundary"/>
+  <line x1="220" y1="570" x2="980" y2="570" class="boundary"/>
+  <line x1="220" y1="280" x2="980" y2="280" stroke="#72ab9a" stroke-width="2" stroke-dasharray="9 8"/>
+  <line x1="220" y1="480" x2="980" y2="480" stroke="#72ab9a" stroke-width="2" stroke-dasharray="9 8"/>
+
+  <!-- bone segment -->
+  <line x1="220" y1="380" x2="980" y2="380" stroke="#33404a" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="220" cy="380" r="10" fill="#26323c"/>
+  <text x="182" y="425" class="label">A</text>
+  <circle cx="980" cy="380" r="10" fill="#26323c"/>
+  <text x="1000" y="425" class="label">B</text>
+
+  <!-- skirt vertex and closest point -->
+  <circle cx="620" cy="230" r="11" fill="#e06c2d"/>
+  <text x="638" y="224" class="label">x</text>
+  <circle cx="620" cy="380" r="9" fill="#2f947f"/>
+  <text x="638" y="406" class="label">c</text>
+  <line x1="620" y1="230" x2="620" y2="380" class="dash"/>
+  <text x="637" y="312" fill="#b55220" font-style="italic" font-size="30" font-family="Cambria Math, Microsoft YaHei, serif">d</text>
+
+  <!-- full-weight radius -->
+  <line x1="115" y1="280" x2="115" y2="380" class="dimension"/>
+  <text x="42" y="330" font-style="italic" font-size="27" font-family="Cambria Math, Microsoft YaHei, serif">R<tspan dy="6" font-size="19">full</tspan></text>
+
+  <!-- maximum radius -->
+  <line x1="1055" y1="190" x2="1055" y2="380" class="dimension"/>
+  <text x="1072" y="280" font-style="italic" font-size="27" font-family="Cambria Math, Microsoft YaHei, serif">R<tspan dy="6" font-size="19">max</tspan></text>
+
+  <!-- region labels -->
+  <text x="300" y="430" class="zone">核心区：f(d)=1</text>
+  <text x="82" y="258" class="zone">过渡区：0&lt;f(d)&lt;1</text>
+  <text x="82" y="155" class="zone">影响范围外：f(d)=0</text>
+</svg>

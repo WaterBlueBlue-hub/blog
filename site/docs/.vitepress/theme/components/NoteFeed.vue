@@ -24,6 +24,17 @@ const PAGE_SIZE = 6
 
 const notes: Note[] = [
   {
+    id: 109,
+    title: '线性混合蒙皮（LBS）',
+    date: '2026-11-04',
+    topic: '计算机图形学 · 动画',
+    excerpt: '从绑定空间、权重混合与仿射不变性出发，分析糖纸效应及 LBS 的几何局限性。',
+    tags: ['LBS', '蒙皮', '糖纸效应'],
+    image: '/character-skinning/note-cover.png',
+    link: '/notes/graphics-animation/lbs.html',
+    coverMode: 'full',
+  },
+  {
     id: 108,
     title: 'Tanabe-Kaneko 模型',
     date: '2026-11-04',

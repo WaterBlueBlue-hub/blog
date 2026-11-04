@@ -73,6 +73,18 @@ const articles: Article[] = [
     link: '/articles/graphics/tanabe-kaneko-leaf-fall/',
   },
   {
+    id: 18,
+    title: '基于 LBS 的裙摆防穿模工具',
+    date: '2026-11-04',
+    category: '图形',
+    excerpt: '从结构化网格自动生成蒙皮骨骼链，并用大腿骨骼的距离衰减权重低成本抑制裙摆穿模。',
+    tags: ['LBS', '裙摆', '蒙皮权重'],
+    colors: ['#557a9f', '#c8d8e7', '#273b55'],
+    pattern: 'mesh',
+    image: '/character-skinning/article-cover.webp',
+    link: '/articles/graphics/lbs-skirt-clipping-tool/',
+  },
+  {
     id: 13,
     title: 'ACN-Estimation：基于纹理—几何耦合的自然材质法线估计',
     date: '2026-10-22',
