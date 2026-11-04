@@ -15,6 +15,7 @@ import ArticleFeed from './components/ArticleFeed.vue'
 import NoteFeed from './components/NoteFeed.vue'
 import PaperLibrary from './components/PaperLibrary.vue'
 import SkillShowcase from './components/SkillShowcase.vue'
+import SidebarQ from './components/SidebarQ.vue'
 
 export default {
   extends: DefaultTheme,
@@ -34,6 +35,7 @@ export default {
       'home-hero-info-after': () => [h(HeroGrass), h(GameGrove)],
       'home-hero-actions-after': () => h(ContactButtons),
       'home-hero-image': () => h(FluidFloat),
+      'sidebar-nav-after': () => h(SidebarQ),
       'layout-bottom': () => [h(PetAssistant), h(DeveloperMode)],
     }),
   enhanceApp(ctx: any) {
