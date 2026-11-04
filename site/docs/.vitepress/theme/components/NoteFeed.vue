@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
 import { withBase } from 'vitepress'
 import {
   cardEditorState,
@@ -19,7 +20,27 @@ type Note = {
   coverMode?: 'icon' | 'full'
 }
 
+const PAGE_SIZE = 6
+
 const notes: Note[] = [
+  {
+    id: 106,
+    title: '数值积分器',
+    date: '2026-11-04',
+    topic: '计算机图形学 · 物理',
+    excerpt: '对比显式、隐式与半隐式欧拉的能量行为，并从泰勒展开推导 Verlet 与稳定性条件。',
+    tags: ['欧拉积分', 'Verlet', '稳定性'],
+    link: '/notes/graphics-physics/numerical-integrators.html',
+  },
+  {
+    id: 107,
+    title: '数值迭代法',
+    date: '2026-11-04',
+    topic: '计算机图形学 · 物理',
+    excerpt: '从雅可比与高斯-塞德尔矩阵迭代，延伸到 PBD 约束投影中的并行与串行更新。',
+    tags: ['Jacobi', 'Gauss-Seidel', 'PBD'],
+    link: '/notes/graphics-physics/numerical-iteration-methods.html',
+  },
   {
     id: 104,
     title: '基于位置的扩展动力学（XPBD）',
@@ -86,7 +107,16 @@ const notes: Note[] = [
   },
 ]
 
+const page = ref(1)
 const publishedCount = notes.filter((note) => !note.placeholder).length
+const totalPages = computed(() => Math.max(1, Math.ceil(notes.length / PAGE_SIZE)))
+const visibleNotes = computed(() =>
+  notes.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE),
+)
+
+function goToPage(next: number) {
+  page.value = Math.min(totalPages.value, Math.max(1, next))
+}
 
 function valueFor(note: Note, field: 'title' | 'date' | 'topic' | 'excerpt' | 'image') {
   return getCardOverride('note', note.id)?.[field] ?? note[field] ?? ''
@@ -131,7 +161,7 @@ function handleCardClick(note: Note, event: MouseEvent) {
     <div :key="cardEditorState.revision" class="note-feed__grid">
       <component
         :is="note.link && !cardEditorState.active ? 'a' : 'article'"
-        v-for="note in notes"
+        v-for="note in visibleNotes"
         :key="note.id"
         class="note-card"
         :class="{
@@ -170,6 +200,21 @@ function handleCardClick(note: Note, event: MouseEvent) {
         </div>
       </component>
     </div>
+
+    <nav v-if="totalPages > 1" class="note-feed__pager" aria-label="笔记分页">
+      <button type="button" :disabled="page === 1" @click="goToPage(page - 1)">上一页</button>
+      <button
+        v-for="number in totalPages"
+        :key="number"
+        type="button"
+        :class="{ 'is-active': page === number }"
+        :aria-current="page === number ? 'page' : undefined"
+        @click="goToPage(number)"
+      >
+        {{ number }}
+      </button>
+      <button type="button" :disabled="page === totalPages" @click="goToPage(page + 1)">下一页</button>
+    </nav>
   </section>
 </template>
 
@@ -418,6 +463,38 @@ function handleCardClick(note: Note, event: MouseEvent) {
   font-size: 10px;
 }
 
+.note-feed__pager {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 24px;
+}
+
+.note-feed__pager button {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--vp-c-text-2);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.note-feed__pager button:hover:not(:disabled),
+.note-feed__pager button.is-active {
+  border-color: rgba(47, 109, 246, 0.34);
+  background: var(--vp-c-brand-1);
+  color: #fff;
+}
+
+.note-feed__pager button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
 .note-card--placeholder:nth-child(3) .note-card__cover {
   background:
     radial-gradient(circle at 75% 23%, rgba(137, 174, 207, 0.3), transparent 30%),
@@ -454,6 +531,11 @@ function handleCardClick(note: Note, event: MouseEvent) {
 
 .dark .note-card__tags span {
   background: rgba(255, 255, 255, 0.07);
+}
+
+.dark .note-feed__pager button {
+  border-color: rgba(255, 255, 255, 0.11);
+  background: rgba(30, 32, 45, 0.6);
 }
 
 @media (max-width: 1050px) {
