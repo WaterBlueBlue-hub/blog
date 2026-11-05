@@ -27,6 +27,7 @@ const GRAPHICS_PHYSICS_ITEMS = [
   ['计算机图形学/物理/XPBD/基于位置的扩展动力学（XPBD）.md', 'xpbd'],
   ['计算机图形学/物理/数值计算基础/数值积分器.md', 'numerical-integrators'],
   ['计算机图形学/物理/数值计算基础/数值迭代法.md', 'numerical-iteration-methods'],
+  ['计算机图形学/物理/数值计算基础/阻尼算法.md', 'damping'],
   ['计算机图形学/物理/空气动力学仿真/Tanabe-Kaneko 模型.md', 'tanabe-kaneko-model'],
   ['物理/流体力学/空气动力学/空气动力学的一些基础定理.md', 'aerodynamics-basics'],
 ]

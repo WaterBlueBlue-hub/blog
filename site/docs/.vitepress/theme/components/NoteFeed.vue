@@ -24,6 +24,15 @@ const PAGE_SIZE = 6
 
 const notes: Note[] = [
   {
+    id: 110,
+    title: '阻尼算法',
+    date: '2026-11-05',
+    topic: '计算机图形学 · 物理',
+    excerpt: '对比帧级速度衰减、PBD 形变速度过滤与 XPBD 瑞利约束阻尼的耗散对象和实现方式。',
+    tags: ['阻尼', 'PBD', 'XPBD'],
+    link: '/notes/graphics-physics/damping.html',
+  },
+  {
     id: 109,
     title: '线性混合蒙皮（LBS）',
     date: '2026-11-04',
