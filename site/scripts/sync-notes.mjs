@@ -18,6 +18,21 @@ const WEBSITE_NOTES_SRC = path.join(WEBSITE_ROOT, '笔记')
 const WEBSITE_NOTES_SNAPSHOT = path.join(SITE, 'content', 'notes')
 const DOCS = path.join(SITE, 'docs')
 const OUT = path.join(DOCS, 'notes')
+const NOTE_COVERS = [
+  {
+    from: path.join(
+      SRC,
+      '计算机图形学',
+      '物理',
+      '数值计算基础',
+      '素材',
+      '阻尼算法',
+      '图片',
+      '阻尼算法封面.png',
+    ),
+    to: path.join(DOCS, 'public', 'damping', 'note-cover.png'),
+  },
+]
 const IMAGE_PROCESSING_ITEMS = [
   ['数字图像处理/噪声.md', 'noise'],
   ['数字图像处理/滤波.md', 'filtering'],
@@ -88,6 +103,16 @@ function copyIfChanged(from, to) {
   }
   fs.mkdirSync(path.dirname(to), { recursive: true })
   fs.copyFileSync(from, to)
+}
+
+/** 同步首页笔记卡使用的自定义封面。 */
+function syncNoteCovers() {
+  for (const cover of NOTE_COVERS) {
+    if (!fs.existsSync(cover.from)) {
+      throw new Error(`笔记封面不存在：${cover.from}`)
+    }
+    copyIfChanged(cover.from, cover.to)
+  }
 }
 
 /** 本地有个人网站内容工作区时，同步三篇图像处理笔记及其配图快照。 */
@@ -202,6 +227,7 @@ function rewriteWebsiteNoteLinks(markdown) {
 }
 
 syncImageProcessingSnapshot()
+syncNoteCovers()
 
 function getTitle(md, fallback) {
   const m = md.match(/^\s*#\s+(.+?)\s*$/m)

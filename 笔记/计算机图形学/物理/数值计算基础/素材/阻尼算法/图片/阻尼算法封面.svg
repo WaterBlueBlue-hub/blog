@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4f8fd"/>
+      <stop offset="0.52" stop-color="#fbfaf7"/>
+      <stop offset="1" stop-color="#f7f1ee"/>
+    </linearGradient>
+    <radialGradient id="haloBlue" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#6ba9e8" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#6ba9e8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="haloGreen" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#69b9a7" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#69b9a7" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="energyLine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2f73b5"/>
+      <stop offset="1" stop-color="#75bfae"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#71839a" stroke-opacity="0.07" stroke-width="1"/>
+    </pattern>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="15" stdDeviation="16" flood-color="#36516d" flood-opacity="0.16"/>
+    </filter>
+    <marker id="arrowBlue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0L12,6L0,12Z" fill="#2f73b5"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0L12,6L0,12Z" fill="#2f947f"/>
+    </marker>
+    <marker id="arrowOrange" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0L12,6L0,12Z" fill="#e06c2d"/>
+    </marker>
+    <style>
+      .eyebrow { fill:#58718b; font:600 22px "Microsoft YaHei","Noto Sans SC",sans-serif; letter-spacing:5px; }
+      .title { fill:#1e344b; font:700 58px "Microsoft YaHei","Noto Sans SC",sans-serif; letter-spacing:2px; }
+      .panel-title { fill:#20364d; font:700 34px "Microsoft YaHei","Noto Sans SC",sans-serif; }
+      .sub { fill:#60758a; font:400 20px "Microsoft YaHei","Noto Sans SC",sans-serif; }
+      .annotation { fill:#526b82; font:400 19px "Microsoft YaHei","Noto Sans SC",sans-serif; }
+      .symbol { fill:#243a50; font:italic 700 28px "Cambria Math","Times New Roman",serif; }
+      .number { fill:#ffffff; font:700 18px "Segoe UI",sans-serif; }
+      .structure { stroke:#6f8296; stroke-width:3; fill:none; }
+      .ghost { stroke:#9ba8b5; stroke-width:3; fill:none; stroke-dasharray:9 8; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#grid)"/>
+  <circle cx="260" cy="235" r="250" fill="url(#haloBlue)"/>
+  <circle cx="1330" cy="670" r="260" fill="url(#haloGreen)"/>
+
+  <text x="90" y="78" class="eyebrow">ENERGY DISSIPATION / DAMPING</text>
+  <text x="90" y="154" class="title">阻尼算法</text>
+
+  <path d="M1045 118 C1110 88 1155 160 1218 128 S1326 88 1388 128 S1480 160 1530 128" fill="none" stroke="url(#energyLine)" stroke-width="6" stroke-linecap="round"/>
+  <line x1="1045" y1="180" x2="1530" y2="180" stroke="#60758a" stroke-opacity="0.45" stroke-width="2"/>
+  <text x="1045" y="210" class="annotation">振荡能量随时间衰减</text>
+  <text x="1448" y="210" class="symbol">E↓</text>
+
+  <line x1="557" y1="270" x2="557" y2="780" stroke="#91a0ae" stroke-opacity="0.42" stroke-width="2"/>
+  <line x1="1043" y1="270" x2="1043" y2="780" stroke="#91a0ae" stroke-opacity="0.42" stroke-width="2"/>
+
+  <!-- 01: velocity attenuation -->
+  <circle cx="90" cy="310" r="20" fill="#2f73b5"/>
+  <text x="90" y="317" text-anchor="middle" class="number">01</text>
+  <text x="132" y="323" class="panel-title">速度衰减</text>
+  <text x="132" y="353" class="sub">所有速度分量同时缩小</text>
+
+  <line x1="225" y1="530" x2="500" y2="530" stroke="#9aa9b6" stroke-width="5" stroke-linecap="round" stroke-dasharray="13 9"/>
+  <text x="455" y="505" class="symbol">v</text>
+  <line x1="225" y1="530" x2="400" y2="530" stroke="#2f73b5" stroke-width="9" stroke-linecap="round" marker-end="url(#arrowBlue)"/>
+  <text x="360" y="566" class="symbol">k v</text>
+  <circle cx="225" cy="530" r="18" fill="#f8fbfd" stroke="#243a50" stroke-width="5" filter="url(#shadow)"/>
+  <circle cx="225" cy="530" r="7" fill="#2f73b5"/>
+  <path d="M132 650 C190 610 238 688 296 650 S402 610 460 650" fill="none" stroke="#2f73b5" stroke-opacity="0.52" stroke-width="4" stroke-linecap="round"/>
+  <path d="M132 690 C190 650 238 728 296 690 S402 650 460 690" fill="none" stroke="#2f73b5" stroke-opacity="0.23" stroke-width="4" stroke-linecap="round"/>
+  <text x="130" y="736" class="annotation">衰减系数直接作用于速度状态</text>
+
+  <!-- 02: PBD filtering -->
+  <circle cx="573" cy="310" r="20" fill="#2f947f"/>
+  <text x="573" y="317" text-anchor="middle" class="number">02</text>
+  <text x="615" y="323" class="panel-title">PBD 形变过滤</text>
+  <text x="615" y="353" class="sub">保留整体刚体运动</text>
+
+  <g opacity="0.72">
+    <path d="M690 520 L788 470 L886 520 L788 615 Z" class="ghost"/>
+    <circle cx="690" cy="520" r="10" fill="#aab6c1"/>
+    <circle cx="788" cy="470" r="10" fill="#aab6c1"/>
+    <circle cx="886" cy="520" r="10" fill="#aab6c1"/>
+    <circle cx="788" cy="615" r="10" fill="#aab6c1"/>
+  </g>
+  <path d="M738 555 L836 505 L934 555 L836 650 Z" class="structure"/>
+  <circle cx="738" cy="555" r="12" fill="#dff0eb" stroke="#2f947f" stroke-width="5"/>
+  <circle cx="836" cy="505" r="12" fill="#dff0eb" stroke="#2f947f" stroke-width="5"/>
+  <circle cx="934" cy="555" r="12" fill="#dff0eb" stroke="#2f947f" stroke-width="5"/>
+  <circle cx="836" cy="650" r="12" fill="#dff0eb" stroke="#2f947f" stroke-width="5"/>
+  <line x1="788" y1="563" x2="900" y2="512" stroke="#2f947f" stroke-width="6" stroke-linecap="round" marker-end="url(#arrowGreen)"/>
+  <text x="910" y="500" class="symbol">v<tspan dy="7" font-size="18">rigid</tspan></text>
+  <path d="M783 590 C762 574 758 550 775 532" fill="none" stroke="#e06c2d" stroke-width="5" stroke-linecap="round" marker-end="url(#arrowOrange)"/>
+  <path d="M816 633 C795 617 791 593 808 575" fill="none" stroke="#e06c2d" stroke-width="5" stroke-linecap="round" marker-end="url(#arrowOrange)"/>
+  <text x="735" y="696" class="annotation">只衰减相对刚体运动的形变项</text>
+
+  <!-- 03: XPBD constraint damping -->
+  <circle cx="1059" cy="310" r="20" fill="#e06c2d"/>
+  <text x="1059" y="317" text-anchor="middle" class="number">03</text>
+  <text x="1101" y="323" class="panel-title">XPBD 约束阻尼</text>
+  <text x="1101" y="353" class="sub">沿约束梯度耗散能量</text>
+
+  <path d="M1190 575 C1240 454 1350 454 1430 575" fill="none" stroke="#b7c4d0" stroke-width="3" stroke-dasharray="10 8"/>
+  <text x="1378" y="470" class="symbol">C<tspan dy="7" font-size="18">j</tspan></text>
+  <circle cx="1210" cy="550" r="18" fill="#fff7f0" stroke="#e06c2d" stroke-width="6"/>
+  <circle cx="1410" cy="550" r="18" fill="#fff7f0" stroke="#e06c2d" stroke-width="6"/>
+  <line x1="1210" y1="550" x2="1410" y2="550" stroke="#3d566e" stroke-width="6"/>
+  <line x1="1210" y1="550" x2="1300" y2="550" stroke="#2f947f" stroke-width="7" stroke-linecap="round" marker-end="url(#arrowGreen)"/>
+  <line x1="1410" y1="550" x2="1320" y2="550" stroke="#2f947f" stroke-width="7" stroke-linecap="round" marker-end="url(#arrowGreen)"/>
+  <text x="1272" y="526" class="symbol">∇C<tspan dy="7" font-size="18">j</tspan></text>
+  <path d="M1160 662 C1220 622 1272 700 1332 662 S1438 622 1492 662" fill="none" stroke="#e06c2d" stroke-width="5" stroke-linecap="round"/>
+  <path d="M1160 700 C1220 660 1272 738 1332 700 S1438 660 1492 700" fill="none" stroke="#e06c2d" stroke-opacity="0.26" stroke-width="4" stroke-linecap="round"/>
+  <text x="1128" y="742" class="annotation">D = ½ Ċᵀ β Ċ</text>
+</svg>

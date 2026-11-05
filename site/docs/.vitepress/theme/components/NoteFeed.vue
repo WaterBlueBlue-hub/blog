@@ -30,7 +30,9 @@ const notes: Note[] = [
     topic: '计算机图形学 · 物理',
     excerpt: '对比帧级速度衰减、PBD 形变速度过滤与 XPBD 瑞利约束阻尼的耗散对象和实现方式。',
     tags: ['阻尼', 'PBD', 'XPBD'],
+    image: '/damping/note-cover.png',
     link: '/notes/graphics-physics/damping.html',
+    coverMode: 'full',
   },
   {
     id: 109,
