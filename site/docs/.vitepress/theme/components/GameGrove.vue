@@ -70,7 +70,7 @@ onBeforeUnmount(() => {
 
     <img
       class="game-grove__es-character"
-      :src="withBase('/game-grove/es-character-loop.gif')"
+      :src="withBase('/game-grove/es-character-loop.webp')"
       alt=""
     />
 
