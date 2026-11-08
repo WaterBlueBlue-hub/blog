@@ -159,7 +159,7 @@ onBeforeUnmount(() => {
 
 .game-grove__pixel-duo {
   position: absolute;
-  bottom: 10px;
+  bottom: 4px;
   left: 18%;
   z-index: 3;
   display: block;
