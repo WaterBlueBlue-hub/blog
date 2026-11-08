@@ -73,7 +73,7 @@
   },
   "ScreenSpaceFluid-2009": {
     "en": "Screen Space Fluid Rendering for Games",
-    "zh": "SSFR：屏幕空间深度平滑 + 法线重建，水面渲染走这条路线。"
+    "zh": "屏幕空间深度平滑与法线重建的经典论文，当前水面渲染文章暂不展开。"
   },
   "UnifiedParticles-2014": {
     "en": "Unified Particle Physics for Real-Time Applications",
