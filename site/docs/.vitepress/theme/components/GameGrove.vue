@@ -57,6 +57,12 @@ onBeforeUnmount(() => {
     />
 
     <img
+      class="game-grove__pixel-duo"
+      :src="withBase('/game-grove/pixel-duo-loop.gif')"
+      alt=""
+    />
+
+    <img
       class="game-grove__es-character"
       :src="withBase('/game-grove/es-character.png')"
       alt=""
@@ -148,6 +154,22 @@ onBeforeUnmount(() => {
   image-rendering: pixelated;
   opacity: 0.96;
   pointer-events: none;
+  user-select: none;
+}
+
+.game-grove__pixel-duo {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  z-index: 3;
+  display: block;
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 5px 4px rgba(67, 48, 70, 0.18));
+  pointer-events: none;
+  transform: translateX(-50%);
   user-select: none;
 }
 
