@@ -60,6 +60,7 @@ function scatterQ() {
 
   const layer = document.createElement('div')
   layer.className = 'sidebar-q-canvas'
+  layer.classList.toggle('sidebar-q-canvas--reading', route.path.startsWith('/articles/'))
   layer.style.left = '6px'
   layer.style.top = `${Math.max(0, Math.floor(sidebar.scrollTop + topInset))}px`
   layer.style.width = `${gutter - 12}px`
@@ -167,14 +168,23 @@ onBeforeUnmount(() => {
   filter: drop-shadow(0 4px 4px rgba(55, 45, 70, 0.18));
   transition:
     transform 160ms ease,
-    filter 160ms ease;
+    filter 160ms ease,
+    opacity 160ms ease;
   will-change: transform;
+}
+
+:global(.sidebar-q-canvas--reading .sidebar-q-scatter) {
+  opacity: 0.76;
 }
 
 :global(.sidebar-q-scatter:hover) {
   z-index: 3;
   transform: rotate(var(--q-rotation)) scale(1.2);
   filter: drop-shadow(0 7px 8px rgba(55, 45, 70, 0.26));
+}
+
+:global(.sidebar-q-canvas--reading .sidebar-q-scatter:hover) {
+  opacity: 1;
 }
 
 :global(.dark .sidebar-q-scatter) {
