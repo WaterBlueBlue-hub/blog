@@ -60,7 +60,10 @@ function scatterQ() {
 
   const layer = document.createElement('div')
   layer.className = 'sidebar-q-canvas'
-  layer.classList.toggle('sidebar-q-canvas--reading', route.path.startsWith('/articles/'))
+  layer.classList.toggle(
+    'sidebar-q-canvas--reading',
+    window.location.pathname.includes('/articles/'),
+  )
   layer.style.left = '6px'
   layer.style.top = `${Math.max(0, Math.floor(sidebar.scrollTop + topInset))}px`
   layer.style.width = `${gutter - 12}px`
