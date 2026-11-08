@@ -76,7 +76,7 @@ onBeforeUnmount(() => {
 
     <img
       class="game-grove__cell-person"
-      :src="withBase('/game-grove/cell-person.webp')"
+      :src="withBase('/game-grove/cell-person-loop.webp')"
       alt=""
     />
 
