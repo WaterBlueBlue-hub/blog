@@ -55,9 +55,13 @@ function readOverrides(): Record<string, CardOverride> {
   }
 }
 
-function persistOverrides() {
+function persistOverrides(overrides = cardEditorState.overrides) {
   if (typeof window === 'undefined') return
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cardEditorState.overrides))
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides))
+  } catch {
+    throw new Error('浏览器本地存储空间不足，请选择更小的 GIF 或清除不用的封面')
+  }
 }
 
 function syncFromStorage(event: StorageEvent) {
@@ -107,26 +111,27 @@ export function updateCardOverride(
   if (next.image === '') delete next.image
   if (!next.tags?.length) delete next.tags
 
-  cardEditorState.overrides = {
+  const nextOverrides = {
     ...cardEditorState.overrides,
     [key]: next,
   }
+  persistOverrides(nextOverrides)
+  cardEditorState.overrides = nextOverrides
   cardEditorState.revision += 1
-  persistOverrides()
 }
 
 export function resetCardOverride(kind: CardKind, id: number) {
   const next = { ...cardEditorState.overrides }
   delete next[storageKey(kind, id)]
+  persistOverrides(next)
   cardEditorState.overrides = next
   cardEditorState.revision += 1
-  persistOverrides()
 }
 
 export function resetAllCardOverrides() {
+  persistOverrides({})
   cardEditorState.overrides = {}
   cardEditorState.revision += 1
-  persistOverrides()
 }
 
 export function exportCardOverrides() {
@@ -138,6 +143,11 @@ export function openCardEditor(card: EditableCardPayload) {
   window.dispatchEvent(new CustomEvent(OPEN_CARD_EDITOR_EVENT, { detail: card }))
 }
 
+export function isGifCover(source?: string) {
+  if (!source) return false
+  return /^data:image\/gif(?:;|,)/i.test(source) || /\.gif(?:[?#]|$)/i.test(source)
+}
+
 export async function fileToCoverDataUrl(file: File) {
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
@@ -145,6 +155,13 @@ export async function fileToCoverDataUrl(file: File) {
     reader.addEventListener('error', () => reject(reader.error))
     reader.readAsDataURL(file)
   })
+
+  if (file.type === 'image/gif' || /\.gif$/i.test(file.name)) {
+    const commaIndex = dataUrl.indexOf(',')
+    return commaIndex >= 0
+      ? `data:image/gif;base64,${dataUrl.slice(commaIndex + 1)}`
+      : dataUrl
+  }
 
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
     const element = new Image()

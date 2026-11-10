@@ -5,7 +5,9 @@ import {
   OPEN_CARD_EDITOR_EVENT,
   cardEditorState,
   exportCardOverrides,
+  fileToCoverDataUrl,
   initializeCardEditor,
+  isGifCover,
   resetAllCardOverrides,
   resetCardOverride,
   setCardEditorActive,
@@ -41,6 +43,7 @@ const imagePreview = computed(() => {
   if (/^(data:|https?:)/.test(draftImage.value)) return draftImage.value
   return withBase(draftImage.value)
 })
+const coverIsGif = computed(() => isGifCover(draftImage.value))
 
 const cropImageStyle = computed(() => {
   const scale = Math.max(cropSize.width / cropNatural.width, cropSize.height / cropNatural.height) *
@@ -77,18 +80,22 @@ function closeEditor() {
 function saveEditor() {
   if (!editingCard.value) return
 
-  updateCardOverride(editingCard.value.kind, editingCard.value.id, {
-    title: form.title.trim(),
-    date: form.date.trim(),
-    topic: form.topic.trim(),
-    excerpt: form.excerpt.trim(),
-    tags: form.tags
-      .split(/[,，]/)
-      .map((tag) => tag.trim())
-      .filter(Boolean),
-    image: draftImage.value,
-  })
-  closeEditor()
+  try {
+    updateCardOverride(editingCard.value.kind, editingCard.value.id, {
+      title: form.title.trim(),
+      date: form.date.trim(),
+      topic: form.topic.trim(),
+      excerpt: form.excerpt.trim(),
+      tags: form.tags
+        .split(/[,，]/)
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+      image: draftImage.value,
+    })
+    closeEditor()
+  } catch (error) {
+    uploadError.value = error instanceof Error ? error.message : '卡片保存失败'
+  }
 }
 
 function restoreDefault() {
@@ -115,6 +122,11 @@ function cancelCrop() {
 
 async function loadCropSource(source: string) {
   uploadError.value = ''
+  if (isGifCover(source)) {
+    uploadError.value = 'GIF 动图会保留循环动画，不能进行静态裁剪'
+    return
+  }
+
   const probe = new Image()
   probe.crossOrigin = /^https?:/.test(source) ? 'anonymous' : ''
 
@@ -146,18 +158,30 @@ async function updateCover(event: Event) {
   input.value = ''
   if (!file) return
 
-  if (!file.type.startsWith('image/')) {
+  const isGif = file.type === 'image/gif' || /\.gif$/i.test(file.name)
+  if (!file.type.startsWith('image/') && !isGif) {
     uploadError.value = '请选择图片文件'
     return
   }
 
   revokeCropObjectUrl()
+  if (isGif) {
+    cancelCrop()
+    try {
+      draftImage.value = await fileToCoverDataUrl(file)
+      uploadError.value = ''
+    } catch (error) {
+      uploadError.value = error instanceof Error ? error.message : 'GIF 封面读取失败'
+    }
+    return
+  }
+
   cropObjectUrl = URL.createObjectURL(file)
   await loadCropSource(cropObjectUrl)
 }
 
 function cropCurrentCover() {
-  if (imagePreview.value) {
+  if (imagePreview.value && !coverIsGif.value) {
     loadCropSource(imagePreview.value)
   }
 }
@@ -342,11 +366,14 @@ onBeforeUnmount(() => {
         <div class="card-editor__cover-actions">
           <span>封面</span>
           <label class="card-editor__upload">
-            选择图片
-            <input type="file" accept="image/*" @change="updateCover" />
+            选择图片 / GIF
+            <input type="file" accept="image/*,.gif" @change="updateCover" />
           </label>
-          <button v-if="imagePreview" type="button" @click="cropCurrentCover">裁剪当前封面</button>
+          <button v-if="imagePreview && !coverIsGif" type="button" @click="cropCurrentCover">
+            裁剪当前封面
+          </button>
           <button v-if="draftImage" type="button" @click="draftImage = ''">清除封面</button>
+          <small v-if="coverIsGif">GIF 会保留循环动画，不能进行静态裁剪</small>
           <small v-if="uploadError">{{ uploadError }}</small>
         </div>
       </div>
