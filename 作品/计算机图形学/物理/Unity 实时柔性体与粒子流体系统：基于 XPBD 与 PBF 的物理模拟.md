@@ -2,16 +2,9 @@
 ## 基于 XPBD 与 PBF 的物理模拟
 &emsp;&emsp;这是一个以 XPBD 约束求解为核心的 Unity 实时物理模拟项目。项目实现了一套可复用的位置约束求解框架，并在此基础上完成了布料、骨骼链、落片和 PBF 流体的实时模拟。
 
-<table>
-  <tr>
-    <td style="width: 50%; padding-right: 6px;">
-      <img src="素材/Unity-XPBD-PBF/图片/运行效果.png" alt="角色与落叶、流体交互的运行效果" style="width: 100%; height: auto;" />
-    </td>
-    <td style="width: 50%; padding-left: 6px;">
-      <img src="素材/Unity-XPBD-PBF/图片/物理调试视图.png" alt="叶片碰撞体、约束与流体粒子的物理调试视图" style="width: 100%; height: auto;" />
-    </td>
-  </tr>
-</table>
+<p align="center">
+  <img src="素材/Unity-XPBD-PBF/动图/流体双视图演示.gif" alt="角色交互效果，以及叶片碰撞体、约束与流体粒子的物理调试视图" style="width: 100%; max-width: 900px; height: auto;">
+</p>
 
 ## 作品概览
 | 作品 | 内容 |

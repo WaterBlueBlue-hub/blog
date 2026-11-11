@@ -25,6 +25,7 @@ const PROJECT_MEDIA = path.join(
 )
 const PROJECT_SNAPSHOT = path.join(SNAPSHOT_ROOT, 'project.md')
 const PROJECT_OUT = path.join(DOCS, 'projects', 'xpbd-pbf-physics', 'index.md')
+const VERBATIM_GIFS = new Set(['流体双视图演示.gif'])
 
 const ARTICLE_SPECS = [
   {
@@ -212,6 +213,10 @@ function buildMedia(referencedFiles) {
     if (newerThan(source, destination)) continue
     const extension = path.extname(source).toLowerCase()
     if (extension === '.gif') {
+      if (VERBATIM_GIFS.has(path.basename(source))) {
+        fs.copyFileSync(source, destination)
+        continue
+      }
       runFfmpeg([
         '-i',
         source,
