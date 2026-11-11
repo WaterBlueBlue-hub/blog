@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { withBase } from 'vitepress'
 import {
   cardEditorState,
+  coverCropStyle,
   getCardOverride,
   openCardEditor,
 } from '../composables/cardEditor'
@@ -139,6 +140,10 @@ function imageFor(article: Article) {
   return /^(data:|https?:)/.test(image) ? image : withBase(image)
 }
 
+function imageStyleFor(article: Article) {
+  return coverCropStyle(getCardOverride('article', article.id)?.imageCrop)
+}
+
 function handleCardClick(article: Article, event: MouseEvent) {
   if (!cardEditorState.active) return
   event.preventDefault()
@@ -151,6 +156,7 @@ function handleCardClick(article: Article, event: MouseEvent) {
     excerpt: valueFor(article, 'excerpt'),
     tags: tagsFor(article),
     image: valueFor(article, 'image') || undefined,
+    imageCrop: getCardOverride('article', article.id)?.imageCrop,
   })
 }
 
@@ -210,7 +216,7 @@ function goToPage(next: number) {
             '--cover-c': article.colors[2],
           }"
         >
-          <img v-if="imageFor(article)" :src="imageFor(article)" alt="" />
+          <img v-if="imageFor(article)" :src="imageFor(article)" :style="imageStyleFor(article)" alt="" />
           <span v-if="cardEditorState.active" class="article-card__edit">点击编辑</span>
         </div>
 
@@ -428,6 +434,9 @@ function goToPage(next: number) {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: var(--cover-crop-x, 50%) var(--cover-crop-y, 50%);
+  transform: scale(var(--cover-crop-zoom, 1));
+  transform-origin: var(--cover-crop-x, 50%) var(--cover-crop-y, 50%);
 }
 
 .article-card__cover.has-image::before,

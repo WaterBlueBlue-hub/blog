@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { withBase } from 'vitepress'
 import {
   cardEditorState,
+  coverCropStyle,
   getCardOverride,
   openCardEditor,
 } from '../composables/cardEditor'
@@ -165,6 +166,10 @@ function imageFor(note: Note) {
   return /^(data:|https?:)/.test(image) ? image : withBase(image)
 }
 
+function imageStyleFor(note: Note) {
+  return coverCropStyle(getCardOverride('note', note.id)?.imageCrop)
+}
+
 function handleCardClick(note: Note, event: MouseEvent) {
   if (!cardEditorState.active) return
   event.preventDefault()
@@ -177,6 +182,7 @@ function handleCardClick(note: Note, event: MouseEvent) {
     excerpt: valueFor(note, 'excerpt'),
     tags: tagsFor(note),
     image: valueFor(note, 'image') || undefined,
+    imageCrop: getCardOverride('note', note.id)?.imageCrop,
   })
 }
 </script>
@@ -212,7 +218,13 @@ function handleCardClick(note: Note, event: MouseEvent) {
               Boolean(getCardOverride('note', note.id)?.image) || note.coverMode === 'full',
           }"
         >
-          <img v-if="imageFor(note)" :src="imageFor(note)" alt="" loading="lazy" />
+          <img
+            v-if="imageFor(note)"
+            :src="imageFor(note)"
+            :style="imageStyleFor(note)"
+            alt=""
+            loading="lazy"
+          />
           <span v-if="cardEditorState.active" class="note-card__edit">点击编辑</span>
           <span v-if="note.placeholder" class="note-card__serial" aria-hidden="true">
             {{ String(note.id).padStart(2, '0') }}
@@ -406,11 +418,13 @@ function handleCardClick(note: Note, event: MouseEvent) {
   height: 100%;
   border-radius: 0;
   object-fit: cover;
-  transform: none;
+  object-position: var(--cover-crop-x, 50%) var(--cover-crop-y, 50%);
+  transform: scale(var(--cover-crop-zoom, 1));
+  transform-origin: var(--cover-crop-x, 50%) var(--cover-crop-y, 50%);
 }
 
 .note-card--link:hover .note-card__cover.has-custom-cover img {
-  transform: scale(1.025);
+  transform: scale(calc(var(--cover-crop-zoom, 1) * 1.025));
 }
 
 .note-card__edit {

@@ -4,6 +4,7 @@ import { withBase } from 'vitepress'
 import {
   OPEN_CARD_EDITOR_EVENT,
   cardEditorState,
+  coverCropStyle,
   exportCardOverrides,
   fileToCoverDataUrl,
   initializeCardEditor,
@@ -12,10 +13,12 @@ import {
   resetCardOverride,
   setCardEditorActive,
   updateCardOverride,
+  type CoverCrop,
   type EditableCardPayload,
 } from '../composables/cardEditor'
 const editingCard = ref<EditableCardPayload | null>(null)
 const draftImage = ref('')
+const draftImageCrop = ref<CoverCrop>()
 const uploadError = ref('')
 const cropStage = ref<HTMLElement | null>(null)
 const cropImageElement = ref<HTMLImageElement | null>(null)
@@ -44,6 +47,7 @@ const imagePreview = computed(() => {
   return withBase(draftImage.value)
 })
 const coverIsGif = computed(() => isGifCover(draftImage.value))
+const imagePreviewStyle = computed(() => coverCropStyle(draftImageCrop.value))
 
 const cropImageStyle = computed(() => {
   const scale = Math.max(cropSize.width / cropNatural.width, cropSize.height / cropNatural.height) *
@@ -62,6 +66,7 @@ function openEditor(event: Event) {
   editingCard.value = payload
   uploadError.value = ''
   draftImage.value = payload.image ?? ''
+  draftImageCrop.value = payload.imageCrop ? { ...payload.imageCrop } : undefined
   Object.assign(form, {
     title: payload.title,
     date: payload.date,
@@ -91,6 +96,7 @@ function saveEditor() {
         .map((tag) => tag.trim())
         .filter(Boolean),
       image: draftImage.value,
+      imageCrop: draftImageCrop.value,
     })
     closeEditor()
   } catch (error) {
@@ -120,13 +126,8 @@ function cancelCrop() {
   revokeCropObjectUrl()
 }
 
-async function loadCropSource(source: string) {
+async function loadCropSource(source: string, initialCrop?: CoverCrop) {
   uploadError.value = ''
-  if (isGifCover(source)) {
-    uploadError.value = 'GIF 动图会保留循环动画，不能进行静态裁剪'
-    return
-  }
-
   const probe = new Image()
   probe.crossOrigin = /^https?:/.test(source) ? 'anonymous' : ''
 
@@ -139,13 +140,21 @@ async function loadCropSource(source: string) {
 
     cropNatural.width = probe.naturalWidth
     cropNatural.height = probe.naturalHeight
-    cropZoom.value = CROP_ZOOM_DEFAULT
+    cropZoom.value = initialCrop?.zoom ?? CROP_ZOOM_DEFAULT
     cropOffset.x = 0
     cropOffset.y = 0
     cropSourceUrl.value = source
     isCropping.value = true
     await nextTick()
     measureCropStage()
+    if (initialCrop) {
+      const scale =
+        Math.max(cropSize.width / cropNatural.width, cropSize.height / cropNatural.height) *
+        cropZoom.value
+      cropOffset.x = (0.5 - initialCrop.focusX) * cropNatural.width * scale
+      cropOffset.y = (0.5 - initialCrop.focusY) * cropNatural.height * scale
+      clampCropOffset()
+    }
   } catch (error) {
     cancelCrop()
     uploadError.value = error instanceof Error ? error.message : '封面处理失败'
@@ -169,6 +178,7 @@ async function updateCover(event: Event) {
     cancelCrop()
     try {
       draftImage.value = await fileToCoverDataUrl(file)
+      draftImageCrop.value = undefined
       uploadError.value = ''
     } catch (error) {
       uploadError.value = error instanceof Error ? error.message : 'GIF 封面读取失败'
@@ -176,14 +186,21 @@ async function updateCover(event: Event) {
     return
   }
 
+  draftImageCrop.value = undefined
   cropObjectUrl = URL.createObjectURL(file)
   await loadCropSource(cropObjectUrl)
 }
 
 function cropCurrentCover() {
-  if (imagePreview.value && !coverIsGif.value) {
-    loadCropSource(imagePreview.value)
+  if (imagePreview.value) {
+    loadCropSource(imagePreview.value, coverIsGif.value ? draftImageCrop.value : undefined)
   }
+}
+
+function clearCover() {
+  draftImage.value = ''
+  draftImageCrop.value = undefined
+  cancelCrop()
 }
 
 function measureCropStage() {
@@ -239,6 +256,16 @@ function applyCrop() {
   const sourceWidth = Math.min(cropNatural.width - sourceX, cropSize.width / scale)
   const sourceHeight = Math.min(cropNatural.height - sourceY, cropSize.height / scale)
 
+  if (coverIsGif.value) {
+    draftImageCrop.value = {
+      zoom: Number(cropZoom.value.toFixed(3)),
+      focusX: Math.min(1, Math.max(0, (sourceX + sourceWidth / 2) / cropNatural.width)),
+      focusY: Math.min(1, Math.max(0, (sourceY + sourceHeight / 2) / cropNatural.height)),
+    }
+    cancelCrop()
+    return
+  }
+
   const canvas = document.createElement('canvas')
   canvas.width = 960
   canvas.height = 540
@@ -261,6 +288,7 @@ function applyCrop() {
       canvas.height,
     )
     draftImage.value = canvas.toDataURL('image/webp', 0.86)
+    draftImageCrop.value = undefined
     cancelCrop()
   } catch {
     uploadError.value = '这张图片受跨域限制，无法裁剪，请先下载后再上传'
@@ -360,7 +388,7 @@ onBeforeUnmount(() => {
 
       <div class="card-editor__cover">
         <div class="card-editor__preview">
-          <img v-if="imagePreview" :src="imagePreview" alt="" />
+          <img v-if="imagePreview" :src="imagePreview" :style="imagePreviewStyle" alt="" />
           <span v-else>暂无封面</span>
         </div>
         <div class="card-editor__cover-actions">
@@ -369,11 +397,11 @@ onBeforeUnmount(() => {
             选择图片 / GIF
             <input type="file" accept="image/*,.gif" @change="updateCover" />
           </label>
-          <button v-if="imagePreview && !coverIsGif" type="button" @click="cropCurrentCover">
+          <button v-if="imagePreview" type="button" @click="cropCurrentCover">
             裁剪当前封面
           </button>
-          <button v-if="draftImage" type="button" @click="draftImage = ''">清除封面</button>
-          <small v-if="coverIsGif">GIF 会保留循环动画，不能进行静态裁剪</small>
+          <button v-if="draftImage" type="button" @click="clearCover">清除封面</button>
+          <small v-if="coverIsGif">GIF 裁剪会保留循环动画</small>
           <small v-if="uploadError">{{ uploadError }}</small>
         </div>
       </div>
@@ -621,6 +649,9 @@ onBeforeUnmount(() => {
   height: 100%;
   max-height: 150px;
   object-fit: cover;
+  object-position: var(--cover-crop-x, 50%) var(--cover-crop-y, 50%);
+  transform: scale(var(--cover-crop-zoom, 1));
+  transform-origin: var(--cover-crop-x, 50%) var(--cover-crop-y, 50%);
 }
 
 .card-editor__cover-actions {

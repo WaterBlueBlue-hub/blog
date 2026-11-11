@@ -2,6 +2,12 @@ import { reactive } from 'vue'
 
 export type CardKind = 'article' | 'note'
 
+export type CoverCrop = {
+  zoom: number
+  focusX: number
+  focusY: number
+}
+
 export type CardOverride = {
   title?: string
   date?: string
@@ -9,6 +15,7 @@ export type CardOverride = {
   excerpt?: string
   tags?: string[]
   image?: string
+  imageCrop?: CoverCrop
 }
 
 export type EditableCardPayload = {
@@ -20,6 +27,7 @@ export type EditableCardPayload = {
   excerpt: string
   tags: string[]
   image?: string
+  imageCrop?: CoverCrop
 }
 
 type EditorState = {
@@ -108,7 +116,11 @@ export function updateCardOverride(
   if (next.date === '') delete next.date
   if (next.topic === '') delete next.topic
   if (next.excerpt === '') delete next.excerpt
-  if (next.image === '') delete next.image
+  if (next.image === '') {
+    delete next.image
+    delete next.imageCrop
+  }
+  if (!next.imageCrop) delete next.imageCrop
   if (!next.tags?.length) delete next.tags
 
   const nextOverrides = {
@@ -146,6 +158,15 @@ export function openCardEditor(card: EditableCardPayload) {
 export function isGifCover(source?: string) {
   if (!source) return false
   return /^data:image\/gif(?:;|,)/i.test(source) || /\.gif(?:[?#]|$)/i.test(source)
+}
+
+export function coverCropStyle(crop?: CoverCrop) {
+  if (!crop) return undefined
+  return {
+    '--cover-crop-zoom': String(crop.zoom),
+    '--cover-crop-x': `${crop.focusX * 100}%`,
+    '--cover-crop-y': `${crop.focusY * 100}%`,
+  }
 }
 
 export async function fileToCoverDataUrl(file: File) {
