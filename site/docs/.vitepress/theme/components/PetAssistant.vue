@@ -198,6 +198,45 @@ function playClip(next: Clip) {
   }
 }
 
+function onVideoReady() {
+  const video = videoEl.value
+  if (!video || !video.videoWidth || !video.videoHeight) {
+    videoOk.value = true
+    return
+  }
+
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    const context = canvas.getContext('2d', { willReadFrequently: true })
+    if (!context) throw new Error('Canvas unavailable')
+    context.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+    const corners = [
+      [0, 0],
+      [canvas.width - 1, 0],
+      [0, canvas.height - 1],
+      [canvas.width - 1, canvas.height - 1],
+    ]
+    const opaqueCorners = corners.filter(
+      ([x, y]) => context.getImageData(x, y, 1, 1).data[3] > 128,
+    ).length
+
+    // A transparent video must keep all four corners transparent. Chromium
+    // derivatives that discard VP9 alpha produce four opaque black corners.
+    if (opaqueCorners === corners.length) {
+      useVideo.value = false
+      videoOk.value = false
+      return
+    }
+  } catch {
+    // If pixel inspection is unavailable, retain normal video playback.
+  }
+
+  videoOk.value = true
+}
+
 function say(text: string, ms = 4600) {
   bubble.value = text
   bubbleOn.value = true
@@ -768,7 +807,10 @@ onMounted(() => {
   const supports = !!probe.canPlayType('video/webm; codecs="vp9"')
   const ua = navigator.userAgent
   const safari = /Safari/i.test(ua) && !/Chrome|Chromium|Edg|OPR|Firefox/i.test(ua)
-  useVideo.value = supports && !safari
+  // Some Chromium-based domestic browsers accept VP9 but composite its alpha
+  // channel as opaque black. Use the transparent WebP poster in those browsers.
+  const dropsAlphaVideo = /Quark|UCBrowser|UBrowser/i.test(ua)
+  useVideo.value = supports && !safari && !dropsAlphaVideo
   if (!useVideo.value) videoOk.value = false
 
   window.addEventListener('keydown', onGlobalKey)
@@ -1042,7 +1084,7 @@ onBeforeUnmount(() => {
           playsinline
           loop
           preload="metadata"
-          @canplay="videoOk = true"
+          @canplay="onVideoReady"
           @ended="onClipEnded"
         />
         <img
