@@ -132,7 +132,6 @@ function buildPoster(source, output, seek = '00:00:01', maxWidth = 960) {
 }
 
 function buildGif(source, output, maxWidth = 480) {
-  if (newerThan(source, output)) return
   fs.mkdirSync(path.dirname(output), { recursive: true })
   runFfmpeg([
     '-i',
@@ -140,7 +139,7 @@ function buildGif(source, output, maxWidth = 480) {
     '-filter_complex',
     `[0:v]fps=12,scale=${maxWidth}:-2:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=96:stats_mode=diff[p];[s1][p]paletteuse=dither=sierra2_4a:diff_mode=rectangle`,
     '-loop',
-    '1',
+    '0',
     output,
   ])
 }
