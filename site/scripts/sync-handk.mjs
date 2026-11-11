@@ -158,7 +158,7 @@ function rewriteForSite(markdown) {
     for (const { view, name } of actionGifs(action)) {
       next = next.replaceAll(
         `素材/动图/${name}`,
-        `/hand-k-animation/gifs/${action.key}-${view}.gif`,
+        `/hand-k-animation/gifs/${action.key}-${view}.gif?v=20261111-loop`,
       )
     }
   }

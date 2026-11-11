@@ -30,10 +30,10 @@ pageClass: project-reading
 <table>
   <tr>
     <td style="width: 50%; padding-right: 6px;">
-      <img src="/hand-k-animation/gifs/blade-idle-front.gif" alt="刃待机正视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
+      <img src="/hand-k-animation/gifs/blade-idle-front.gif?v=20261111-loop" alt="刃待机正视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
     </td>
     <td style="width: 50%; padding-left: 6px;">
-      <img src="/hand-k-animation/gifs/blade-idle-side.gif" alt="刃待机侧视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
+      <img src="/hand-k-animation/gifs/blade-idle-side.gif?v=20261111-loop" alt="刃待机侧视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
     </td>
   </tr>
 </table>
@@ -44,10 +44,10 @@ pageClass: project-reading
 <table>
   <tr>
     <td style="width: 50%; padding-right: 6px;">
-      <img src="/hand-k-animation/gifs/hu-tao-run-front.gif" alt="胡桃跑步正视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
+      <img src="/hand-k-animation/gifs/hu-tao-run-front.gif?v=20261111-loop" alt="胡桃跑步正视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
     </td>
     <td style="width: 50%; padding-left: 6px;">
-      <img src="/hand-k-animation/gifs/hu-tao-run-side.gif" alt="胡桃跑步侧视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
+      <img src="/hand-k-animation/gifs/hu-tao-run-side.gif?v=20261111-loop" alt="胡桃跑步侧视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
     </td>
   </tr>
 </table>
@@ -58,10 +58,10 @@ pageClass: project-reading
 <table>
   <tr>
     <td style="width: 50%; padding-right: 6px;">
-      <img src="/hand-k-animation/gifs/anby-strike-front.gif" alt="安比单击正视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
+      <img src="/hand-k-animation/gifs/anby-strike-front.gif?v=20261111-loop" alt="安比单击正视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
     </td>
     <td style="width: 50%; padding-left: 6px;">
-      <img src="/hand-k-animation/gifs/anby-strike-side.gif" alt="安比单击侧视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
+      <img src="/hand-k-animation/gifs/anby-strike-side.gif?v=20261111-loop" alt="安比单击侧视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
     </td>
   </tr>
 </table>
@@ -72,10 +72,10 @@ pageClass: project-reading
 <table>
   <tr>
     <td style="width: 50%; padding-right: 6px;">
-      <img src="/hand-k-animation/gifs/anby-combo-front.gif" alt="安比连击正视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
+      <img src="/hand-k-animation/gifs/anby-combo-front.gif?v=20261111-loop" alt="安比连击正视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
     </td>
     <td style="width: 50%; padding-left: 6px;">
-      <img src="/hand-k-animation/gifs/anby-combo-side.gif" alt="安比连击侧视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
+      <img src="/hand-k-animation/gifs/anby-combo-side.gif?v=20261111-loop" alt="安比连击侧视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
     </td>
   </tr>
 </table>
@@ -85,10 +85,10 @@ pageClass: project-reading
 <table>
   <tr>
     <td style="width: 50%; padding-right: 6px;">
-      <img src="/hand-k-animation/gifs/jiyan-combo-front.gif" alt="忌炎连击正视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
+      <img src="/hand-k-animation/gifs/jiyan-combo-front.gif?v=20261111-loop" alt="忌炎连击正视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
     </td>
     <td style="width: 50%; padding-left: 6px;">
-      <img src="/hand-k-animation/gifs/jiyan-combo-side.gif" alt="忌炎连击侧视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
+      <img src="/hand-k-animation/gifs/jiyan-combo-side.gif?v=20261111-loop" alt="忌炎连击侧视图" loading="lazy" decoding="async" style="width: 100%; height: auto; display: block;">
     </td>
   </tr>
 </table>
