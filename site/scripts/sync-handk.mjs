@@ -11,14 +11,16 @@ const SOURCE_MEDIA = path.join(SOURCE_ROOT, '素材')
 const SOURCE_GIFS = path.join(SOURCE_MEDIA, '动图')
 const SOURCE_FILM = path.join(SOURCE_ROOT, '成片')
 const SOURCE_STILLS = path.join(SOURCE_ROOT, '静帧')
-const WEB_FILM = path.join(SOURCE_FILM, '网页版')
-const WEB_GIFS = path.join(WEB_FILM, 'gifs')
-const WEB_POSTERS = path.join(SOURCE_STILLS, '网页封面')
+const BUILD_ROOT = path.join(SITE, '.cache', 'hand-k-animation')
+const WEB_FILM = path.join(BUILD_ROOT, 'film')
+const WEB_GIFS = path.join(BUILD_ROOT, 'gifs')
+const WEB_POSTERS = path.join(BUILD_ROOT, 'posters')
 const SNAPSHOT = path.join(SITE, 'content', 'hand-k-animation', 'index.md')
 const DOC_OUT = path.join(SITE, 'docs', 'projects', 'hand-k-animation', 'index.md')
 const PUBLIC_DIR = path.join(SITE, 'docs', 'public', 'hand-k-animation')
 const FILM_NAME = 'hand-k-animation-showcase.mp4'
 const STORYBOARD_NAME = 'storyboard.webp'
+const WEB_STORYBOARD = path.join(BUILD_ROOT, STORYBOARD_NAME)
 
 const actions = [
   {
@@ -150,7 +152,6 @@ function rewriteForSite(markdown) {
       '成片/网页版/hand-k-animation-showcase.mp4',
       '/hand-k-animation/film/hand-k-animation-showcase.mp4',
     )
-    .replaceAll('成片/网页版/clips/', '/hand-k-animation/clips/')
     .replaceAll('静帧/网页封面/', '/hand-k-animation/posters/')
     .replaceAll('静帧/分镜总览.webp', '/hand-k-animation/storyboard.webp')
 
@@ -189,8 +190,7 @@ function buildLocalMedia(referencedGifs) {
   buildVideo(finalSource, path.join(WEB_FILM, FILM_NAME))
   buildPoster(finalSource, path.join(WEB_POSTERS, 'cover.webp'), '00:00:50', 1280)
 
-  const storyboardOutput = path.join(SOURCE_STILLS, STORYBOARD_NAME)
-  if (!newerThan(storyboardSource, storyboardOutput)) {
+  if (!newerThan(storyboardSource, WEB_STORYBOARD)) {
     runFfmpeg([
       '-i',
       storyboardSource,
@@ -202,7 +202,7 @@ function buildLocalMedia(referencedGifs) {
       'libwebp',
       '-quality',
       '88',
-      storyboardOutput,
+      WEB_STORYBOARD,
     ])
   }
 
@@ -223,15 +223,9 @@ function buildLocalMedia(referencedGifs) {
 function publishMedia(referencedGifs) {
   fs.rmSync(PUBLIC_DIR, { recursive: true, force: true })
   fs.mkdirSync(path.join(PUBLIC_DIR, 'film'), { recursive: true })
-  fs.cpSync(WEB_FILM, path.join(PUBLIC_DIR, 'film'), {
-    recursive: true,
-    filter: (source) => {
-      if (source === WEB_GIFS || source.startsWith(`${WEB_GIFS}${path.sep}`)) return false
-      return source === WEB_FILM || !source.endsWith('.mp4') || source.endsWith(FILM_NAME)
-    },
-  })
+  fs.cpSync(WEB_FILM, path.join(PUBLIC_DIR, 'film'), { recursive: true })
   fs.cpSync(WEB_POSTERS, path.join(PUBLIC_DIR, 'posters'), { recursive: true })
-  fs.copyFileSync(path.join(SOURCE_STILLS, STORYBOARD_NAME), path.join(PUBLIC_DIR, STORYBOARD_NAME))
+  fs.copyFileSync(WEB_STORYBOARD, path.join(PUBLIC_DIR, STORYBOARD_NAME))
 
   const publicGifs = path.join(PUBLIC_DIR, 'gifs')
   fs.mkdirSync(publicGifs, { recursive: true })

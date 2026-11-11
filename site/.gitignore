@@ -1,4 +1,5 @@
 node_modules/
+.cache/
 docs/.vitepress/dist/
 docs/.vitepress/cache/
 /.vitepress/
@@ -9,3 +10,6 @@ docs/.vitepress/sidebar.mjs
 docs/projects/
 docs/articles/
 docs/public/xpbd/
+docs/public/character-skinning/
+docs/public/damping/
+docs/public/leaf-fall/
