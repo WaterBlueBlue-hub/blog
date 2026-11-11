@@ -29,8 +29,8 @@ const tiles: ProjectTile[] = [
     id: 'P02',
     date: '待上线',
     category: '未分类',
-    title: '预留项目位',
-    summary: '项目内容待添加。',
+    title: '预留作品位',
+    summary: '作品内容待添加。',
     colors: ['#715ec9', '#d4bee7', '#2a2458'],
     pattern: 'mesh',
   },
@@ -38,8 +38,8 @@ const tiles: ProjectTile[] = [
     id: 'P03',
     date: '待上线',
     category: '未分类',
-    title: '预留项目位',
-    summary: '项目内容待添加。',
+    title: '预留作品位',
+    summary: '作品内容待添加。',
     colors: ['#287f88', '#8bd1bd', '#173e48'],
     pattern: 'wave',
   },
@@ -47,8 +47,8 @@ const tiles: ProjectTile[] = [
     id: 'P04',
     date: '待上线',
     category: '未分类',
-    title: '预留项目位',
-    summary: '项目内容待添加。',
+    title: '预留作品位',
+    summary: '作品内容待添加。',
     colors: ['#b36d8d', '#edb6c5', '#5c3045'],
     pattern: 'orbit',
   },
@@ -56,8 +56,8 @@ const tiles: ProjectTile[] = [
     id: 'P05',
     date: '待上线',
     category: '未分类',
-    title: '预留项目位',
-    summary: '项目内容待添加。',
+    title: '预留作品位',
+    summary: '作品内容待添加。',
     colors: ['#8c6d4c', '#d8bd8c', '#433226'],
     pattern: 'grid',
   },
@@ -65,8 +65,8 @@ const tiles: ProjectTile[] = [
     id: 'P06',
     date: '待上线',
     category: '未分类',
-    title: '预留项目位',
-    summary: '项目内容待添加。',
+    title: '预留作品位',
+    summary: '作品内容待添加。',
     colors: ['#54657e', '#aebbd0', '#263141'],
     pattern: 'mesh',
   },
@@ -77,10 +77,10 @@ const tiles: ProjectTile[] = [
   <section class="project-feed" aria-labelledby="project-feed-title">
     <header class="project-feed__head">
       <div>
-        <span class="project-feed__eyebrow">PROJECTS / CASE STUDIES</span>
-        <h2 id="project-feed-title">项目</h2>
+        <span class="project-feed__eyebrow">WORKS / CASE STUDIES</span>
+        <h2 id="project-feed-title">作品</h2>
       </div>
-      <span class="project-feed__total">1 个项目 · 6 个入口</span>
+      <span class="project-feed__total">1 个作品 · 6 个入口</span>
     </header>
 
     <div class="project-feed__grid">

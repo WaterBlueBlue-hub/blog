@@ -148,7 +148,7 @@ export default defineConfig({
 
     nav: [
       { text: '首页', link: '/' },
-      { text: '项目', link: '/projects/', activeMatch: '^/projects/' },
+      { text: '作品', link: '/projects/', activeMatch: '^/projects/' },
       { text: '文章', link: '/articles/', activeMatch: '^/articles/' },
       { text: '笔记', link: '/notes/', activeMatch: '^/notes/' },
       { text: '关于', link: '/about.html' },

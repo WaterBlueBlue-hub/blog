@@ -46,7 +46,7 @@ site/
 
 **GitHub Pages**
 
-- 项目页在子路径下（`https://<user>.github.io/<repo>/`），构建时要带 base：
+- 作品页在子路径下（`https://<user>.github.io/<repo>/`），构建时要带 base：
   `SITE_BASE=/<repo>/ npm run build`
 - 部署 `dist` 到 `gh-pages` 分支即可
 

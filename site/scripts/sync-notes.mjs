@@ -142,7 +142,7 @@ function syncImageProcessingSnapshot() {
 function rewriteWebsiteNoteLinks(markdown) {
   return markdown
     .replace(
-      /\]\(\.\.\/\.\.\/项目\/数字图像处理\/ACN-Estimation：[^)]+\.md\)/g,
+      /\]\(\.\.\/\.\.\/作品\/数字图像处理\/ACN-Estimation：[^)]+\.md\)/g,
       '](/projects/acn-estimation/)',
     )
     .replace(
@@ -154,7 +154,7 @@ function rewriteWebsiteNoteLinks(markdown) {
       (_, hash = '') => `](/articles/graphics/perlin-real-time-wind/${hash})`,
     )
     .replace(
-      /\[Unity 实时柔性体与粒子流体系统\]\(<\.\.\/\.\.\/\.\.\/\.\.\/项目\/计算机图形学\/物理\/[^)]+\.md>\)/g,
+      /\[Unity 实时柔性体与粒子流体系统\]\(<\.\.\/\.\.\/\.\.\/\.\.\/作品\/计算机图形学\/物理\/[^)]+\.md>\)/g,
       'Unity 实时柔性体与粒子流体系统（暂未上线）',
     )
     .replace(

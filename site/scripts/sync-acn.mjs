@@ -1,5 +1,5 @@
 /**
- * 把个人网站资源包中的 ACN-Estimation 项目同步为 VitePress 页面。
+ * 把个人网站资源包中的 ACN-Estimation 作品同步为 VitePress 页面。
  * 源文件仍以 blog/acn-estimation 为准，这里只生成站点副本并修正链接。
  */
 import fs from 'node:fs'
@@ -11,11 +11,11 @@ const DOCS = path.join(SITE, 'docs')
 const WEBSITE_ROOT = path.resolve(SITE, '..')
 const TITLE = 'ACN-Estimation：基于纹理—几何耦合的自然材质法线估计'
 const CATEGORY = '数字图像处理'
-const LOCAL_PROJECT_SOURCE = path.join(WEBSITE_ROOT, '项目', CATEGORY, `${TITLE}.md`)
+const LOCAL_PROJECT_SOURCE = path.join(WEBSITE_ROOT, '作品', CATEGORY, `${TITLE}.md`)
 const LOCAL_ARTICLE_SOURCE = path.join(WEBSITE_ROOT, '文章', CATEGORY, `${TITLE}.md`)
 const PROJECT_MEDIA_SOURCE = path.join(
   WEBSITE_ROOT,
-  '项目',
+  '作品',
   CATEGORY,
   '素材',
   'ACN',
@@ -85,7 +85,7 @@ function rewriteLinks(markdown) {
       `](${ARTICLE_ROUTE})`,
     )
     .replaceAll(
-      `](../项目/${TITLE}.md)`,
+      `](../作品/${TITLE}.md)`,
       `](${PROJECT_ROUTE})`,
     )
     .replace(
@@ -93,7 +93,7 @@ function rewriteLinks(markdown) {
       `](${ARTICLE_ROUTE})`,
     )
     .replace(
-      /\]\(\.\.\/\.\.\/项目\/数字图像处理\/[^)]+\.md\)/g,
+      /\]\(\.\.\/\.\.\/作品\/数字图像处理\/[^)]+\.md\)/g,
       `](${PROJECT_ROUTE})`,
     )
     .replace(
@@ -180,11 +180,11 @@ const article = fs.readFileSync(ARTICLE_SOURCE, 'utf8')
 const project = fs.readFileSync(PROJECT_SOURCE, 'utf8')
 
 writeIfChanged(ARTICLE_OUT, page(article, 'ACN-Estimation 技术文章'))
-writeIfChanged(PROJECT_OUT, page(project, 'ACN-Estimation 项目'))
+writeIfChanged(PROJECT_OUT, page(project, 'ACN-Estimation 作品'))
 
 writeIfChanged(
   path.join(DOCS, 'projects', 'index.md'),
-  `---\ntitle: 项目\n---\n\n# 项目\n\n<div class="collection-grid">\n  <a class="collection-card" href="${PROJECT_ROUTE}">\n    <span>PROJECT / ACN</span>\n    <h2>ACN-Estimation</h2>\n    <p>基于纹理—几何耦合的自然材质法线估计。</p>\n  </a>\n</div>\n`,
+  `---\ntitle: 作品\n---\n\n# 作品\n\n<div class="collection-grid">\n  <a class="collection-card" href="${PROJECT_ROUTE}">\n    <span>WORK / ACN</span>\n    <h2>ACN-Estimation</h2>\n    <p>基于纹理—几何耦合的自然材质法线估计。</p>\n  </a>\n</div>\n`,
 )
 
 writeIfChanged(
@@ -220,4 +220,4 @@ if (
   throw new Error(`ACN 站点媒体不存在：${PUBLIC_DIR}`)
 }
 
-console.log('ACN 同步完成：项目页与文章页')
+console.log('ACN 同步完成：作品页与文章页')
