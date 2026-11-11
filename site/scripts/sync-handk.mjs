@@ -8,6 +8,7 @@ const WORKSPACE = path.resolve(SITE, '..')
 const SOURCE_ROOT = path.join(WORKSPACE, '作品', '手 k 动画')
 const SOURCE_MARKDOWN = path.join(SOURCE_ROOT, '手 K 动画.md')
 const SOURCE_MEDIA = path.join(SOURCE_ROOT, '素材')
+const SOURCE_VIDEOS = path.join(SOURCE_MEDIA, '视频')
 const SOURCE_GIFS = path.join(SOURCE_MEDIA, '动图')
 const SOURCE_FILM = path.join(SOURCE_ROOT, '成片')
 const SOURCE_STILLS = path.join(SOURCE_ROOT, '静帧')
@@ -25,41 +26,36 @@ const WEB_STORYBOARD = path.join(BUILD_ROOT, STORYBOARD_NAME)
 const actions = [
   {
     key: 'blade-idle',
-    front: '刃待机_正视图_黏土高清.mp4',
-    side: '刃待机_侧视图_黏土高清.mp4',
-    dual: '刃待机_双视图_黏土高清.mp4',
+    front: '待机正.mp4',
+    side: '待机侧.mp4',
     frontGif: '待机正.gif',
     sideGif: '待机侧.gif',
   },
   {
     key: 'hu-tao-run',
-    front: '胡桃跑步_正视图_黏土高清.mp4',
-    side: '胡桃跑步_侧视图_黏土高清.mp4',
-    dual: '胡桃跑步_双视图_黏土高清.mp4',
+    front: '跑步正.mp4',
+    side: '跑步侧.mp4',
     frontGif: '跑步正.gif',
     sideGif: '跑步侧.gif',
   },
   {
     key: 'anby-strike',
-    front: '安比1a_正视图_黏土高清.mp4',
-    side: '安比1a_侧视图_黏土高清.mp4',
-    dual: '安比1a_双视图_黏土高清.mp4',
+    front: '单击正.mp4',
+    side: '单击侧.mp4',
     frontGif: '单击正.gif',
     sideGif: '单击侧.gif',
   },
   {
     key: 'anby-combo',
-    front: '安比连击_正视图_黏土高清_跟随.mp4',
-    side: '安比连击_侧视图_黏土高清_跟随.mp4',
-    dual: '安比连击_双视图_黏土高清_跟随.mp4',
+    front: '安比连击正.mp4',
+    side: '安比连击侧.mp4',
     frontGif: '安比连击正.gif',
     sideGif: '安比连击侧.gif',
   },
   {
     key: 'jiyan-combo',
-    front: '忌炎连击_正视图_黏土高清.mp4',
-    side: '忌炎连击_侧视图_黏土高清.mp4',
-    dual: '忌炎连击_双视图_黏土高清.mp4',
+    front: '忌炎连击正.mp4',
+    side: '忌炎连击侧.mp4',
     frontGif: '忌炎连击正.gif',
     sideGif: '忌炎连击侧.gif',
   },
@@ -208,7 +204,7 @@ function buildLocalMedia(referencedGifs) {
 
   for (const action of actions) {
     const posterOutput = path.join(WEB_POSTERS, `${action.key}.webp`)
-    buildPoster(path.join(SOURCE_MEDIA, action.dual), posterOutput)
+    buildPoster(path.join(SOURCE_VIDEOS, action.front), posterOutput)
 
     for (const { view, name } of actionGifs(action)) {
       if (!referencedGifs.has(name)) continue

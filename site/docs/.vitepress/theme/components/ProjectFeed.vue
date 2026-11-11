@@ -37,7 +37,7 @@ const tiles: ProjectTile[] = [
     date: '2026-11-11',
     category: '动画',
     title: '手 K 动画',
-    summary: '以正视图、侧视图和双视图展示待机、跑步与连击动作，并整理为 1080p 成片。',
+    summary: '以等长的正视图、侧视图展示待机、跑步与连击动作，并整理为 1080p 成片。',
     link: '/projects/hand-k-animation/',
     image: '/hand-k-animation/posters/cover.webp',
     colors: ['#7b4737', '#d79270', '#12100e'],
