@@ -278,9 +278,7 @@ function handleCardClick(tile: ProjectTile, event: MouseEvent) {
   margin: 9px 9px 0;
   overflow: hidden;
   border-radius: 11px;
-  background:
-    radial-gradient(circle at 76% 22%, var(--cover-b), transparent 32%),
-    linear-gradient(135deg, var(--cover-a), var(--cover-c));
+  background: linear-gradient(135deg, var(--cover-a), var(--cover-c));
 }
 
 .project-tile__cover img {
@@ -289,7 +287,7 @@ function handleCardClick(tile: ProjectTile, event: MouseEvent) {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.46;
+  opacity: 1;
 }
 
 .project-tile__edit {
