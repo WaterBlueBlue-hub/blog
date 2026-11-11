@@ -145,10 +145,10 @@ function buildGif(source, output, maxWidth = 480) {
 function rewriteForSite(markdown) {
   let next = markdown
     .replaceAll(
-      '成片/网页版/hand-k-animation-showcase.mp4',
+      '成片/手k动画_成片.mp4',
       '/hand-k-animation/film/hand-k-animation-showcase.mp4',
     )
-    .replaceAll('静帧/网页封面/', '/hand-k-animation/posters/')
+    .replaceAll('静帧/分镜总览.png', '/hand-k-animation/posters/cover.webp')
     .replaceAll('静帧/分镜总览.webp', '/hand-k-animation/storyboard.webp')
 
   for (const action of actions) {
