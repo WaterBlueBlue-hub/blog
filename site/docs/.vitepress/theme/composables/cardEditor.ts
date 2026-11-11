@@ -1,4 +1,5 @@
 import { reactive } from 'vue'
+import { withBase } from 'vitepress'
 
 export type CardKind = 'article' | 'note' | 'project'
 export type CardId = number | string
@@ -32,6 +33,7 @@ export type EditableCardPayload = {
 }
 
 type EditorState = {
+  owner: boolean
   active: boolean
   overrides: Record<string, CardOverride>
   revision: number
@@ -39,11 +41,13 @@ type EditorState = {
 
 const STORAGE_KEY = 'waterblue-card-overrides-v1'
 const MODE_KEY = 'waterblue-developer-mode-v1'
+const PUBLISH_TOKEN_KEY = 'waterblue-github-publish-token-v1'
 const COVER_DB_NAME = 'waterblue-card-covers-v1'
 const COVER_STORE_NAME = 'covers'
 export const OPEN_CARD_EDITOR_EVENT = 'waterblue:open-card-editor'
 
 export const cardEditorState = reactive<EditorState>({
+  owner: false,
   active: false,
   overrides: {},
   revision: 0,
@@ -51,6 +55,8 @@ export const cardEditorState = reactive<EditorState>({
 
 let initialized = false
 let coverDbPromise: Promise<IDBDatabase> | undefined
+let publishedOverrides: Record<string, CardOverride> = {}
+let localOverrides: Record<string, CardOverride> = {}
 const coverObjectUrls = reactive<
   Record<string, { url?: string; loading?: boolean; failed?: boolean }>
 >({})
@@ -70,6 +76,14 @@ function readOverrides(): Record<string, CardOverride> {
   }
 }
 
+function applyOverrides() {
+  cardEditorState.overrides = {
+    ...publishedOverrides,
+    ...localOverrides,
+  }
+  cardEditorState.revision += 1
+}
+
 function persistOverrides(overrides = cardEditorState.overrides) {
   if (typeof window === 'undefined') return
   try {
@@ -80,12 +94,12 @@ function persistOverrides(overrides = cardEditorState.overrides) {
 }
 
 function syncFromStorage(event: StorageEvent) {
-  if (event.key === STORAGE_KEY) {
-    cardEditorState.overrides = readOverrides()
-    cardEditorState.revision += 1
+  if (event.key === STORAGE_KEY && cardEditorState.owner) {
+    localOverrides = readOverrides()
+    applyOverrides()
   }
   if (event.key === MODE_KEY) {
-    cardEditorState.active = event.newValue === '1'
+    cardEditorState.active = cardEditorState.owner && event.newValue === '1'
   }
 }
 
@@ -93,19 +107,54 @@ export function initializeCardEditor() {
   if (initialized || typeof window === 'undefined') return
   initialized = true
 
-  cardEditorState.overrides = readOverrides()
+  cardEditorState.owner = hasPublishingToken()
+  localOverrides = cardEditorState.owner ? readOverrides() : {}
+  applyOverrides()
   const devQuery = new URLSearchParams(window.location.search).get('dev')
-  cardEditorState.active = devQuery === '1' || window.localStorage.getItem(MODE_KEY) === '1'
-  cardEditorState.revision += 1
+  cardEditorState.active =
+    cardEditorState.owner &&
+    (devQuery === '1' || window.localStorage.getItem(MODE_KEY) === '1')
   window.addEventListener('storage', syncFromStorage)
   void migrateEmbeddedCoverImages()
+  void loadPublishedOverrides()
 }
 
 export function setCardEditorActive(active: boolean) {
+  if (active && !cardEditorState.owner) return
   cardEditorState.active = active
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(MODE_KEY, active ? '1' : '0')
   }
+}
+
+export function hasPublishingToken() {
+  return (
+    typeof window !== 'undefined' &&
+    Boolean(window.localStorage.getItem(PUBLISH_TOKEN_KEY))
+  )
+}
+
+export function getPublishingToken() {
+  if (typeof window === 'undefined') return ''
+  return window.localStorage.getItem(PUBLISH_TOKEN_KEY) ?? ''
+}
+
+export function setPublishingToken(token: string) {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(PUBLISH_TOKEN_KEY, token)
+  cardEditorState.owner = true
+  localOverrides = readOverrides()
+  applyOverrides()
+}
+
+export function clearPublishingToken() {
+  if (typeof window === 'undefined') return
+  window.localStorage.removeItem(PUBLISH_TOKEN_KEY)
+  window.localStorage.setItem(MODE_KEY, '0')
+  cardEditorState.owner = false
+  cardEditorState.active = false
+  localOverrides = {}
+  applyOverrides()
 }
 
 export function getCardOverride(kind: CardKind, id: CardId) {
@@ -132,30 +181,52 @@ export function updateCardOverride(
   if (!next.tags?.length) delete next.tags
 
   const nextOverrides = {
-    ...cardEditorState.overrides,
+    ...localOverrides,
     [key]: next,
   }
   persistOverrides(nextOverrides)
-  cardEditorState.overrides = nextOverrides
-  cardEditorState.revision += 1
+  localOverrides = nextOverrides
+  applyOverrides()
 }
 
 export function resetCardOverride(kind: CardKind, id: CardId) {
-  const next = { ...cardEditorState.overrides }
-  delete next[storageKey(kind, id)]
+  const next = { ...localOverrides }
+  next[storageKey(kind, id)] = {}
   persistOverrides(next)
-  cardEditorState.overrides = next
-  cardEditorState.revision += 1
+  localOverrides = next
+  applyOverrides()
 }
 
 export function resetAllCardOverrides() {
-  persistOverrides({})
-  cardEditorState.overrides = {}
-  cardEditorState.revision += 1
+  localOverrides = Object.fromEntries(
+    Object.keys(publishedOverrides).map((key) => [key, {}]),
+  )
+  persistOverrides(localOverrides)
+  applyOverrides()
 }
 
 export function exportCardOverrides() {
   return JSON.stringify(cardEditorState.overrides, null, 2)
+}
+
+export function publishableCardOverrides() {
+  return JSON.parse(JSON.stringify(cardEditorState.overrides)) as Record<string, CardOverride>
+}
+
+async function loadPublishedOverrides() {
+  try {
+    const response = await fetch(`${withBase('/card-overrides.json')}?v=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    })
+    if (!response.ok) return
+    const parsed = await response.json()
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return
+    publishedOverrides = parsed
+    applyOverrides()
+  } catch {
+    // A missing or temporarily unavailable override file should not block the site.
+  }
 }
 
 export function openCardEditor(card: EditableCardPayload) {
@@ -222,6 +293,14 @@ async function getStoredCover(key: string) {
     })
     request.addEventListener('error', () => reject(request.error))
   })
+}
+
+export async function getCardCoverBlob(kind: CardKind, id: CardId) {
+  try {
+    return await getStoredCover(storageKey(kind, id))
+  } catch {
+    return undefined
+  }
 }
 
 function setGifInfiniteLoop(bytes: Uint8Array) {

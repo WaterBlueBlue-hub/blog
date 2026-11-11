@@ -4,20 +4,27 @@ import { withBase } from 'vitepress'
 import {
   OPEN_CARD_EDITOR_EVENT,
   cardEditorState,
+  clearPublishingToken,
   coverCropStyle,
   exportCardOverrides,
   fileToCoverDataUrl,
+  getPublishingToken,
   initializeCardEditor,
   isGifCover,
   resolveCoverImage,
   resetAllCardOverrides,
   resetCardOverride,
   setCardEditorActive,
+  setPublishingToken,
   storeCoverDataUrl,
   updateCardOverride,
   type CoverCrop,
   type EditableCardPayload,
 } from '../composables/cardEditor'
+import {
+  publishCardOverrides,
+  validatePublishingToken,
+} from '../composables/cardPublisher'
 const editingCard = ref<EditableCardPayload | null>(null)
 const draftImage = ref('')
 const draftImageCrop = ref<CoverCrop>()
@@ -34,6 +41,12 @@ const cropOffset = reactive({ x: 0, y: 0 })
 const cropNatural = reactive({ width: 1, height: 1 })
 const cropSize = reactive({ width: 1, height: 1 })
 const isCropping = ref(false)
+const setupOpen = ref(false)
+const setupToken = ref('')
+const setupError = ref('')
+const isCheckingToken = ref(false)
+const isPublishing = ref(false)
+const publishMessage = ref('')
 const form = reactive({
   title: '',
   date: '',
@@ -337,14 +350,79 @@ function clearAllOverrides() {
 }
 
 function toggleEditor() {
+  if (!cardEditorState.owner) return
   setCardEditorActive(!cardEditorState.active)
   if (!cardEditorState.active) {
     closeEditor()
   }
 }
 
+function openPublishingSetup() {
+  setupToken.value = ''
+  setupError.value = ''
+  setupOpen.value = true
+}
+
+function closePublishingSetup() {
+  if (isCheckingToken.value) return
+  setupOpen.value = false
+  setupToken.value = ''
+  setupError.value = ''
+}
+
+async function savePublishingAccess() {
+  const token = setupToken.value.trim()
+  if (!token || isCheckingToken.value) return
+
+  isCheckingToken.value = true
+  setupError.value = ''
+  try {
+    await validatePublishingToken(token)
+    setPublishingToken(token)
+    setCardEditorActive(true)
+    setupOpen.value = false
+    setupToken.value = ''
+    publishMessage.value = '此浏览器已获得发布权限'
+  } catch (error) {
+    setupError.value = error instanceof Error ? error.message : '发布密钥验证失败'
+  } finally {
+    isCheckingToken.value = false
+  }
+}
+
+function disconnectPublishingAccess() {
+  if (!window.confirm('断开此浏览器的开发与发布权限？线上内容不会被删除。')) return
+  closeEditor()
+  clearPublishingToken()
+  setupOpen.value = false
+  publishMessage.value = ''
+}
+
+async function publishOverrides() {
+  if (!cardEditorState.owner || isPublishing.value) return
+  if (!window.confirm('将当前卡片修改发布到线上网站？GitHub Pages 通常会在 1–2 分钟后更新。')) {
+    return
+  }
+
+  isPublishing.value = true
+  publishMessage.value = '正在上传封面并提交修改…'
+  try {
+    const result = await publishCardOverrides(getPublishingToken())
+    publishMessage.value = result.deploymentTriggered
+      ? `已发布 ${result.overrideCount} 项修改；页面将在约 1–2 分钟后更新`
+      : `已提交 ${result.overrideCount} 项修改，但部署未触发；请给 Token 增加 Actions 读写权限`
+    console.info('Card overrides published', result)
+  } catch (error) {
+    publishMessage.value =
+      error instanceof Error ? error.message : '发布失败，请检查 GitHub 密钥'
+  } finally {
+    isPublishing.value = false
+  }
+}
+
 onMounted(() => {
   initializeCardEditor()
+  setupOpen.value = new URLSearchParams(window.location.search).get('dev-setup') === '1'
   window.addEventListener(OPEN_CARD_EDITOR_EVENT, openEditor)
 })
 
@@ -355,11 +433,15 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="developer-mode">
+  <div v-if="cardEditorState.owner" class="developer-mode">
     <div v-if="cardEditorState.active" class="developer-mode__hint">
       <span>开发模式：点击任意作品、文章或笔记卡片编辑</span>
+      <button type="button" :disabled="isPublishing" @click="publishOverrides">
+        {{ isPublishing ? '发布中…' : '发布到线上' }}
+      </button>
       <button type="button" @click="downloadOverrides">导出 JSON</button>
       <button type="button" @click="clearAllOverrides">清除全部</button>
+      <button type="button" @click="openPublishingSetup">发布设置</button>
     </div>
 
     <button
@@ -372,6 +454,76 @@ onBeforeUnmount(() => {
     >
       DEV
     </button>
+  </div>
+
+  <p v-if="cardEditorState.owner && publishMessage" class="developer-mode__status">
+    {{ publishMessage }}
+  </p>
+
+  <div
+    v-if="setupOpen"
+    class="publisher-setup"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="publisher-setup-title"
+    @click.self="closePublishingSetup"
+  >
+    <form class="publisher-setup__panel" @submit.prevent="savePublishingAccess">
+      <header class="publisher-setup__head">
+        <div>
+          <span>OWNER ACCESS</span>
+          <h2 id="publisher-setup-title">开发与发布权限</h2>
+        </div>
+        <button type="button" aria-label="关闭" @click="closePublishingSetup">×</button>
+      </header>
+
+      <p>
+        密钥只保存在当前浏览器，不会提交到网站。需要为
+        <strong>waterblueblue-hub.github.io</strong> 创建仅含
+        <strong>Contents</strong> 与 <strong>Actions: Read and write</strong>
+        权限的细粒度 GitHub Token。
+      </p>
+
+      <a
+        class="publisher-setup__link"
+        href="https://github.com/settings/personal-access-tokens/new"
+        target="_blank"
+        rel="noreferrer"
+      >
+        打开 GitHub Token 创建页
+      </a>
+
+      <label>
+        <span>GitHub Token</span>
+        <input
+          v-model="setupToken"
+          type="password"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="github_pat_..."
+        />
+      </label>
+
+      <p v-if="setupError" class="publisher-setup__error">{{ setupError }}</p>
+
+      <footer>
+        <button
+          v-if="cardEditorState.owner"
+          type="button"
+          class="is-danger"
+          @click="disconnectPublishingAccess"
+        >
+          断开此浏览器
+        </button>
+        <span v-else></span>
+        <div>
+          <button type="button" @click="closePublishingSetup">取消</button>
+          <button type="submit" class="is-primary" :disabled="isCheckingToken">
+            {{ isCheckingToken ? '验证中…' : '启用开发模式' }}
+          </button>
+        </div>
+      </footer>
+    </form>
   </div>
 
   <div v-if="editingCard" class="card-editor" role="dialog" aria-modal="true" @click.self="closeEditor">
@@ -550,6 +702,171 @@ onBeforeUnmount(() => {
   font: inherit;
   font-size: 10px;
   cursor: pointer;
+}
+
+.developer-mode__hint button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.developer-mode__status {
+  position: fixed;
+  z-index: 81;
+  bottom: 74px;
+  left: 20px;
+  max-width: min(440px, calc(100vw - 40px));
+  margin: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 9px;
+  padding: 7px 10px;
+  background: rgba(26, 28, 40, 0.88);
+  color: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 12px 28px -18px rgba(20, 20, 32, 0.9);
+  font-size: 11px;
+  line-height: 1.5;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+.publisher-setup {
+  position: fixed;
+  z-index: 110;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(20, 19, 27, 0.5);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+}
+
+.publisher-setup__panel {
+  display: grid;
+  width: min(520px, 100%);
+  gap: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 18px;
+  padding: 24px;
+  background: #f7f3f7;
+  color: #282530;
+  box-shadow: 0 30px 90px -36px rgba(20, 18, 30, 0.72);
+}
+
+.publisher-setup__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.publisher-setup__head span {
+  color: #7d7686;
+  font-family: var(--vp-font-family-mono);
+  font-size: 10px;
+  letter-spacing: 0.8px;
+}
+
+.publisher-setup__head h2 {
+  margin: 4px 0 0;
+  border: 0;
+  padding: 0;
+  color: #201e27;
+  font-size: 24px;
+}
+
+.publisher-setup__head button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(70, 62, 80, 0.14);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #544e5b;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.publisher-setup__panel > p {
+  margin: 0;
+  color: #625c69;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.publisher-setup__panel label > span {
+  display: block;
+  margin-bottom: 6px;
+  color: #7d7686;
+  font-family: var(--vp-font-family-mono);
+  font-size: 10px;
+  letter-spacing: 0.7px;
+}
+
+.publisher-setup__panel input {
+  width: 100%;
+  border: 1px solid rgba(70, 62, 80, 0.16);
+  border-radius: 9px;
+  padding: 10px 11px;
+  background: rgba(255, 255, 255, 0.76);
+  color: #29252f;
+  font-family: var(--vp-font-family-mono);
+  font-size: 12px;
+  outline: none;
+}
+
+.publisher-setup__panel input:focus {
+  border-color: rgba(47, 109, 246, 0.48);
+  box-shadow: 0 0 0 3px rgba(47, 109, 246, 0.09);
+}
+
+.publisher-setup__link {
+  width: fit-content;
+  color: #2f6df6;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.publisher-setup__error {
+  color: #b83f50 !important;
+}
+
+.publisher-setup__panel footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.publisher-setup__panel footer > div {
+  display: flex;
+  gap: 8px;
+}
+
+.publisher-setup__panel footer button {
+  border: 1px solid rgba(70, 62, 80, 0.14);
+  border-radius: 8px;
+  padding: 8px 11px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #514b59;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.publisher-setup__panel footer .is-primary {
+  border-color: #2f6df6;
+  background: #2f6df6;
+  color: #fff;
+}
+
+.publisher-setup__panel footer .is-danger {
+  color: #a93648;
+}
+
+.publisher-setup__panel footer button:disabled {
+  cursor: wait;
+  opacity: 0.62;
 }
 
 .card-editor {
@@ -866,6 +1183,29 @@ onBeforeUnmount(() => {
   color: #ebe8f0;
 }
 
+.dark .publisher-setup__panel {
+  background: #1c1d28;
+  color: #ebe8f0;
+}
+
+.dark .publisher-setup__head h2 {
+  color: #f1eef5;
+}
+
+.dark .publisher-setup__panel > p,
+.dark .publisher-setup__head span,
+.dark .publisher-setup__panel label > span {
+  color: #aaa4b2;
+}
+
+.dark .publisher-setup__panel input,
+.dark .publisher-setup__head button,
+.dark .publisher-setup__panel footer button:not(.is-primary) {
+  border-color: rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f1eef5;
+}
+
 .dark .card-editor__head h2 {
   color: #f1eef5;
 }
@@ -905,6 +1245,15 @@ onBeforeUnmount(() => {
 
   .developer-mode__hint span {
     width: 100%;
+  }
+
+  .developer-mode__status {
+    bottom: 64px;
+    left: 12px;
+  }
+
+  .publisher-setup__panel {
+    padding: 18px;
   }
 
   .card-editor__panel {
