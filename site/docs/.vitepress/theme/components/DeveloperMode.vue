@@ -9,9 +9,11 @@ import {
   fileToCoverDataUrl,
   initializeCardEditor,
   isGifCover,
+  resolveCoverImage,
   resetAllCardOverrides,
   resetCardOverride,
   setCardEditorActive,
+  storeCoverDataUrl,
   updateCardOverride,
   type CoverCrop,
   type EditableCardPayload,
@@ -20,6 +22,7 @@ const editingCard = ref<EditableCardPayload | null>(null)
 const draftImage = ref('')
 const draftImageCrop = ref<CoverCrop>()
 const uploadError = ref('')
+const isSaving = ref(false)
 const cropStage = ref<HTMLElement | null>(null)
 const cropImageElement = ref<HTMLImageElement | null>(null)
 const cropSourceUrl = ref('')
@@ -43,6 +46,13 @@ let dragOrigin: { pointerX: number; pointerY: number; offsetX: number; offsetY: 
 
 const imagePreview = computed(() => {
   if (!draftImage.value) return ''
+  if (draftImage.value.startsWith('idb://') && editingCard.value) {
+    return resolveCoverImage(
+      editingCard.value.kind,
+      editingCard.value.id,
+      draftImage.value,
+    )
+  }
   if (/^(data:|https?:)/.test(draftImage.value)) return draftImage.value
   return withBase(draftImage.value)
 })
@@ -82,10 +92,16 @@ function closeEditor() {
   uploadError.value = ''
 }
 
-function saveEditor() {
-  if (!editingCard.value) return
+async function saveEditor() {
+  if (!editingCard.value || isSaving.value) return
 
+  isSaving.value = true
   try {
+    let image = draftImage.value
+    if (image.startsWith('data:image/gif')) {
+      image = await storeCoverDataUrl(editingCard.value.kind, editingCard.value.id, image)
+    }
+
     updateCardOverride(editingCard.value.kind, editingCard.value.id, {
       title: form.title.trim(),
       date: form.date.trim(),
@@ -95,12 +111,14 @@ function saveEditor() {
         .split(/[,，]/)
         .map((tag) => tag.trim())
         .filter(Boolean),
-      image: draftImage.value,
+      image,
       imageCrop: draftImageCrop.value,
     })
     closeEditor()
   } catch (error) {
     uploadError.value = error instanceof Error ? error.message : '卡片保存失败'
+  } finally {
+    isSaving.value = false
   }
 }
 

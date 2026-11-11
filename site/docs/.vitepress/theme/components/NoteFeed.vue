@@ -6,6 +6,7 @@ import {
   coverCropStyle,
   getCardOverride,
   openCardEditor,
+  resolveCoverImage,
 } from '../composables/cardEditor'
 
 type Note = {
@@ -163,6 +164,9 @@ function tagsFor(note: Note) {
 function imageFor(note: Note) {
   const image = valueFor(note, 'image')
   if (!image) return ''
+  if (image.startsWith('idb://')) {
+    return resolveCoverImage('note', note.id, image)
+  }
   return /^(data:|https?:)/.test(image) ? image : withBase(image)
 }
 

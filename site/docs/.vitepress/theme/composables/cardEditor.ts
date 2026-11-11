@@ -38,6 +38,8 @@ type EditorState = {
 
 const STORAGE_KEY = 'waterblue-card-overrides-v1'
 const MODE_KEY = 'waterblue-developer-mode-v1'
+const COVER_DB_NAME = 'waterblue-card-covers-v1'
+const COVER_STORE_NAME = 'covers'
 export const OPEN_CARD_EDITOR_EVENT = 'waterblue:open-card-editor'
 
 export const cardEditorState = reactive<EditorState>({
@@ -47,6 +49,10 @@ export const cardEditorState = reactive<EditorState>({
 })
 
 let initialized = false
+let coverDbPromise: Promise<IDBDatabase> | undefined
+const coverObjectUrls = reactive<
+  Record<string, { url?: string; loading?: boolean; failed?: boolean }>
+>({})
 
 function storageKey(kind: CardKind, id: number) {
   return `${kind}:${id}`
@@ -91,6 +97,7 @@ export function initializeCardEditor() {
   cardEditorState.active = devQuery === '1' || window.localStorage.getItem(MODE_KEY) === '1'
   cardEditorState.revision += 1
   window.addEventListener('storage', syncFromStorage)
+  void migrateEmbeddedCoverImages()
 }
 
 export function setCardEditorActive(active: boolean) {
@@ -157,7 +164,11 @@ export function openCardEditor(card: EditableCardPayload) {
 
 export function isGifCover(source?: string) {
   if (!source) return false
-  return /^data:image\/gif(?:;|,)/i.test(source) || /\.gif(?:[?#]|$)/i.test(source)
+  return (
+    source.startsWith('idb://') ||
+    /^data:image\/gif(?:;|,)/i.test(source) ||
+    /\.gif(?:[?#]|$)/i.test(source)
+  )
 }
 
 export function coverCropStyle(crop?: CoverCrop) {
@@ -166,6 +177,115 @@ export function coverCropStyle(crop?: CoverCrop) {
     '--cover-crop-zoom': String(crop.zoom),
     '--cover-crop-x': `${crop.focusX * 100}%`,
     '--cover-crop-y': `${crop.focusY * 100}%`,
+  }
+}
+
+function openCoverDatabase() {
+  if (coverDbPromise) return coverDbPromise
+  coverDbPromise = new Promise<IDBDatabase>((resolve, reject) => {
+    const request = window.indexedDB.open(COVER_DB_NAME, 1)
+    request.addEventListener('upgradeneeded', () => {
+      if (!request.result.objectStoreNames.contains(COVER_STORE_NAME)) {
+        request.result.createObjectStore(COVER_STORE_NAME)
+      }
+    })
+    request.addEventListener('success', () => resolve(request.result))
+    request.addEventListener('error', () => reject(request.error))
+  })
+  return coverDbPromise
+}
+
+async function getStoredCover(key: string) {
+  const database = await openCoverDatabase()
+  return new Promise<Blob | undefined>((resolve, reject) => {
+    const request = database
+      .transaction(COVER_STORE_NAME, 'readonly')
+      .objectStore(COVER_STORE_NAME)
+      .get(key) as IDBRequest<Blob | undefined>
+    request.addEventListener('success', () => resolve(request.result))
+    request.addEventListener('error', () => reject(request.error))
+  })
+}
+
+function dataUrlToBlob(dataUrl: string) {
+  const [header, body] = dataUrl.split(',', 2)
+  const mimeType = header.match(/^data:([^;]+)/)?.[1] || 'application/octet-stream'
+  const binary = atob(body)
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index++) {
+    bytes[index] = binary.charCodeAt(index)
+  }
+  return new Blob([bytes], { type: mimeType })
+}
+
+export async function storeCoverDataUrl(kind: CardKind, id: number, dataUrl: string) {
+  const key = storageKey(kind, id)
+  const blob = dataUrlToBlob(dataUrl)
+  const database = await openCoverDatabase()
+  await new Promise<void>((resolve, reject) => {
+    const request = database
+      .transaction(COVER_STORE_NAME, 'readwrite')
+      .objectStore(COVER_STORE_NAME)
+      .put(blob, key)
+    request.addEventListener('success', () => resolve())
+    request.addEventListener('error', () => reject(request.error))
+  })
+
+  const previous = coverObjectUrls[key]?.url
+  if (previous) URL.revokeObjectURL(previous)
+  coverObjectUrls[key] = { url: URL.createObjectURL(blob) }
+  return `idb://${key}`
+}
+
+export function resolveCoverImage(kind: CardKind, id: number, image?: string) {
+  if (!image || !image.startsWith('idb://') || typeof window === 'undefined') return image || ''
+
+  const key = storageKey(kind, id)
+  const cached = coverObjectUrls[key]
+  if (cached?.url) return cached.url
+  if (cached?.loading || cached?.failed) return ''
+
+  coverObjectUrls[key] = { loading: true }
+  void getStoredCover(key)
+    .then((blob) => {
+      coverObjectUrls[key] = blob
+        ? { url: URL.createObjectURL(blob) }
+        : { failed: true }
+    })
+    .catch(() => {
+      coverObjectUrls[key] = { failed: true }
+    })
+  return ''
+}
+
+async function migrateEmbeddedCoverImages() {
+  const migrated = { ...cardEditorState.overrides }
+  let changed = false
+
+  for (const [key, override] of Object.entries(migrated)) {
+    if (!override.image?.startsWith('data:image/gif')) continue
+
+    const [kind, idText] = key.split(':')
+    const id = Number(idText)
+    if (!id || (kind !== 'article' && kind !== 'note')) continue
+
+    try {
+      const image = await storeCoverDataUrl(kind, id, override.image)
+      migrated[key] = { ...override, image }
+      changed = true
+    } catch {
+      // Keep the existing cover when IndexedDB is unavailable.
+    }
+  }
+
+  if (!changed) return
+
+  try {
+    persistOverrides(migrated)
+    cardEditorState.overrides = migrated
+    cardEditorState.revision += 1
+  } catch {
+    // The blob still resolves for this session even if the slim config cannot be written.
   }
 }
 
