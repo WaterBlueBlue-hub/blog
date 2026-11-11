@@ -16,6 +16,7 @@ type ProjectTile = {
   summary: string
   link?: string
   image?: string
+  tags: string[]
   colors: [string, string, string]
   pattern: 'grid' | 'wave' | 'orbit' | 'mesh'
 }
@@ -29,6 +30,7 @@ const tiles: ProjectTile[] = [
     summary: '从自然纹理 Albedo 估计切线空间法线。',
     link: '/projects/acn-estimation/',
     image: '/acn-estimation/images/cover.webp',
+    tags: ['法线贴图', 'Sobel', '自然纹理'],
     colors: ['#426fd1', '#97d6eb', '#172b55'],
     pattern: 'grid',
   },
@@ -40,6 +42,7 @@ const tiles: ProjectTile[] = [
     summary: '以等长的正视图、侧视图展示待机、跑步与连击动作，并整理为 1080p 成片。',
     link: '/projects/hand-k-animation/',
     image: '/hand-k-animation/posters/cover.webp',
+    tags: ['角色动画', '三视图', '1080p'],
     colors: ['#7b4737', '#d79270', '#12100e'],
     pattern: 'orbit',
   },
@@ -51,6 +54,7 @@ const tiles: ProjectTile[] = [
     summary: '以 XPBD 布料、柔性骨骼链与气动落叶，结合 PBF 流体和浅水波场构建实时物理系统。',
     link: '/projects/xpbd-pbf-physics/',
     image: '/xpbd-pbf-physics/media/片头封面.webp',
+    tags: ['XPBD', 'PBF', '实时模拟'],
     colors: ['#287f88', '#8bd1bd', '#173e48'],
     pattern: 'wave',
   },
@@ -60,6 +64,7 @@ const tiles: ProjectTile[] = [
     category: '未分类',
     title: '预留作品位',
     summary: '作品内容待添加。',
+    tags: ['待上线'],
     colors: ['#b36d8d', '#edb6c5', '#5c3045'],
     pattern: 'orbit',
   },
@@ -69,6 +74,7 @@ const tiles: ProjectTile[] = [
     category: '未分类',
     title: '预留作品位',
     summary: '作品内容待添加。',
+    tags: ['待上线'],
     colors: ['#8c6d4c', '#d8bd8c', '#433226'],
     pattern: 'grid',
   },
@@ -78,6 +84,7 @@ const tiles: ProjectTile[] = [
     category: '未分类',
     title: '预留作品位',
     summary: '作品内容待添加。',
+    tags: ['待上线'],
     colors: ['#54657e', '#aebbd0', '#263141'],
     pattern: 'mesh',
   },
@@ -107,6 +114,10 @@ function imageStyleFor(tile: ProjectTile) {
   return coverCropStyle(getCardOverride('project', tile.id)?.imageCrop)
 }
 
+function tagsFor(tile: ProjectTile) {
+  return getCardOverride('project', tile.id)?.tags ?? tile.tags
+}
+
 function handleCardClick(tile: ProjectTile, event: MouseEvent) {
   if (!cardEditorState.active) return
   event.preventDefault()
@@ -117,7 +128,7 @@ function handleCardClick(tile: ProjectTile, event: MouseEvent) {
     date: valueFor(tile, 'date'),
     topic: valueFor(tile, 'category'),
     excerpt: valueFor(tile, 'summary'),
-    tags: getCardOverride('project', tile.id)?.tags ?? [],
+    tags: tagsFor(tile),
     image: valueFor(tile, 'image') || undefined,
     imageCrop: getCardOverride('project', tile.id)?.imageCrop,
   })
@@ -174,6 +185,9 @@ function handleCardClick(tile: ProjectTile, event: MouseEvent) {
             <span>{{ valueFor(tile, 'category') }}</span>
           </div>
           <p>{{ valueFor(tile, 'summary') }}</p>
+          <div class="project-tile__tags" aria-label="作品标签">
+            <span v-for="tag in tagsFor(tile)" :key="tag">#{{ tag }}</span>
+          </div>
         </div>
       </component>
     </div>
@@ -276,7 +290,7 @@ function handleCardClick(tile: ProjectTile, event: MouseEvent) {
 
 .project-tile__cover {
   position: relative;
-  aspect-ratio: 16 / 7;
+  aspect-ratio: 16 / 9;
   margin: 9px 9px 0;
   overflow: hidden;
   border-radius: 11px;
@@ -308,7 +322,10 @@ function handleCardClick(tile: ProjectTile, event: MouseEvent) {
 }
 
 .project-tile__body {
-  padding: 14px 17px 17px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 16px 17px 18px;
 }
 
 .project-tile__body h3 {
@@ -337,10 +354,25 @@ function handleCardClick(tile: ProjectTile, event: MouseEvent) {
 }
 
 .project-tile__body p {
-  margin: 10px 0 0;
+  margin: 12px 0 15px;
   color: var(--vp-c-text-2);
   font-size: 13px;
-  line-height: 1.7;
+  line-height: 1.75;
+}
+
+.project-tile__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.project-tile__tags span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(116, 105, 120, 0.075);
+  color: var(--vp-c-text-3);
+  font-size: 10px;
 }
 
 .dark .project-tile {
