@@ -5,7 +5,7 @@ titleTemplate: false
 hero:
   name: ''
   text: WaterBlueBlue
-  tagline: 一枚月计人，喜欢物理模拟和二次元。
+  tagline: 一枚月计人，喜欢图形学和二次元。
   actions:
     - theme: brand
       text: 浏览笔记
