@@ -1,6 +1,7 @@
 import { reactive } from 'vue'
 
-export type CardKind = 'article' | 'note'
+export type CardKind = 'article' | 'note' | 'project'
+export type CardId = number | string
 
 export type CoverCrop = {
   zoom: number
@@ -20,7 +21,7 @@ export type CardOverride = {
 
 export type EditableCardPayload = {
   kind: CardKind
-  id: number
+  id: CardId
   title: string
   date: string
   topic: string
@@ -54,7 +55,7 @@ const coverObjectUrls = reactive<
   Record<string, { url?: string; loading?: boolean; failed?: boolean }>
 >({})
 
-function storageKey(kind: CardKind, id: number) {
+function storageKey(kind: CardKind, id: CardId) {
   return `${kind}:${id}`
 }
 
@@ -107,13 +108,13 @@ export function setCardEditorActive(active: boolean) {
   }
 }
 
-export function getCardOverride(kind: CardKind, id: number) {
+export function getCardOverride(kind: CardKind, id: CardId) {
   return cardEditorState.overrides[storageKey(kind, id)]
 }
 
 export function updateCardOverride(
   kind: CardKind,
-  id: number,
+  id: CardId,
   patch: Partial<CardOverride>,
 ) {
   const key = storageKey(kind, id)
@@ -139,7 +140,7 @@ export function updateCardOverride(
   cardEditorState.revision += 1
 }
 
-export function resetCardOverride(kind: CardKind, id: number) {
+export function resetCardOverride(kind: CardKind, id: CardId) {
   const next = { ...cardEditorState.overrides }
   delete next[storageKey(kind, id)]
   persistOverrides(next)
@@ -218,7 +219,7 @@ function dataUrlToBlob(dataUrl: string) {
   return new Blob([bytes], { type: mimeType })
 }
 
-export async function storeCoverDataUrl(kind: CardKind, id: number, dataUrl: string) {
+export async function storeCoverDataUrl(kind: CardKind, id: CardId, dataUrl: string) {
   const key = storageKey(kind, id)
   const blob = dataUrlToBlob(dataUrl)
   const database = await openCoverDatabase()
@@ -237,7 +238,7 @@ export async function storeCoverDataUrl(kind: CardKind, id: number, dataUrl: str
   return `idb://${key}`
 }
 
-export function resolveCoverImage(kind: CardKind, id: number, image?: string) {
+export function resolveCoverImage(kind: CardKind, id: CardId, image?: string) {
   if (!image || !image.startsWith('idb://') || typeof window === 'undefined') return image || ''
 
   const key = storageKey(kind, id)
@@ -266,11 +267,19 @@ async function migrateEmbeddedCoverImages() {
     if (!override.image?.startsWith('data:image/gif')) continue
 
     const [kind, idText] = key.split(':')
-    const id = Number(idText)
-    if (!id || (kind !== 'article' && kind !== 'note')) continue
+    if (
+      !idText ||
+      (kind !== 'article' && kind !== 'note' && kind !== 'project')
+    ) {
+      continue
+    }
+
+    const cardKind: CardKind = kind
+    const id: CardId = kind === 'project' ? idText : Number(idText)
+    if (typeof id === 'number' && !id) continue
 
     try {
-      const image = await storeCoverDataUrl(kind, id, override.image)
+      const image = await storeCoverDataUrl(cardKind, id, override.image)
       migrated[key] = { ...override, image }
       changed = true
     } catch {

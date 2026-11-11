@@ -58,6 +58,14 @@ const imagePreview = computed(() => {
 })
 const coverIsGif = computed(() => isGifCover(draftImage.value))
 const imagePreviewStyle = computed(() => coverCropStyle(draftImageCrop.value))
+const editorKindLabel = computed(() => {
+  if (!editingCard.value) return ''
+  return {
+    article: 'ARTICLE',
+    note: 'NOTE',
+    project: 'PROJECT',
+  }[editingCard.value.kind]
+})
 
 const cropImageStyle = computed(() => {
   const scale = Math.max(cropSize.width / cropNatural.width, cropSize.height / cropNatural.height) *
@@ -349,7 +357,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="developer-mode">
     <div v-if="cardEditorState.active" class="developer-mode__hint">
-      <span>开发模式：点击任意文章或笔记卡片编辑</span>
+      <span>开发模式：点击任意作品、文章或笔记卡片编辑</span>
       <button type="button" @click="downloadOverrides">导出 JSON</button>
       <button type="button" @click="clearAllOverrides">清除全部</button>
     </div>
@@ -370,7 +378,7 @@ onBeforeUnmount(() => {
     <form class="card-editor__panel" @submit.prevent="saveEditor">
       <header class="card-editor__head">
         <div>
-          <span>{{ editingCard.kind === 'article' ? 'ARTICLE' : 'NOTE' }} CARD</span>
+          <span>{{ editorKindLabel }} CARD</span>
           <h2>编辑卡片</h2>
         </div>
         <button type="button" class="card-editor__close" aria-label="关闭" @click="closeEditor">

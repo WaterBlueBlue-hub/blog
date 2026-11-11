@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import { withBase } from 'vitepress'
+import {
+  cardEditorState,
+  coverCropStyle,
+  getCardOverride,
+  openCardEditor,
+  resolveCoverImage,
+} from '../composables/cardEditor'
 
 type ProjectTile = {
   id: string
@@ -75,6 +82,44 @@ const tiles: ProjectTile[] = [
 ]
 
 const workCount = tiles.filter((tile) => tile.link).length
+
+function valueFor(
+  tile: ProjectTile,
+  field: 'title' | 'date' | 'category' | 'summary' | 'image',
+) {
+  const override = getCardOverride('project', tile.id)
+  if (field === 'category') return override?.topic ?? tile.category
+  return override?.[field] ?? tile[field] ?? ''
+}
+
+function imageFor(tile: ProjectTile) {
+  const image = valueFor(tile, 'image')
+  if (!image) return ''
+  if (image.startsWith('idb://')) {
+    return resolveCoverImage('project', tile.id, image)
+  }
+  return /^(data:|https?:)/.test(image) ? image : withBase(image)
+}
+
+function imageStyleFor(tile: ProjectTile) {
+  return coverCropStyle(getCardOverride('project', tile.id)?.imageCrop)
+}
+
+function handleCardClick(tile: ProjectTile, event: MouseEvent) {
+  if (!cardEditorState.active) return
+  event.preventDefault()
+  openCardEditor({
+    kind: 'project',
+    id: tile.id,
+    title: valueFor(tile, 'title'),
+    date: valueFor(tile, 'date'),
+    topic: valueFor(tile, 'category'),
+    excerpt: valueFor(tile, 'summary'),
+    tags: getCardOverride('project', tile.id)?.tags ?? [],
+    image: valueFor(tile, 'image') || undefined,
+    imageCrop: getCardOverride('project', tile.id)?.imageCrop,
+  })
+}
 </script>
 
 <template>
@@ -87,14 +132,19 @@ const workCount = tiles.filter((tile) => tile.link).length
       <span class="project-feed__total">{{ workCount }} 个作品 · {{ tiles.length }} 个入口</span>
     </header>
 
-    <div class="project-feed__grid">
+    <div :key="cardEditorState.revision" class="project-feed__grid">
       <component
-        :is="tile.link ? 'a' : 'article'"
+        :is="tile.link && !cardEditorState.active ? 'a' : 'article'"
         v-for="tile in tiles"
         :key="tile.id"
         class="project-tile"
-        :class="{ 'is-placeholder': !tile.link }"
-        :href="tile.link ? withBase(tile.link) : undefined"
+        :class="{
+          'is-placeholder': !tile.link,
+          'project-tile--link': tile.link && !cardEditorState.active,
+          'project-tile--editing': cardEditorState.active,
+        }"
+        :href="tile.link && !cardEditorState.active ? withBase(tile.link) : undefined"
+        @click="handleCardClick(tile, $event)"
       >
         <div
           class="project-tile__cover"
@@ -105,16 +155,23 @@ const workCount = tiles.filter((tile) => tile.link).length
             '--cover-c': tile.colors[2],
           }"
         >
-          <img v-if="tile.image" :src="withBase(tile.image)" alt="" />
+          <img
+            v-if="imageFor(tile)"
+            :src="imageFor(tile)"
+            :style="imageStyleFor(tile)"
+            alt=""
+            loading="lazy"
+          />
+          <span v-if="cardEditorState.active" class="project-tile__edit">点击编辑</span>
         </div>
         <div class="project-tile__body">
-          <h3>{{ tile.title }}</h3>
+          <h3>{{ valueFor(tile, 'title') }}</h3>
           <div class="project-tile__meta">
-            <span>{{ tile.date }}</span>
+            <span>{{ valueFor(tile, 'date') }}</span>
             <i aria-hidden="true"></i>
-            <span>{{ tile.category }}</span>
+            <span>{{ valueFor(tile, 'category') }}</span>
           </div>
-          <p>{{ tile.summary }}</p>
+          <p>{{ valueFor(tile, 'summary') }}</p>
         </div>
       </component>
     </div>
@@ -205,6 +262,16 @@ const workCount = tiles.filter((tile) => tile.link).length
     inset 0 1px 0 rgba(255, 255, 255, 0.74);
 }
 
+.project-tile--editing,
+.project-tile--editing:hover {
+  border-color: rgba(114, 196, 255, 0.72);
+  cursor: pointer;
+  transform: translateY(-3px);
+  box-shadow:
+    0 0 0 3px rgba(47, 109, 246, 0.12),
+    0 24px 54px -38px rgba(67, 42, 61, 0.62);
+}
+
 .project-tile__cover {
   position: relative;
   aspect-ratio: 16 / 7;
@@ -223,6 +290,21 @@ const workCount = tiles.filter((tile) => tile.link).length
   height: 100%;
   object-fit: cover;
   opacity: 0.46;
+}
+
+.project-tile__edit {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(25, 27, 38, 0.78);
+  color: rgba(255, 255, 255, 0.9);
+  font-family: var(--vp-font-family-mono);
+  font-size: 9px;
+  letter-spacing: 0.4px;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 
 .project-tile__body {
