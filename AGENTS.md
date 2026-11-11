@@ -23,7 +23,7 @@
 - 未得到用户明确要求，不要把 `笔记（未验收）/` 中的内容直接当成已发布文章。
 - 未得到用户明确要求，不要批量搬运、重命名或删除笔记。
 - `笔记/` 当前为空不表示数据丢失；不要根据空目录自行重建或回滚内容。
-- 当前目录是 Git 仓库，远端为 `https://github.com/WaterBlueBlue-hub/blog.git`；提交和推送仍需用户明确授权。
+- 当前目录是 Git 仓库，远端为 `https://github.com/WaterBlueBlue-hub/waterblueblue-hub.github.io.git`；提交和推送仍需用户明确授权。
 - 网站源码位于 `site/`。页面构建、资源同步和部署规则以 `site/package.json`、`site/scripts/` 与 `.github/workflows/deploy-site.yml` 为准。
 - ACN、OpenGL 引擎、图像实验室、论文工具和手 K 源码仓库统一存放在 `D:\作品集\作品文件`，不再嵌套进网站仓库。
 - `site/node_modules/`、`site/.cache/`、`site/docs/.vitepress/dist/`、自动生成的 `docs/articles|notes|projects/` 与同步生成的 public 素材均为可重建产物，不纳入版本库。
