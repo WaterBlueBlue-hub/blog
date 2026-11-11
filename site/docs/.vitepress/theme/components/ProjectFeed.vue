@@ -27,12 +27,14 @@ const tiles: ProjectTile[] = [
   },
   {
     id: 'P02',
-    date: '待上线',
-    category: '未分类',
-    title: '预留作品位',
-    summary: '作品内容待添加。',
-    colors: ['#715ec9', '#d4bee7', '#2a2458'],
-    pattern: 'mesh',
+    date: '2026-11-11',
+    category: '动画',
+    title: '手 K 动画',
+    summary: '以正视图、侧视图和双视图展示待机、跑步与连击动作，并整理为 1080p 成片。',
+    link: '/projects/hand-k-animation/',
+    image: '/hand-k-animation/posters/cover.webp',
+    colors: ['#7b4737', '#d79270', '#12100e'],
+    pattern: 'orbit',
   },
   {
     id: 'P03',
@@ -71,6 +73,8 @@ const tiles: ProjectTile[] = [
     pattern: 'mesh',
   },
 ]
+
+const workCount = tiles.filter((tile) => tile.link).length
 </script>
 
 <template>
@@ -80,7 +84,7 @@ const tiles: ProjectTile[] = [
         <span class="project-feed__eyebrow">WORKS / CASE STUDIES</span>
         <h2 id="project-feed-title">作品</h2>
       </div>
-      <span class="project-feed__total">1 个作品 · 6 个入口</span>
+      <span class="project-feed__total">{{ workCount }} 个作品 · {{ tiles.length }} 个入口</span>
     </header>
 
     <div class="project-feed__grid">

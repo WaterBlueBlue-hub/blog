@@ -3,11 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "sync": "node scripts/sync-notes.mjs && node scripts/sync-acn.mjs && node scripts/sync-perlin-wind.mjs && node scripts/sync-xpbd.mjs && node scripts/sync-tanabe-leaf.mjs && node scripts/sync-lbs-skinning.mjs",
+    "sync": "node scripts/sync-notes.mjs && node scripts/sync-acn.mjs && node scripts/sync-handk.mjs && node scripts/sync-perlin-wind.mjs && node scripts/sync-xpbd.mjs && node scripts/sync-tanabe-leaf.mjs && node scripts/sync-lbs-skinning.mjs",
+    "sync:hand-k": "node scripts/sync-handk.mjs",
     "sync:sidebar-q": "node scripts/sync-sidebar-q.mjs",
     "papers": "node scripts/build-papers.mjs",
-    "dev": "node scripts/sync-notes.mjs && node scripts/sync-acn.mjs && node scripts/sync-perlin-wind.mjs && node scripts/sync-xpbd.mjs && node scripts/sync-tanabe-leaf.mjs && node scripts/sync-lbs-skinning.mjs && vitepress dev docs --port 5173",
-    "build": "node scripts/sync-notes.mjs && node scripts/sync-acn.mjs && node scripts/sync-perlin-wind.mjs && node scripts/sync-xpbd.mjs && node scripts/sync-tanabe-leaf.mjs && node scripts/sync-lbs-skinning.mjs && vitepress build docs",
+    "dev": "node scripts/sync-notes.mjs && node scripts/sync-acn.mjs && node scripts/sync-handk.mjs && node scripts/sync-perlin-wind.mjs && node scripts/sync-xpbd.mjs && node scripts/sync-tanabe-leaf.mjs && node scripts/sync-lbs-skinning.mjs && vitepress dev docs --port 5173",
+    "build": "node scripts/sync-notes.mjs && node scripts/sync-acn.mjs && node scripts/sync-handk.mjs && node scripts/sync-perlin-wind.mjs && node scripts/sync-xpbd.mjs && node scripts/sync-tanabe-leaf.mjs && node scripts/sync-lbs-skinning.mjs && vitepress build docs",
     "preview": "vitepress preview docs --port 4173"
   },
   "devDependencies": {

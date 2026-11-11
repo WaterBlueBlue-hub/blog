@@ -62,6 +62,13 @@ const SITE_DESC =
 
 const projectSidebar = [
   {
+    text: '动画',
+    collapsed: false,
+    items: [
+      { text: '手 K 动画', link: '/projects/hand-k-animation/' },
+    ],
+  },
+  {
     text: '数字图像处理',
     collapsed: false,
     items: [
