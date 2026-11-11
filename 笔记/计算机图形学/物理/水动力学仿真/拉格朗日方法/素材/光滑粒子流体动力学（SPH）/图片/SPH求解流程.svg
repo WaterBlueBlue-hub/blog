@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f3f8fd"/>
+      <stop offset="0.55" stop-color="#fbfaf7"/>
+      <stop offset="1" stop-color="#f5f1ef"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#6c8195" stroke-opacity="0.07"/>
+    </pattern>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#314d69" flood-opacity="0.14"/>
+    </filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0L12,6L0,12Z" fill="#54718c"/>
+    </marker>
+    <style>
+      .title { fill:#20364d; font:700 44px "Microsoft YaHei","Noto Sans SC",sans-serif; }
+      .sub { fill:#60758a; font:400 21px "Microsoft YaHei","Noto Sans SC",sans-serif; }
+      .step { fill:#ffffff; stroke:#d6e0e8; stroke-width:2; }
+      .step-title { fill:#22384e; font:700 25px "Microsoft YaHei","Noto Sans SC",sans-serif; }
+      .step-note { fill:#5d7287; font:400 17px "Microsoft YaHei","Noto Sans SC",sans-serif; }
+      .link { stroke:#738ba1; stroke-width:4; fill:none; marker-end:url(#arrow); }
+      .formula { fill:#2f665e; font:italic 21px "Cambria Math","Times New Roman",serif; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="760" fill="url(#bg)"/>
+  <rect width="1600" height="760" fill="url(#grid)"/>
+  <text x="84" y="88" class="title">SPH 求解流程</text>
+  <text x="84" y="124" class="sub">粒子邻域 → 核插值 → 物理量 → 受力 → 时间积分</text>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="235" width="210" height="190" rx="24" class="step"/>
+    <rect x="350" y="235" width="210" height="190" rx="24" class="step"/>
+    <rect x="630" y="235" width="210" height="190" rx="24" class="step"/>
+    <rect x="910" y="235" width="210" height="190" rx="24" class="step"/>
+    <rect x="1190" y="235" width="210" height="190" rx="24" class="step"/>
+  </g>
+
+  <g>
+    <circle cx="115" cy="300" r="11" fill="#2f73b5"/>
+    <circle cx="165" cy="326" r="11" fill="#2f73b5"/>
+    <circle cx="210" cy="291" r="11" fill="#2f73b5"/>
+    <circle cx="176" cy="368" r="11" fill="#2f73b5"/>
+    <circle cx="230" cy="350" r="11" fill="#2f73b5"/>
+    <circle cx="176" cy="326" r="34" fill="none" stroke="#2f947f" stroke-width="3" stroke-dasharray="8 6"/>
+  </g>
+  <text x="175" y="462" text-anchor="middle" class="step-title">邻域搜索</text>
+  <text x="175" y="490" text-anchor="middle" class="step-note">空间网格与近邻粒子</text>
+
+  <g>
+    <circle cx="455" cy="334" r="35" fill="#eef5fc" stroke="#2f73b5" stroke-width="4"/>
+    <circle cx="455" cy="334" r="9" fill="#2f73b5"/>
+    <circle cx="420" cy="334" r="9" fill="#8bc1e8"/>
+    <circle cx="490" cy="334" r="9" fill="#8bc1e8"/>
+    <circle cx="455" cy="299" r="9" fill="#8bc1e8"/>
+    <circle cx="455" cy="369" r="9" fill="#8bc1e8"/>
+  </g>
+  <text x="455" y="462" text-anchor="middle" class="step-title">核插值</text>
+  <text x="455" y="490" text-anchor="middle" class="step-note">mⱼ / ρⱼ 加权求和</text>
+
+  <path d="M690 335 C720 300 750 300 780 335" fill="none" stroke="#2f947f" stroke-width="7"/>
+  <path d="M690 335 C720 370 750 370 780 335" fill="none" stroke="#e06c2d" stroke-width="7"/>
+  <text x="735" y="322" text-anchor="middle" class="formula">ρ</text>
+  <text x="735" y="390" text-anchor="middle" class="formula">p</text>
+  <text x="735" y="462" text-anchor="middle" class="step-title">密度与压力</text>
+  <text x="735" y="490" text-anchor="middle" class="step-note">密度核与状态方程</text>
+
+  <g>
+    <circle cx="1015" cy="335" r="12" fill="#2f73b5"/>
+    <line x1="1015" y1="335" x2="1090" y2="285" stroke="#e06c2d" stroke-width="6" marker-end="url(#arrow)"/>
+    <line x1="1015" y1="335" x2="1080" y2="372" stroke="#2f947f" stroke-width="6" marker-end="url(#arrow)"/>
+  </g>
+  <text x="1015" y="462" text-anchor="middle" class="step-title">受力累加</text>
+  <text x="1015" y="490" text-anchor="middle" class="step-note">压力、黏性与外力</text>
+
+  <path d="M1245 360 C1280 315 1320 395 1355 340" fill="none" stroke="#2f73b5" stroke-width="6" stroke-linecap="round"/>
+  <path d="M1245 410 C1285 375 1318 430 1355 388" fill="none" stroke="#8fc9e9" stroke-width="4" stroke-linecap="round"/>
+  <text x="1295" y="462" text-anchor="middle" class="step-title">时间积分</text>
+  <text x="1295" y="490" text-anchor="middle" class="step-note">更新位置与速度</text>
+
+  <path d="M280 330 L340 330" class="link"/>
+  <path d="M560 330 L620 330" class="link"/>
+  <path d="M840 330 L900 330" class="link"/>
+  <path d="M1120 330 L1180 330" class="link"/>
+  <path d="M1295 435 C1295 585 220 610 175 435" stroke="#8ba0b3" stroke-width="3" stroke-dasharray="11 9" fill="none" marker-end="url(#arrow)"/>
+  <text x="735" y="635" text-anchor="middle" class="sub">每个时间步重复邻域与插值计算</text>
+
+  <text x="84" y="715" class="sub">紧支撑核决定每次需要访问的粒子范围，空间哈希负责快速找出这些粒子。</text>
+</svg>

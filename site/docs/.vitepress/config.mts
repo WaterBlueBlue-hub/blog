@@ -62,6 +62,13 @@ const SITE_DESC =
 
 const projectSidebar = [
   {
+    text: '物理模拟',
+    collapsed: false,
+    items: [
+      { text: '基于 XPBD 与 PBF 的实时物理模拟', link: '/projects/xpbd-pbf-physics/' },
+    ],
+  },
+  {
     text: '动画',
     collapsed: false,
     items: [
@@ -97,6 +104,36 @@ const articleSidebar = [
       {
         text: '基于 XPBD 的柔性骨骼仿真',
         link: '/articles/graphics/xpbd-rig/',
+      },
+      {
+        text: '实时柔性体的碰撞检测与响应',
+        link: '/articles/graphics/xpbd-collision/',
+      },
+      {
+        text: '基于二维波动方程的浅水波场',
+        link: '/articles/graphics/shallow-water-wave-field/',
+      },
+      {
+        text: 'PBF 粒子流体模拟',
+        link: '/articles/graphics/pbf-particle-fluid/',
+      },
+    ],
+  },
+  {
+    text: '计算机图形学 · 渲染',
+    collapsed: false,
+    items: [
+      {
+        text: '基于顶点高度位移贴图的浅水水面几何重建',
+        link: '/articles/graphics/water-heightfield-geometry/',
+      },
+      {
+        text: '基础水体着色',
+        link: '/articles/graphics/water-shading/',
+      },
+      {
+        text: '焦散',
+        link: '/articles/graphics/water-caustics/',
       },
     ],
   },

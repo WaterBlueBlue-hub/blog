@@ -66,7 +66,7 @@ function rewriteLinks(markdown) {
   return markdown
     .replace(
       /\[Unity 实时柔性体与粒子流体系统\]\(<\.\.\/\.\.\/\.\.\/\.\.\/作品\/计算机图形学\/物理\/[^)]+\.md>\)/g,
-      'Unity 实时柔性体与粒子流体系统（暂未上线）',
+      '[Unity 实时柔性体与粒子流体系统](/projects/xpbd-pbf-physics/)',
     )
     .replace(
       /\]\(基于%20Perlin%20噪声的实时风场模拟\.md\)/g,

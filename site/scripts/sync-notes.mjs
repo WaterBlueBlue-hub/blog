@@ -43,12 +43,61 @@ const GRAPHICS_PHYSICS_ITEMS = [
   ['计算机图形学/物理/数值计算基础/数值积分器.md', 'numerical-integrators'],
   ['计算机图形学/物理/数值计算基础/数值迭代法.md', 'numerical-iteration-methods'],
   ['计算机图形学/物理/数值计算基础/阻尼算法.md', 'damping'],
+  ['计算机图形学/物理/水动力学仿真/拉格朗日方法/光滑粒子流体动力学（SPH）.md', 'sph'],
+  ['计算机图形学/物理/水动力学仿真/拉格朗日方法/基于位置的流体（PBF）.md', 'pbf'],
+  ['计算机图形学/物理/水动力学仿真/拉格朗日方法/Müller SPH 流体模型（2003）.md', 'muller-sph-2003'],
+  ['物理/流体力学/水动力学/核函数.md', 'kernel-functions'],
+  ['物理/流体力学/纳维-斯托克斯方程.md', 'navier-stokes'],
   ['计算机图形学/物理/空气动力学仿真/Tanabe-Kaneko 模型.md', 'tanabe-kaneko-model'],
   ['物理/流体力学/空气动力学/空气动力学的一些基础定理.md', 'aerodynamics-basics'],
+  ['计算机基础/数据结构与算法/空间数据结构.md', 'spatial-data-structures'],
+]
+const GRAPHICS_RENDERING_ITEMS = [
+  ['计算机图形学/渲染/水体渲染/水体着色概览.md', 'water-shading-overview'],
+  ['计算机图形学/渲染/辐射度量学.md', 'radiometry'],
+  ['计算机图形学/渲染/图形渲染管线.md', 'rendering-pipeline'],
+  ['计算机图形学/渲染/齐次坐标与 MVP 变换矩阵推导.md', 'homogeneous-coordinates-mvp'],
 ]
 const GRAPHICS_ANIMATION_ITEMS = [
   ['计算机图形学/动画/蒙皮/线性混合蒙皮（LBS）.md', 'lbs'],
 ]
+const MATH_ANALYSIS_ITEMS = [
+  ['数学/分析学/场论.md', 'field-theory'],
+]
+
+const WEBSITE_LINK_ROUTES = new Map([
+  ['Unity 实时柔性体与粒子流体系统：基于 XPBD 与 PBF 的物理模拟.md', '/projects/xpbd-pbf-physics/'],
+  ['基于 XPBD 的网格布料仿真.md', '/articles/graphics/xpbd-cloth/'],
+  ['基于 XPBD 的柔性骨骼仿真.md', '/articles/graphics/xpbd-rig/'],
+  ['基于 Perlin 噪声的实时风场模拟.md', '/articles/graphics/perlin-real-time-wind/'],
+  ['基于 Tanabe-Kaneko 模型的落叶模拟.md', '/articles/graphics/tanabe-kaneko-leaf-fall/'],
+  ['基于 LBS 的裙摆防穿模工具.md', '/articles/graphics/lbs-skirt-clipping-tool/'],
+  ['实时柔性体的碰撞检测与响应.md', '/articles/graphics/xpbd-collision/'],
+  ['基于二维波动方程的浅水波场.md', '/articles/graphics/shallow-water-wave-field/'],
+  ['PBF 粒子流体模拟.md', '/articles/graphics/pbf-particle-fluid/'],
+  ['基于顶点高度位移贴图的浅水水面几何重建.md', '/articles/graphics/water-heightfield-geometry/'],
+  ['基础水体着色.md', '/articles/graphics/water-shading/'],
+  ['焦散.md', '/articles/graphics/water-caustics/'],
+  ['基于位置的扩展动力学（XPBD）.md', '/notes/graphics-physics/xpbd.html'],
+  ['数值积分器.md', '/notes/graphics-physics/numerical-integrators.html'],
+  ['数值迭代法.md', '/notes/graphics-physics/numerical-iteration-methods.html'],
+  ['阻尼算法.md', '/notes/graphics-physics/damping.html'],
+  ['光滑粒子流体动力学（SPH）.md', '/notes/graphics-physics/sph.html'],
+  ['基于位置的流体（PBF）.md', '/notes/graphics-physics/pbf.html'],
+  ['Müller SPH 流体模型（2003）.md', '/notes/graphics-physics/muller-sph-2003.html'],
+  ['Tanabe-Kaneko 模型.md', '/notes/graphics-physics/tanabe-kaneko-model.html'],
+  ['空气动力学的一些基础定理.md', '/notes/graphics-physics/aerodynamics-basics.html'],
+  ['核函数.md', '/notes/graphics-physics/kernel-functions.html'],
+  ['纳维-斯托克斯方程.md', '/notes/graphics-physics/navier-stokes.html'],
+  ['空间数据结构.md', '/notes/graphics-physics/spatial-data-structures.html'],
+  ['水体着色概览.md', '/notes/graphics-rendering/water-shading-overview.html'],
+  ['辐射度量学.md', '/notes/graphics-rendering/radiometry.html'],
+  ['图形渲染管线.md', '/notes/graphics-rendering/rendering-pipeline.html'],
+  ['齐次坐标与 MVP 变换矩阵推导.md', '/notes/graphics-rendering/homogeneous-coordinates-mvp.html'],
+  ['场论.md', '/notes/math-analysis/field-theory.html'],
+  ['噪声.md', '/notes/image-processing/noise.html'],
+  ['线性混合蒙皮（LBS）.md', '/notes/graphics-animation/lbs.html'],
+])
 
 const SECTIONS = [
   {
@@ -70,7 +119,7 @@ const SECTIONS = [
     slug: 'graphics-rendering',
     title: '计算机图形学 · 渲染',
     desc: '辐射度量、着色模型与实时渲染管线。',
-    items: [],
+    items: GRAPHICS_RENDERING_ITEMS,
   },
   {
     slug: 'graphics-geometry',
@@ -89,6 +138,12 @@ const SECTIONS = [
     title: '计算机图形学 · 物理',
     desc: '数值计算、XPBD 约束投影、空气动力学与实时物理仿真。',
     items: GRAPHICS_PHYSICS_ITEMS,
+  },
+  {
+    slug: 'math-analysis',
+    title: '数学 · 分析学',
+    desc: '场、梯度、散度与旋度等连续数学工具。',
+    items: MATH_ANALYSIS_ITEMS,
   },
 ]
 
@@ -155,7 +210,7 @@ function rewriteWebsiteNoteLinks(markdown) {
     )
     .replace(
       /\[Unity 实时柔性体与粒子流体系统\]\(<\.\.\/\.\.\/\.\.\/\.\.\/作品\/计算机图形学\/物理\/[^)]+\.md>\)/g,
-      'Unity 实时柔性体与粒子流体系统（暂未上线）',
+      '[Unity 实时柔性体与粒子流体系统](/projects/xpbd-pbf-physics/)',
     )
     .replace(
       /\]\(\.\.\/\.\.\/\.\.\/\.\.\/文章\/计算机图形学\/物理\/XPBD\/基于%20XPBD%20的网格布料仿真\.md\)/g,
@@ -224,6 +279,13 @@ function rewriteWebsiteNoteLinks(markdown) {
       /\]\(滤波算子\.md\)/g,
       '](/notes/image-processing/filtering-operators.html)',
     )
+    .replace(/\]\((<[^>]+>|[^)]+)\)/g, (full, rawTarget) => {
+      const target = rawTarget.startsWith('<') ? rawTarget.slice(1, -1) : rawTarget
+      if (/^(https?:|mailto:|#|\/)/i.test(target)) return full
+      const [pathPart, hash] = target.split('#')
+      const route = WEBSITE_LINK_ROUTES.get(path.basename(decodeURIComponent(pathPart)))
+      return route ? `](${route}${hash ? `#${hash}` : ''})` : full
+    })
 }
 
 syncImageProcessingSnapshot()
@@ -340,18 +402,14 @@ for (const section of SECTIONS) {
     }
 
     const title = getTitle(raw, path.basename(rel, '.md'))
-    const body = transform(
-      section.source === 'website' || section.slug.startsWith('graphics-')
-        ? rewriteWebsiteNoteLinks(raw)
-        : raw,
-    )
+    const body = transform(rewriteWebsiteNoteLinks(raw))
     const front = `---\ntitle: "${title.replace(/"/g, '\\"')}"\n---\n\n`
     writeIfChanged(path.join(secDir, `${slug}.md`), front + body)
 
     // 复制同目录配图（以及 ../素材 之类的相对引用）
     const srcDir = path.dirname(abs)
     const imageReferences = [
-      ...[...raw.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)].map((m) => m[1]),
+      ...[...raw.matchAll(/!\[[^\]]*\]\((<[^>]+>|[^)]+)\)/g)].map((m) => m[1]),
       ...[...raw.matchAll(/<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)].map(
         (m) => m[1],
       ),

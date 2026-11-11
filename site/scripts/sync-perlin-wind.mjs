@@ -87,6 +87,10 @@ function rewriteLinks(markdown) {
       /\]\(<\.\.\/\.\.\/\.\.\/\.\.\/笔记\/物理\/流体力学\/空气动力学\/空气动力学的一些基础定理\.md>\)/g,
       '](/notes/graphics-physics/aerodynamics-basics.html)',
     )
+    .replace(
+      /\]\(<\.\.\/\.\.\/\.\.\/\.\.\/作品\/计算机图形学\/物理\/[^)]+\.md>\)/g,
+      '](/projects/xpbd-pbf-physics/)',
+    )
     .replace(/src="素材\//g, 'src="./素材/')
 }
 

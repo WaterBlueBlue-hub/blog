@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="820" viewBox="0 0 1600 820">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f3f8fd"/>
+      <stop offset="0.55" stop-color="#fbfaf7"/>
+      <stop offset="1" stop-color="#f6f1ee"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#334d68" flood-opacity="0.13"/>
+    </filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0L12,6L0,12Z" fill="#55728d"/>
+    </marker>
+    <style>
+      .title { fill:#20364d; font:700 44px "Microsoft YaHei","Noto Sans SC",sans-serif; }
+      .sub { fill:#60758a; font:400 21px "Microsoft YaHei","Noto Sans SC",sans-serif; }
+      .panel { fill:#ffffff; stroke:#d8e1e9; stroke-width:2; }
+      .head { font:700 30px "Microsoft YaHei","Noto Sans SC",sans-serif; }
+      .node-title { fill:#263b50; font:700 22px "Microsoft YaHei","Noto Sans SC",sans-serif; }
+      .node-note { fill:#5f7489; font:400 17px "Microsoft YaHei","Noto Sans SC",sans-serif; }
+      .arrow { stroke:#738ba1; stroke-width:4; fill:none; marker-end:url(#arrow); }
+      .formula { fill:#2f665e; font:italic 20px "Cambria Math","Times New Roman",serif; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="820" fill="url(#bg)"/>
+  <text x="80" y="84" class="title">SPH 与 PBF 的求解路径</text>
+  <text x="80" y="120" class="sub">两者共享粒子与核函数，但压力约束分别通过状态方程和位置投影实现</text>
+
+  <g filter="url(#shadow)">
+    <rect x="65" y="175" width="690" height="560" rx="28" class="panel"/>
+    <rect x="845" y="175" width="690" height="560" rx="28" class="panel"/>
+  </g>
+
+  <text x="110" y="232" class="head" fill="#2f73b5">SPH</text>
+  <text x="890" y="232" class="head" fill="#2f947f">PBF</text>
+
+  <rect x="105" y="275" width="610" height="92" rx="17" fill="#edf5fc"/>
+  <text x="140" y="312" class="node-title">密度核估计</text>
+  <text x="140" y="342" class="formula">ρᵢ = Σⱼ mⱼ W(xᵢ − xⱼ, h)</text>
+
+  <rect x="105" y="402" width="610" height="92" rx="17" fill="#eef7f4"/>
+  <text x="140" y="439" class="node-title">状态方程求压力</text>
+  <text x="140" y="469" class="formula">p = p(ρ)</text>
+
+  <rect x="105" y="529" width="610" height="92" rx="17" fill="#fff5ec"/>
+  <text x="140" y="566" class="node-title">压力与黏性力</text>
+  <text x="140" y="596" class="formula">aᵢ = Fᵢ / mᵢ</text>
+
+  <rect x="105" y="656" width="610" height="55" rx="17" fill="#f4f6f8"/>
+  <text x="410" y="691" text-anchor="middle" class="node-title">时间积分更新 x、v</text>
+
+  <path d="M410 367 L410 392" class="arrow"/>
+  <path d="M410 494 L410 519" class="arrow"/>
+  <path d="M410 621 L410 646" class="arrow"/>
+
+  <rect x="885" y="275" width="610" height="92" rx="17" fill="#edf5fc"/>
+  <text x="920" y="312" class="node-title">预测位置</text>
+  <text x="920" y="342" class="node-formula node-note">x* = xⁿ + Δt vⁿ + Δt² a</text>
+
+  <rect x="885" y="402" width="610" height="92" rx="17" fill="#eef7f4"/>
+  <text x="920" y="439" class="node-title">密度约束</text>
+  <text x="920" y="469" class="formula">Cᵢ = ρᵢ / ρ₀ − 1 = 0</text>
+
+  <rect x="885" y="529" width="610" height="92" rx="17" fill="#fff5ec"/>
+  <text x="920" y="566" class="node-title">位置投影</text>
+  <text x="920" y="596" class="node-formula node-note">沿约束梯度修正粒子位置</text>
+
+  <rect x="885" y="656" width="610" height="55" rx="17" fill="#f4f6f8"/>
+  <text x="1190" y="691" text-anchor="middle" class="node-title">v = (x − xⁿ) / Δt</text>
+
+  <path d="M1190 367 L1190 392" class="arrow"/>
+  <path d="M1190 494 L1190 519" class="arrow"/>
+  <path d="M1190 621 L1190 646" class="arrow"/>
+
+  <text x="800" y="773" text-anchor="middle" class="sub">SPH 显式计算压力力；PBF 把不可压缩性转成几何位置约束</text>
+</svg>

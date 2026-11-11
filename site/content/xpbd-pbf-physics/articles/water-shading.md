@@ -1,0 +1,130 @@
+---
+title: "基础水体着色"
+outline: [2, 3]
+aside: true
+---
+
+# 基础水体着色
+&emsp;&emsp;主体水面的轮廓和逐像素法线由[基于顶点高度位移贴图的浅水水面几何重建](/articles/graphics/water-heightfield-geometry/)提供。本文只讨论水面材质如何利用这些几何数据、场景颜色和场景深度，计算菲涅尔反射、环境反射、太阳高光、折射和 Beer-Lambert 吸收。
+
+<p align="center">
+  <img loading="lazy" src="/xpbd-pbf-physics/media/项目折射.webp" alt="项目水面涟漪使池底棋盘格和池壁条纹发生连续折射偏移" style="width: 100%; max-width: 720px; height: auto;">
+</p>
+
+## 1、着色组成
+&emsp;&emsp;基础水面颜色可以理解为水下颜色、环境反射和镜面高光的组合：
+$$
+\mathbf{C}_{\mathrm{water}}
+=\left(1-F\right)\mathbf{C}_{\mathrm{trans}}\mathbf{T}
++F\mathbf{C}_{\mathrm{env}}
++\mathbf{C}_{\mathrm{spec}}
+$$
+其中 $F$ 为菲涅尔反射率，$\mathbf{C}_{\mathrm{trans}}$ 是经过折射后的背景颜色，$\mathbf{T}$ 是水体透射率，$\mathbf{C}_{\mathrm{env}}$ 是天空或环境反射，$\mathbf{C}_{\mathrm{spec}}$ 是太阳高光。
+
+<p align="center">
+  <img loading="lazy" src="/xpbd-pbf-physics/media/项目水体漫反射.webp" alt="项目浅水池只保留水体基色与环境光后的漫反射效果" style="width: 100%; max-width: 900px; height: auto;">
+</p>
+<p align="center"><sub>项目实拍：关闭镜面高光、法线扰动、折射和焦散，仅保留水体基础颜色。</sub></p>
+
+## 2、波面法线
+&emsp;&emsp;水面的反射和折射方向由法线决定。高度场保存坡度后，可以重建逐像素法线：
+$$
+\mathbf{n}
+=\operatorname{normalize}
+\left(
+-\frac{\partial h}{\partial x}k_n,
+1,
+-\frac{\partial h}{\partial z}k_n
+\right)
+$$
+法线本身不直接增加颜色，但它会改变环境反射、镜面高光和折射偏移，因此涟漪会表现为断续高光、扭曲倒影和晃动的池底。
+
+<p align="center">
+  <img loading="lazy" src="/xpbd-pbf-physics/media/项目法线贴图_切线空间.webp" alt="项目高度场涟漪生成的切线空间法线贴图" style="width: 50%; max-width: 480px; height: auto;">
+</p>
+<p align="center"><sub>项目实拍：由波场坡度重建出的切线空间法线贴图。</sub></p>
+
+<p align="center">
+  <img loading="lazy" src="/xpbd-pbf-physics/media/项目法线贴图.webp" alt="项目浅水池使用法线贴图后形成的细密涟漪与断续高光" style="width: 100%; max-width: 900px; height: auto;">
+</p>
+<p align="center"><sub>项目实拍：应用法线扰动后，平坦水面出现细密涟漪和断续反光。</sub></p>
+
+## 3、菲涅尔与环境反射
+&emsp;&emsp;水的垂直入射反射率接近 $F_0=0.02$，掠射角处反射迅速增强。Schlick 近似写为：
+$$
+F=F_0+\left(1-F_0\right)\left(1-\mathbf{n}\cdot\mathbf{v}\right)^5
+$$
+反射方向为：
+$$
+\mathbf{r}=2\left(\mathbf{n}\cdot\mathbf{v}\right)\mathbf{n}-\mathbf{v}
+$$
+项目先按反射方向的竖直分量混合地平线和天顶色，再在存在反射探针时叠加环境反射。菲涅尔项决定水面在垂直观察时主要显示水体和池底，在掠射观察时逐渐转成天空和环境倒影。
+
+<p align="center">
+  <img loading="lazy" src="/xpbd-pbf-physics/media/湖面环境反射.webp" alt="平静湖面对岸线和雪山的镜面环境反射" style="width: 100%; max-width: 900px; height: auto;">
+</p>
+<p align="center"><sub>环境反射示例。图源：Oregon's Mt. Hood Territory，Public Domain，Wikimedia Commons。</sub></p>
+
+## 4、GGX 高光
+&emsp;&emsp;太阳和灯光会在水面形成沿反射方向集中的镜面高光。项目使用连续 GGX 分布，而不是固定阈值高光：
+$$
+D=\frac{a^2}
+{\pi\left[
+\left(\mathbf{n}\cdot\mathbf{h}\right)^2\left(a^2-1\right)+1
+\right]^2}
+$$
+$a$ 与粗糙度有关，$\mathbf{h}$ 是视线和光照方向的半程向量。波面法线变化会让高光沿涟漪滑动；红、蓝通道再沿表面切向做极小偏移，形成轻微色散，零色散时退化为普通单色高光。
+
+<p align="center">
+  <img loading="lazy" src="/xpbd-pbf-physics/media/项目镜面反射.webp" alt="项目浅水池在漫反射基色上加入太阳镜面高光" style="width: 100%; max-width: 900px; height: auto;">
+</p>
+<p align="center"><sub>项目实拍：在基础水体颜色上加入 GGX 太阳高光。</sub></p>
+
+<p align="center">
+  <img loading="lazy" src="/xpbd-pbf-physics/media/BRDF示意图.webp" alt="BRDF 将入射光分配到不同出射方向" style="width: 50%; max-width: 480px; height: auto;">
+</p>
+<p align="center"><sub>BRDF 决定入射光如何分配到镜面高光、漫反射和其他出射方向。</sub></p>
+
+## 5、屏幕空间折射
+&emsp;&emsp;水面从 `_CameraOpaqueTexture` 采样池底和池壁的不透明颜色，并用波场坡度偏移屏幕 UV：
+$$
+\mathbf{uv}_{\mathrm{refract}}
+=\mathbf{uv}
++\operatorname{offset}
+\left(\nabla h\right)
+$$
+如果折射位置与当前像素的场景深度差过大，材质会降低折射偏移，避免把远处墙面或角色拖进当前水面。水下的池底、石头和角色会在波峰处发生连续轻微错位。
+
+## 6、Beer-Lambert 吸收
+&emsp;&emsp;不可见水体厚度由不透明场景深度和水面深度之差给出：
+$$
+d=\max\left(0,d_{\mathrm{scene}}-d_{\mathrm{water}}\right)
+$$
+逐通道透射率使用 Beer-Lambert 衰减：
+$$
+\mathbf{T}
+=\exp\left(-d\rho\left(1-\mathbf{c}_{\mathrm{abs}}\right)\right)
+$$
+最终透射颜色为：
+$$
+\mathbf{c}_{\mathrm{transmitted}}
+=\mathbf{c}_{\mathrm{refract}}\mathbf{T}
++\mathbf{c}_{\mathrm{scatter}}
+\left(1-e^{-d\rho}\right)
+$$
+其中 $\rho$ 为吸收密度。浅水处池底清晰，厚度增加后颜色逐渐被吸收色和散射色取代。
+
+<p align="center">
+  <img loading="lazy" src="/xpbd-pbf-physics/media/项目通透度.webp" alt="项目在弱吸收与强吸收设置下池底棋盘格的通透度和色偏对比" style="width: 100%; max-width: 900px; height: auto;">
+</p>
+<p align="center"><sub>项目实拍：同一机位下弱吸收与强吸收时的水底通透度和颜色对比。</sub></p>
+
+## 7、管线与边界
+&emsp;&emsp;`FluidWaterSurface` 在一个 pass 中完成折射、吸收、反射与高光合成，并使用 `Blend One Zero` 覆盖水面对应的像素。水面网格本身不写深度，因此角色、池底和其他不透明物体必须先通过场景深度参与遮挡判断。
+
+&emsp;&emsp;基础水体着色只负责水面材质，不负责水下焦散。焦散改变的是池底收到的光，单独由 `FluidCausticsRenderer` 计算，见：[焦散](/articles/graphics/water-caustics/)。
+
+## 8、延伸阅读
+- 作品：[Unity 实时柔性体与粒子流体系统](/projects/xpbd-pbf-physics/)
+- 文章：[基于顶点高度位移贴图的浅水水面几何重建](/articles/graphics/water-heightfield-geometry/)、[基于二维波动方程的浅水波场](/articles/graphics/shallow-water-wave-field/)、[PBF 粒子流体模拟](/articles/graphics/pbf-particle-fluid/)
+- 笔记：[水体着色概览](/notes/graphics-rendering/water-shading-overview.html)

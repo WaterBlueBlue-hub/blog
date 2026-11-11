@@ -98,6 +98,78 @@ const articles: Article[] = [
     image: '/acn-estimation/images/article-cover.webp',
     link: '/articles/graphics/acn-estimation-albedo-to-normal/',
   },
+  {
+    id: 19,
+    title: 'PBF 粒子流体模拟',
+    date: '2026-11-11',
+    category: '物理',
+    excerpt: '使用空间哈希、密度约束、位置修正与 XSPH 粘度实现实时粒子流体。',
+    tags: ['PBF', '密度约束', 'XSPH'],
+    colors: ['#327fa8', '#83cce0', '#16384e'],
+    pattern: 'wave',
+    image: '/xpbd-pbf-physics/media/流体粒子模拟.webp',
+    link: '/articles/graphics/pbf-particle-fluid/',
+  },
+  {
+    id: 20,
+    title: '基于二维波动方程的浅水波场',
+    date: '2026-11-11',
+    category: '物理',
+    excerpt: '在二维网格上离散浅水方程，并把高度与坡度输出给物理和渲染管线。',
+    tags: ['浅水波', '波动方程', '高度场'],
+    colors: ['#356a9a', '#9ac8db', '#183147'],
+    pattern: 'grid',
+    image: '/xpbd-pbf-physics/media/浅水波场RGB通道.png',
+    link: '/articles/graphics/shallow-water-wave-field/',
+  },
+  {
+    id: 21,
+    title: '实时柔性体的碰撞检测与响应',
+    date: '2026-11-11',
+    category: '物理',
+    excerpt: '以 AABB、解析 SDF 与 CCD 构建 XPBD 柔性体的连续碰撞处理管线。',
+    tags: ['碰撞', 'SDF', 'CCD'],
+    colors: ['#765b9e', '#d1b8e2', '#2d244b'],
+    pattern: 'mesh',
+    image: '/xpbd-pbf-physics/media/胶囊体碰撞.png',
+    link: '/articles/graphics/xpbd-collision/',
+  },
+  {
+    id: 22,
+    title: '基于顶点高度位移贴图的浅水水面几何重建',
+    date: '2026-11-11',
+    category: '图形',
+    excerpt: '用规则网格承载波场高度，在顶点和像素阶段重建连续水面与逐像素法线。',
+    tags: ['高度场', '顶点位移', '法线重建'],
+    colors: ['#2d6fa7', '#8fd3dd', '#123856'],
+    pattern: 'grid',
+    image: '/xpbd-pbf-physics/media/运行效果.png',
+    link: '/articles/graphics/water-heightfield-geometry/',
+  },
+  {
+    id: 23,
+    title: '基础水体着色',
+    date: '2026-11-11',
+    category: '图形',
+    excerpt: '组合菲涅尔、环境反射、GGX 高光、屏幕空间折射与 Beer-Lambert 吸收。',
+    tags: ['水体着色', 'GGX', '折射'],
+    colors: ['#3277ad', '#a6dfeb', '#16364f'],
+    pattern: 'wave',
+    image: '/xpbd-pbf-physics/media/note-water-shading.webp',
+    link: '/articles/graphics/water-shading/',
+  },
+  {
+    id: 24,
+    title: '焦散',
+    date: '2026-11-11',
+    category: '图形',
+    excerpt: '从折射光线落点面积压缩率生成 RGB 色散焦散，并跟随动态水面波场。',
+    tags: ['焦散', '面积雅可比', '色散'],
+    colors: ['#c57c32', '#f1cf8a', '#53351d'],
+    pattern: 'orbit',
+    image: '/xpbd-pbf-physics/media/项目焦散预览.webp',
+    link: '/articles/graphics/water-caustics/',
+  },
 ]
 
 const activeCategory = ref<Category>('全部')
@@ -110,11 +182,14 @@ const visibleCategories = categories.filter(
   (category) => category === '全部' || countFor(category) > 0,
 )
 
-const filtered = computed(() =>
-  activeCategory.value === '全部'
-    ? articles
-    : articles.filter((article) => article.category === activeCategory.value),
-)
+const filtered = computed(() => {
+  const source =
+    activeCategory.value === '全部'
+      ? articles
+      : articles.filter((article) => article.category === activeCategory.value)
+
+  return [...source].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id)
+})
 const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / PAGE_SIZE)))
 const visibleArticles = computed(() =>
   filtered.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE),

@@ -78,7 +78,7 @@ function rewriteLinks(markdown) {
   return markdown
     .replace(
       /\[Unity 实时柔性体与粒子流体系统\]\(<\.\.\/\.\.\/\.\.\/\.\.\/作品\/计算机图形学\/物理\/[^)]+\.md>\)/g,
-      'Unity 实时柔性体与粒子流体系统（暂未上线）',
+      '[Unity 实时柔性体与粒子流体系统](/projects/xpbd-pbf-physics/)',
     )
     .replace(
       /\]\(\.\.\/物理\/XPBD\/基于%20XPBD%20的柔性骨骼仿真\.md\)/g,

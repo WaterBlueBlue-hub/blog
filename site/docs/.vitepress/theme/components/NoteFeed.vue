@@ -140,13 +140,60 @@ const notes: Note[] = [
     link: '/notes/image-processing/filtering-operators.html',
     coverMode: 'full',
   },
+  {
+    id: 111,
+    title: '光滑粒子流体动力学（SPH）',
+    date: '2026-11-11',
+    topic: '计算机图形学 · 物理',
+    excerpt: '从核插值、密度估计与状态方程出发，对比 SPH 与传统粒子流体的求解路径。',
+    tags: ['SPH', '核函数', '粒子流体'],
+    image: '/xpbd-pbf-physics/media/note-sph.png',
+    link: '/notes/graphics-physics/sph.html',
+    coverMode: 'full',
+  },
+  {
+    id: 112,
+    title: '基于位置的流体（PBF）',
+    date: '2026-11-11',
+    topic: '计算机图形学 · 物理',
+    excerpt: '通过密度约束、拉格朗日乘子和位置投影实现实时不可压缩粒子流体。',
+    tags: ['PBF', '密度约束', '位置投影'],
+    image: '/xpbd-pbf-physics/media/note-pbf.png',
+    link: '/notes/graphics-physics/pbf.html',
+    coverMode: 'full',
+  },
+  {
+    id: 113,
+    title: 'Müller SPH 流体模型（2003）',
+    date: '2026-11-11',
+    topic: '计算机图形学 · 物理',
+    excerpt: '整理 Poly6、Spiky 核以及密度、压力和黏性力的经典 SPH 实现。',
+    tags: ['SPH', 'Poly6', 'Spiky'],
+    image: '/xpbd-pbf-physics/media/note-muller-sph.png',
+    link: '/notes/graphics-physics/muller-sph-2003.html',
+    coverMode: 'full',
+  },
+  {
+    id: 114,
+    title: '水体着色概览',
+    date: '2026-11-11',
+    topic: '计算机图形学 · 渲染',
+    excerpt: '汇总反射、高光、法线、折射、吸收、焦散与流动白沫等水体渲染分支。',
+    tags: ['水体着色', '反射', '焦散'],
+    image: '/xpbd-pbf-physics/media/note-water-shading.webp',
+    link: '/notes/graphics-rendering/water-shading-overview.html',
+    coverMode: 'full',
+  },
 ]
 
 const page = ref(1)
 const publishedCount = notes.filter((note) => !note.placeholder).length
-const totalPages = computed(() => Math.max(1, Math.ceil(notes.length / PAGE_SIZE)))
+const sortedNotes = computed(() =>
+  [...notes].sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.id - a.id),
+)
+const totalPages = computed(() => Math.max(1, Math.ceil(sortedNotes.value.length / PAGE_SIZE)))
 const visibleNotes = computed(() =>
-  notes.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE),
+  sortedNotes.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE),
 )
 
 function goToPage(next: number) {
