@@ -92,3 +92,7 @@ pageClass: project-reading
     </td>
   </tr>
 </table>
+
+## 动作源文件
+
+[GitHub：手 K 动画源文件](https://github.com/WaterBlueBlue-hub/hand-k-animation-source)
