@@ -203,9 +203,51 @@ async function getStoredCover(key: string) {
       .transaction(COVER_STORE_NAME, 'readonly')
       .objectStore(COVER_STORE_NAME)
       .get(key) as IDBRequest<Blob | undefined>
-    request.addEventListener('success', () => resolve(request.result))
+    request.addEventListener('success', () => {
+      const blob = request.result
+      if (!blob || blob.type !== 'image/gif') {
+        resolve(blob)
+        return
+      }
+
+      void (async () => {
+        try {
+          const normalized = await normalizeGifLoopBlob(blob)
+          if (normalized !== blob) await putStoredCover(key, normalized)
+          resolve(normalized)
+        } catch {
+          resolve(blob)
+        }
+      })()
+    })
     request.addEventListener('error', () => reject(request.error))
   })
+}
+
+function setGifInfiniteLoop(bytes: Uint8Array) {
+  const marker = new TextEncoder().encode('NETSCAPE2.0')
+  for (let index = 0; index <= bytes.length - marker.length; index++) {
+    let matches = true
+    for (let offset = 0; offset < marker.length; offset++) {
+      if (bytes[index + offset] !== marker[offset]) {
+        matches = false
+        break
+      }
+    }
+    if (!matches) continue
+    if (bytes[index + 11] !== 3 || bytes[index + 12] !== 1) return false
+    bytes[index + 13] = 0
+    bytes[index + 14] = 0
+    return true
+  }
+  return false
+}
+
+async function normalizeGifLoopBlob(blob: Blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer())
+  return setGifInfiniteLoop(bytes)
+    ? new Blob([bytes], { type: 'image/gif' })
+    : blob
 }
 
 function dataUrlToBlob(dataUrl: string) {
@@ -216,12 +258,11 @@ function dataUrlToBlob(dataUrl: string) {
   for (let index = 0; index < binary.length; index++) {
     bytes[index] = binary.charCodeAt(index)
   }
+  if (mimeType === 'image/gif') setGifInfiniteLoop(bytes)
   return new Blob([bytes], { type: mimeType })
 }
 
-export async function storeCoverDataUrl(kind: CardKind, id: CardId, dataUrl: string) {
-  const key = storageKey(kind, id)
-  const blob = dataUrlToBlob(dataUrl)
+async function putStoredCover(key: string, blob: Blob) {
   const database = await openCoverDatabase()
   await new Promise<void>((resolve, reject) => {
     const request = database
@@ -231,6 +272,12 @@ export async function storeCoverDataUrl(kind: CardKind, id: CardId, dataUrl: str
     request.addEventListener('success', () => resolve())
     request.addEventListener('error', () => reject(request.error))
   })
+}
+
+export async function storeCoverDataUrl(kind: CardKind, id: CardId, dataUrl: string) {
+  const key = storageKey(kind, id)
+  const blob = dataUrlToBlob(dataUrl)
+  await putStoredCover(key, blob)
 
   const previous = coverObjectUrls[key]?.url
   if (previous) URL.revokeObjectURL(previous)
