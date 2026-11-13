@@ -21,8 +21,8 @@ outline: [2, 3]
 
 ## 演示视频
 <ResponsiveVideo
-  desktop-src="/xpbd-pbf-physics/media/项目完整演示.mp4"
-  mobile-src="/xpbd-pbf-physics/media/项目完整演示-mobile.mp4"
+  quality-1080-src="/xpbd-pbf-physics/media/项目完整演示-1080p.mp4"
+  quality-720-src="/xpbd-pbf-physics/media/项目完整演示-720p.mp4"
   poster="/xpbd-pbf-physics/media/片头封面.webp"
   label="Unity 实时柔性体与粒子流体系统完整演示"
 />

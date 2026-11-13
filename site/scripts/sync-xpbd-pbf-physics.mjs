@@ -161,7 +161,7 @@ function mediaReferences(markdown) {
   for (const pattern of [
     /<(?:img|source)\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi,
     /\bposter=["']([^"']+)["']/gi,
-    /\b(?:desktop-src|mobile-src)=["']([^"']+)["']/gi,
+    /\b(?:desktop-src|mobile-src|quality-1080-src|quality-720-src)=["']([^"']+)["']/gi,
     /!\[[^\]]*\]\((?:<)?([^)>]+)(?:>)?\)/g,
   ]) {
     for (const match of markdown.matchAll(pattern)) references.push(match[1])
@@ -200,11 +200,18 @@ function buildMedia(referencedFiles) {
       const extension = path.extname(item.file)
       const stem = path.basename(item.file, extension)
       const name = hashes.size === 1 ? `${stem}${extension}` : `${stem}-${item.hash.slice(0, 8)}${extension}`
-      const mobileName = extension.toLowerCase() === '.mp4' ? `${stem}-mobile${extension}` : undefined
+      const isQualityVideo = path.basename(item.file) === '项目完整演示.mp4'
+      const quality1080Name = isQualityVideo ? `${stem}-1080p${extension}` : undefined
+      const quality720Name = isQualityVideo ? `${stem}-720p${extension}` : undefined
       outputByFile.set(item.file, {
         name,
         url: `${PROJECT_PUBLIC_URL}/media/${name}`,
-        mobileUrl: mobileName ? `${PROJECT_PUBLIC_URL}/media/${mobileName}` : undefined,
+        quality1080Url: quality1080Name
+          ? `${PROJECT_PUBLIC_URL}/media/${quality1080Name}`
+          : undefined,
+        quality720Url: quality720Name
+          ? `${PROJECT_PUBLIC_URL}/media/${quality720Name}`
+          : undefined,
       })
     }
   }
@@ -215,6 +222,49 @@ function buildMedia(referencedFiles) {
     const destination = path.join(PROJECT_PUBLIC, 'media', output.name)
     const extension = path.extname(source).toLowerCase()
     if (extension === '.mp4') {
+      if (output.quality1080Url && output.quality720Url) {
+        const qualities = [
+          {
+            destination: path.join(PROJECT_PUBLIC, 'media', path.basename(output.quality1080Url)),
+            width: 1920,
+            crf: '25',
+            audioBitrate: '128k',
+          },
+          {
+            destination: path.join(PROJECT_PUBLIC, 'media', path.basename(output.quality720Url)),
+            width: 720,
+            crf: '29',
+            audioBitrate: '96k',
+          },
+        ]
+
+        for (const quality of qualities) {
+          if (newerThan(source, quality.destination)) continue
+          runFfmpeg([
+            '-i',
+            source,
+            '-vf',
+            `scale='min(${quality.width},iw)':-2:flags=lanczos`,
+            '-c:v',
+            'libx264',
+            '-preset',
+            'medium',
+            '-crf',
+            quality.crf,
+            '-pix_fmt',
+            'yuv420p',
+            '-movflags',
+            '+faststart',
+            '-c:a',
+            'aac',
+            '-b:a',
+            quality.audioBitrate,
+            quality.destination,
+          ])
+        }
+        continue
+      }
+
       if (!newerThan(source, destination)) {
         runFfmpeg([
           '-i',
@@ -237,32 +287,6 @@ function buildMedia(referencedFiles) {
           '128k',
           destination,
         ])
-      }
-      if (output.mobileUrl) {
-        const mobileDestination = path.join(PROJECT_PUBLIC, 'media', path.basename(output.mobileUrl))
-        if (!newerThan(source, mobileDestination)) {
-          runFfmpeg([
-            '-i',
-            source,
-            '-vf',
-            "scale='min(720,iw)':-2:flags=lanczos",
-            '-c:v',
-            'libx264',
-            '-preset',
-            'medium',
-            '-crf',
-            '29',
-            '-pix_fmt',
-            'yuv420p',
-            '-movflags',
-            '+faststart',
-            '-c:a',
-            'aac',
-            '-b:a',
-            '96k',
-            mobileDestination,
-          ])
-        }
       }
       continue
     }
@@ -303,11 +327,20 @@ function rewriteMarkdown(markdown, sourceFile, outputByFile) {
   )
 
   next = next.replace(
-    /\b(src|poster|desktop-src|mobile-src)=["']([^"']+)["']/gi,
+    /\b(src|poster|desktop-src|mobile-src|quality-1080-src|quality-720-src)=["']([^"']+)["']/gi,
     (full, attribute, reference) => {
       const source = resolveMedia(sourceFile, reference)
       const output = source ? outputByFile.get(source) : undefined
-      const url = attribute === 'mobile-src' ? output?.mobileUrl : output?.url
+      const url =
+        attribute === 'quality-1080-src'
+          ? output?.quality1080Url
+          : attribute === 'quality-720-src'
+            ? output?.quality720Url
+            : attribute === 'desktop-src'
+              ? output?.quality1080Url || output?.url
+              : attribute === 'mobile-src'
+                ? output?.quality720Url || output?.url
+                : output?.url
       return url ? `${attribute}="${url}"` : full
     },
   )

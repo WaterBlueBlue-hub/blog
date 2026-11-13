@@ -16,8 +16,8 @@
 
 ## 演示视频
 <ResponsiveVideo
-  desktop-src="素材/Unity-XPBD-PBF/视频/项目完整演示.mp4"
-  mobile-src="素材/Unity-XPBD-PBF/视频/项目完整演示.mp4"
+  quality-1080-src="素材/Unity-XPBD-PBF/视频/项目完整演示.mp4"
+  quality-720-src="素材/Unity-XPBD-PBF/视频/项目完整演示.mp4"
   poster="素材/Unity-XPBD-PBF/图片/片头封面.webp"
   label="Unity 实时柔性体与粒子流体系统完整演示"
 />
