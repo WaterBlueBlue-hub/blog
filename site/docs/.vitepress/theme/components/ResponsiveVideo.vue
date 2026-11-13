@@ -92,8 +92,8 @@ watch(
       <span>清晰度</span>
       <select v-model="selectedQuality" aria-label="视频清晰度">
         <option value="auto">自动</option>
-        <option value="1080p">1080p</option>
         <option value="720p">720p</option>
+        <option value="1080p">1080p</option>
       </select>
       <small v-if="selectedQuality === 'auto'">当前 {{ activeQuality }}</small>
     </div>
