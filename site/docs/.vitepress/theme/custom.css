@@ -21,6 +21,18 @@
   --card-border: rgba(60, 60, 67, 0.12);
 }
 
+html,
+body {
+  overflow-x: clip;
+}
+
+@supports not (overflow: clip) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+}
+
 .dark {
   --vp-c-brand-1: #7aa6ff;
   --vp-c-brand-2: #93b7ff;
@@ -228,6 +240,43 @@
 @media (max-width: 959px) {
   .VPHome .VPHero .image {
     display: none;
+  }
+
+  .VPHome .VPHero .main {
+    width: 100%;
+    max-width: min(100%, 760px);
+    min-width: 0;
+  }
+
+  .VPHome .VPHero .heading,
+  .VPHome .VPHero .tagline {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .VPHome .VPHero.has-image .main::before {
+    inset: -18px -8px;
+  }
+
+  .VPHome .VPHero .contact-row {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .VPHome .VPHero .text {
+    font-size: clamp(32px, 10vw, 44px);
+    line-height: 1.08;
+    overflow-wrap: anywhere;
+  }
+
+  .VPHome .VPHero .tagline {
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .VPHome .VPHero .actions {
+    gap: 8px;
   }
 }
 

@@ -65,8 +65,8 @@ function setup(canvas: HTMLCanvasElement) {
 
   function resize() {
     dpr = Math.min(1.5, window.devicePixelRatio || 1)
-    W = window.innerWidth
-    H = window.innerHeight
+    W = document.documentElement.clientWidth || window.innerWidth
+    H = document.documentElement.clientHeight || window.innerHeight
     canvas.width = Math.round(W * dpr)
     canvas.height = Math.round(H * dpr)
     canvas.style.width = `${W}px`
