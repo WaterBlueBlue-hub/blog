@@ -161,6 +161,7 @@ function mediaReferences(markdown) {
   for (const pattern of [
     /<(?:img|source)\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi,
     /\bposter=["']([^"']+)["']/gi,
+    /\b(?:desktop-src|mobile-src)=["']([^"']+)["']/gi,
     /!\[[^\]]*\]\((?:<)?([^)>]+)(?:>)?\)/g,
   ]) {
     for (const match of markdown.matchAll(pattern)) references.push(match[1])
@@ -199,9 +200,11 @@ function buildMedia(referencedFiles) {
       const extension = path.extname(item.file)
       const stem = path.basename(item.file, extension)
       const name = hashes.size === 1 ? `${stem}${extension}` : `${stem}-${item.hash.slice(0, 8)}${extension}`
+      const mobileName = extension.toLowerCase() === '.mp4' ? `${stem}-mobile${extension}` : undefined
       outputByFile.set(item.file, {
         name,
         url: `${PROJECT_PUBLIC_URL}/media/${name}`,
+        mobileUrl: mobileName ? `${PROJECT_PUBLIC_URL}/media/${mobileName}` : undefined,
       })
     }
   }
@@ -210,8 +213,60 @@ function buildMedia(referencedFiles) {
 
   for (const [source, output] of outputByFile) {
     const destination = path.join(PROJECT_PUBLIC, 'media', output.name)
-    if (newerThan(source, destination)) continue
     const extension = path.extname(source).toLowerCase()
+    if (extension === '.mp4') {
+      if (!newerThan(source, destination)) {
+        runFfmpeg([
+          '-i',
+          source,
+          '-vf',
+          "scale='min(1280,iw)':-2:flags=lanczos",
+          '-c:v',
+          'libx264',
+          '-preset',
+          'medium',
+          '-crf',
+          '24',
+          '-pix_fmt',
+          'yuv420p',
+          '-movflags',
+          '+faststart',
+          '-c:a',
+          'aac',
+          '-b:a',
+          '128k',
+          destination,
+        ])
+      }
+      if (output.mobileUrl) {
+        const mobileDestination = path.join(PROJECT_PUBLIC, 'media', path.basename(output.mobileUrl))
+        if (!newerThan(source, mobileDestination)) {
+          runFfmpeg([
+            '-i',
+            source,
+            '-vf',
+            "scale='min(720,iw)':-2:flags=lanczos",
+            '-c:v',
+            'libx264',
+            '-preset',
+            'medium',
+            '-crf',
+            '29',
+            '-pix_fmt',
+            'yuv420p',
+            '-movflags',
+            '+faststart',
+            '-c:a',
+            'aac',
+            '-b:a',
+            '96k',
+            mobileDestination,
+          ])
+        }
+      }
+      continue
+    }
+    if (newerThan(source, destination)) continue
     if (extension === '.gif') {
       if (VERBATIM_GIFS.has(path.basename(source))) {
         fs.copyFileSync(source, destination)
@@ -224,28 +279,6 @@ function buildMedia(referencedFiles) {
         '[0:v]fps=10,scale=480:-2:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=96:stats_mode=diff[p];[s1][p]paletteuse=dither=sierra2_4a:diff_mode=rectangle',
         '-loop',
         '0',
-        destination,
-      ])
-    } else if (extension === '.mp4') {
-      runFfmpeg([
-        '-i',
-        source,
-        '-vf',
-        "scale='min(1280,iw)':-2:flags=lanczos",
-        '-c:v',
-        'libx264',
-        '-preset',
-        'medium',
-        '-crf',
-        '24',
-        '-pix_fmt',
-        'yuv420p',
-        '-movflags',
-        '+faststart',
-        '-c:a',
-        'aac',
-        '-b:a',
-        '128k',
         destination,
       ])
     } else {
@@ -270,11 +303,12 @@ function rewriteMarkdown(markdown, sourceFile, outputByFile) {
   )
 
   next = next.replace(
-    /\b(src|poster)=["']([^"']+)["']/gi,
+    /\b(src|poster|desktop-src|mobile-src)=["']([^"']+)["']/gi,
     (full, attribute, reference) => {
       const source = resolveMedia(sourceFile, reference)
       const output = source ? outputByFile.get(source) : undefined
-      return output ? `${attribute}="${output.url}"` : full
+      const url = attribute === 'mobile-src' ? output?.mobileUrl : output?.url
+      return url ? `${attribute}="${url}"` : full
     },
   )
 

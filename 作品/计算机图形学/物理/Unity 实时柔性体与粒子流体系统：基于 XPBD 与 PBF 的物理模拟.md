@@ -15,10 +15,12 @@
 | 输出形式 | 可运行 Unity 工程、演示视频、技术报告 |
 
 ## 演示视频
-<video controls preload="metadata" playsinline poster="素材/Unity-XPBD-PBF/图片/片头封面.webp" style="width: 100%; height: auto;">
-  <source src="素材/Unity-XPBD-PBF/视频/项目完整演示.mp4" type="video/mp4">
-  当前浏览器不支持 HTML5 视频播放。
-</video>
+<ResponsiveVideo
+  desktop-src="素材/Unity-XPBD-PBF/视频/项目完整演示.mp4"
+  mobile-src="素材/Unity-XPBD-PBF/视频/项目完整演示.mp4"
+  poster="素材/Unity-XPBD-PBF/图片/片头封面.webp"
+  label="Unity 实时柔性体与粒子流体系统完整演示"
+/>
 
 ## 求解架构
 &emsp;&emsp;XPBD 主求解器以 `XPBD_Solver.LateUpdate` 作为唯一入口，每帧依次完成旧位置记录、动画混合与风场施加、位置预测、约束投影、碰撞修正、速度回推和渲染同步。约束按距离、系链、弯曲、姿态、扭转和体积分组，组间串行、组内并行，以在保持 Gauss-Seidel 式收敛特性的同时获得有限的并行度。
