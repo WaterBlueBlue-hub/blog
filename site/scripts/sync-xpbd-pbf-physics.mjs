@@ -242,7 +242,10 @@ function buildMedia(referencedFiles) {
         'yuv420p',
         '-movflags',
         '+faststart',
-        '-an',
+        '-c:a',
+        'aac',
+        '-b:a',
+        '128k',
         destination,
       ])
     } else {
